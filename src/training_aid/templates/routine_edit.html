@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ routine.name }}{% endblock %}
+
+{% block content %}
+<main class="editor-screen">
+  <section class="editor-pane">
+    <div style="display: flex; align-items: center; gap: 0.6rem;">
+      <a href="/" class="btn-ghost" style="padding: 0.35rem 0.75rem;" aria-label="Back">←</a>
+      <h1 style="font-size: 1.15rem; font-weight: 800; margin: 0;">{{ routine.name }}</h1>
+      {% if routine_exercises %}
+      <a href="/workouts/{{ routine.id }}" class="btn-primary" style="margin-left: auto; padding: 0.4rem 0.95rem; font-size: 0.85rem;">▶</a>
+      {% endif %}
+    </div>
+
+    {% if routine_exercises %}
+    <ul class="ex-list">
+      {% for row in routine_exercises %}
+      <li class="catalog-card">
+        <div class="ex-row-left">
+          <img src="{{ row.svg_url }}" alt="" class="svg-thumb" />
+          <div style="min-width: 0;">
+            <div class="ex-row-name">{{ row.exercise.name }}</div>
+            <div class="ex-row-target">{{ row.scaled.formatted }}</div>
+          </div>
+        </div>
+        <form action="/routine-exercises/{{ row.item.id }}/delete" method="post" style="margin: 0;">
+          <button type="submit" class="btn-ghost" style="padding: 0.3rem 0.65rem;" aria-label="Remove">✕</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="muted">+ Select exercises</div>
+    {% endif %}
+  </section>
+
+  <section class="editor-pane">
+    <input
+      type="search"
+      name="q"
+      class="minimal-input"
+      placeholder="Search..."
+      aria-label="Search exercises"
+      hx-get="/routines/{{ routine.id }}/search"
+      hx-trigger="keyup changed delay:200ms, search"
+      hx-target="#search-results"
+    />
+
+    <div id="search-results">
+      {% include "partials/routine_search.html" %}
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Stats{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<main class="progress-screen">
+  <section class="kpi-strip">
+    <div class="kpi-cell">
+      <span class="kpi-num">{{ stats.total_workouts }}</span>
+      <span class="kpi-label">Done</span>
+    </div>
+    <div class="kpi-cell">
+      <span class="kpi-num">{{ stats.week_streak }}w</span>
+      <span class="kpi-label">Streak</span>
+    </div>
+    <div class="kpi-cell">
+      <span class="kpi-num">{{ stats.avg_plan_intensity }}%</span>
+      <span class="kpi-label">Load</span>
+    </div>
+  </section>
+
+  <section class="progress-body {% if not logs %}is-empty{% endif %}">
+    <div class="chart-stage">
+      {% if chart_labels %}
+      <canvas id="intensityChart"></canvas>
+      {% else %}
+      <div id="empty-progress-svg" class="stage-svg-wrap" style="opacity: 0.72;">
+        {{ empty_svg | safe }}
+      </div>
+      <div class="stage-hud-bottom" style="justify-content: center;">
+        <a href="/" class="btn-primary">▶ Start</a>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if logs %}
+    <aside class="log-rail" aria-label="History">
+      {% for log in logs %}
+      <div class="log-item">
+        <div style="min-width: 0;">
+          <div style="font-weight: 700; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            {{ log.routine_name }}
+          </div>
+          <div class="muted" style="font-size: 0.76rem;">
+            {{ log.completed_at.strftime("%b %d") }} · {{ log.intensity_percent }}%
+          </div>
+        </div>
+        <span class="pill {% if log.next_intensity_choice == 'more' %}pill-brand{% endif %}">
+          {% if log.next_intensity_choice == 'more' %}
+            +10%
+          {% elif log.next_intensity_choice == 'less' %}
+            −10%
+          {% else %}
+            =
+          {% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </aside>
+    {% endif %}
+  </section>
+</main>
+
+{% if chart_labels %}
+<script>
+  (function () {
+    const canvas = document.getElementById("intensityChart");
+    if (!canvas || typeof Chart === "undefined") return;
+    const values = {{ chart_values | tojson }};
+    const minVal = Math.min(85, ...values) - 10;
+    const maxVal = Math.max(115, ...values) + 10;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createLinearGradient(0, 0, 0, 560);
+    grad.addColorStop(0, "rgba(52, 211, 153, 0.34)");
+    grad.addColorStop(1, "rgba(16, 185, 129, 0.0)");
+
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: {{ chart_labels | tojson }},
+        datasets: [{
+          data: values,
+          borderColor: "#34d399",
+          backgroundColor: grad,
+          borderWidth: 3.5,
+          tension: 0.3,
+          fill: true,
+          pointRadius: 6,
+          pointBackgroundColor: "#34d399",
+          pointBorderColor: "#090d16",
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { color: "rgba(148, 163, 184, 0.08)" },
+            ticks: { color: "#94a3b8", font: { weight: "600" } }
+          },
+          y: {
+            suggestedMin: minVal,
+            suggestedMax: maxVal,
+            grid: { color: "rgba(148, 163, 184, 0.08)" },
+            ticks: {
+              color: "#94a3b8",
+              font: { weight: "600" },
+              callback: function (v) { return v + "%"; }
+            }
+          }
+        }
+      }
+    });
+  })();
+</script>
+{% else %}
+<script>
+  (function () {
+    const svg = document.querySelector("#empty-progress-svg svg");
+    if (!svg || !window.TrainingMotion) return;
+    const rig = window.TrainingMotion.bindSvg(svg);
+    let t0 = null;
+    function frame(ts) {
+      if (!t0) t0 = ts;
+      rig.applyPose(0.5 - 0.5 * Math.cos(((ts - t0) / 1000) * 1.8));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+</script>
+{% endif %}
+{% endblock %}
