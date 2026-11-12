@@ -191,14 +191,22 @@ select {
 }
 
 .svg-thumb {
-  width: 42px;
-  height: 36px;
+  width: 44px;
+  height: 38px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: rgba(9, 13, 22, 0.75);
-  border: 1px solid var(--border);
-  padding: 2px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(16, 185, 129, 0.12) 0%,
+    rgba(9, 13, 22, 0.88) 78%
+  );
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 1.5px;
   object-fit: contain;
+}
+
+.ex-row:hover .svg-thumb {
+  border-color: rgba(52, 211, 153, 0.45);
 }
 
 /* ------------------------------------------------------------------
@@ -927,5 +935,45 @@ select {
     height: auto;
     border-left: none;
     border-top: 1px solid var(--border);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reduced Motion Accessibility
+------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .rep-readout,
+  .edge-progress-fill,
+  .mini-bar-fill,
+  .workout-viewport,
+  .btn-primary,
+  .btn-ghost,
+  .hud-icon-btn,
+  .finish-tile,
+  .routine-card,
+  .ex-row,
+  .tile-option,
+  .minimal-input,
+  .minimal-select,
+  .nav-pills a {
+    transition: none !important;
+  }
+
+  .rep-readout.pop {
+    transform: none;
+  }
+
+  .btn-primary:hover,
+  .finish-tile:hover {
+    transform: none;
   }
 }

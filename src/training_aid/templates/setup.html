@@ -9,7 +9,10 @@
 <main class="split-screen">
   <section class="graphic-stage" aria-label="Exercise preview">
     <div class="stage-hud-top">
-      <span class="pill pill-brand">Setup</span>
+      <div style="display: flex; align-items: center; gap: 0.45rem;">
+        <span class="pill pill-brand">Setup</span>
+        <span class="pill" id="setup-prescription-pill">{% if cur_int == 'light' %}2 sets · −20% load{% elif cur_int == 'intense' %}4 sets · +20% load{% else %}3 sets · Base load{% endif %}</span>
+      </div>
       {% if all_users and (all_users | length) > 1 %}
       <form action="/users/switch" method="post" style="margin: 0;">
         <select name="user_id" class="minimal-select" style="padding: 0.25rem 0.6rem; font-size: 0.82rem;" aria-label="User" onchange="this.form.submit()">
@@ -109,39 +112,124 @@
 <script>
   (function () {
     const SVGS = {{ equipment_svgs | tojson }};
-    const wrap = document.getElementById("setup-svg-wrap");
-    let rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
-    let speed = 2.0;
+    const PRESCRIPTIONS = {
+      light: "2 sets · −20% load",
+      moderate: "3 sets · Base load",
+      intense: "4 sets · +20% load",
+    };
+    const SPEEDS = {
+      light: 0.36,
+      moderate: 0.39,
+      intense: 0.42,
+    };
 
-    function syncSpeed() {
+    const wrap = document.getElementById("setup-svg-wrap");
+    const prescriptionPill = document.getElementById("setup-prescription-pill");
+    const reducedMotionQuery = window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+
+    function isReducedMotion() {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.prefersReducedMotion === "function"
+      ) {
+        return window.TrainingMotion.prefersReducedMotion();
+      }
+      return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
+    }
+
+    function evalTempo(frac) {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.tempoCurve === "function"
+      ) {
+        return window.TrainingMotion.tempoCurve(frac, "standard");
+      }
+      return 0.5 - 0.5 * Math.cos(frac * Math.PI * 2);
+    }
+
+    let rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
+    let speed = SPEEDS.moderate;
+    let phase = 0;
+    let currentT = 0;
+    let lastTs = null;
+    let rafId = null;
+
+    function syncIntensity() {
       const checked = document.querySelector('input[name="starting_intensity"]:checked');
       const v = checked ? checked.value : "moderate";
-      speed = v === "light" ? 1.5 : (v === "intense" ? 2.9 : 2.1);
+      speed = SPEEDS[v] || SPEEDS.moderate;
+      if (prescriptionPill) {
+        prescriptionPill.textContent = PRESCRIPTIONS[v] || PRESCRIPTIONS.moderate;
+      }
     }
-    syncSpeed();
+    syncIntensity();
+
+    function stopLoop() {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastTs = null;
+    }
+
+    function ensureLoop() {
+      if (document.hidden || isReducedMotion()) {
+        stopLoop();
+        if (isReducedMotion() && rig) {
+          currentT = 0.85;
+          rig.applyPose(0.85);
+        }
+        return;
+      }
+      if (rafId === null) {
+        lastTs = null;
+        rafId = requestAnimationFrame(frame);
+      }
+    }
+
+    function frame(ts) {
+      rafId = null;
+      if (document.hidden || isReducedMotion()) {
+        lastTs = null;
+        return;
+      }
+      const dt = lastTs === null ? 0 : Math.min(0.1, (ts - lastTs) / 1000);
+      lastTs = ts;
+      phase = (phase + dt * speed) % 1;
+      currentT = evalTempo(phase);
+      rig.applyPose(currentT);
+      rafId = requestAnimationFrame(frame);
+    }
 
     document.querySelectorAll('input[name="equipment"]').forEach((el) => {
       el.addEventListener("change", () => {
         if (SVGS[el.value]) {
           wrap.innerHTML = SVGS[el.value];
           rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
+          rig.applyPose(isReducedMotion() ? 0.85 : currentT);
         }
       });
     });
 
     document.querySelectorAll('input[name="starting_intensity"]').forEach((el) => {
-      el.addEventListener("change", syncSpeed);
+      el.addEventListener("change", syncIntensity);
     });
 
-    let start = null;
-    function frame(ts) {
-      if (!start) start = ts;
-      const sec = (ts - start) / 1000;
-      const t = 0.5 - 0.5 * Math.cos(sec * speed);
-      rig.applyPose(t);
-      requestAnimationFrame(frame);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        ensureLoop();
+      }
+    });
+
+    if (reducedMotionQuery && typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", ensureLoop);
     }
-    requestAnimationFrame(frame);
+
+    ensureLoop();
   })();
 </script>
 {% endblock %}

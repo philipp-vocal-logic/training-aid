@@ -125,13 +125,82 @@
     const svg = document.querySelector("#empty-progress-svg svg");
     if (!svg || !window.TrainingMotion) return;
     const rig = window.TrainingMotion.bindSvg(svg);
-    let t0 = null;
-    function frame(ts) {
-      if (!t0) t0 = ts;
-      rig.applyPose(0.5 - 0.5 * Math.cos(((ts - t0) / 1000) * 1.8));
-      requestAnimationFrame(frame);
+    const reducedMotionQuery = window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+
+    function isReducedMotion() {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.prefersReducedMotion === "function"
+      ) {
+        return window.TrainingMotion.prefersReducedMotion();
+      }
+      return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
     }
-    requestAnimationFrame(frame);
+
+    function evalTempo(frac) {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.tempoCurve === "function"
+      ) {
+        return window.TrainingMotion.tempoCurve(frac, "standard");
+      }
+      return 0.5 - 0.5 * Math.cos(frac * Math.PI * 2);
+    }
+
+    let phase = 0;
+    let lastTs = null;
+    let rafId = null;
+
+    function stopLoop() {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastTs = null;
+    }
+
+    function ensureLoop() {
+      if (document.hidden || isReducedMotion()) {
+        stopLoop();
+        if (isReducedMotion()) {
+          rig.applyPose(0.85);
+        }
+        return;
+      }
+      if (rafId === null) {
+        lastTs = null;
+        rafId = requestAnimationFrame(frame);
+      }
+    }
+
+    function frame(ts) {
+      rafId = null;
+      if (document.hidden || isReducedMotion()) {
+        lastTs = null;
+        return;
+      }
+      const dt = lastTs === null ? 0 : Math.min(0.1, (ts - lastTs) / 1000);
+      lastTs = ts;
+      phase = (phase + dt * 0.36) % 1;
+      rig.applyPose(evalTempo(phase));
+      rafId = requestAnimationFrame(frame);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        ensureLoop();
+      }
+    });
+
+    if (reducedMotionQuery && typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", ensureLoop);
+    }
+
+    ensureLoop();
   })();
 </script>
 {% endif %}
