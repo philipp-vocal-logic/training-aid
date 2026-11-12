@@ -1,11 +1,16 @@
-from collections.abc import Generator
-from datetime import datetime, timedelta, timezone
+# Copyright (c) 2026 Philipp Kaaden
+"""End-to-end, kinematic, coaching, and asset test suite for Training Aid."""
+
 import json
 import math
+import tomllib
 import xml.etree.ElementTree as ET
+from collections.abc import Generator
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
 
@@ -34,18 +39,33 @@ from training_aid.services import (
 )
 from training_aid.svg_assets import (
     ARCHETYPE_SPECS,
+    BONE_KEYS,
+    POSE_KEYS,
+    STD_BONES,
     SVGS_DIR,
     compute_shadow,
+    evaluate_archetype_pose,
     lerp_pose,
     load_svg_markup,
+    normalize_equipment,
     pregenerate_all_svgs,
     render_archetype_svg,
     solve_fk,
 )
 
 
-@pytest.fixture()
-def session() -> Generator[Session, None, None]:
+def _parse_svg(svg_markup: str) -> ET.Element:
+    """Parse trusted in-process SVG markup into an ElementTree element."""
+    return ET.fromstring(svg_markup)  # noqa: S314
+
+
+def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
+    return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+@pytest.fixture
+def session() -> Generator[Session]:
+    """Provide an isolated in-memory SQLite session seeded with exercises."""
     test_engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -57,9 +77,11 @@ def session() -> Generator[Session, None, None]:
         yield db
 
 
-@pytest.fixture()
-def client(session: Session) -> Generator[TestClient, None, None]:
-    def override_get_session() -> Generator[Session, None, None]:
+@pytest.fixture
+def client(session: Session) -> Generator[TestClient]:
+    """Provide a FastAPI TestClient wired to the isolated test database session."""
+
+    def override_get_session() -> Generator[Session]:
         yield session
 
     app.dependency_overrides[get_session] = override_get_session
@@ -68,7 +90,8 @@ def client(session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_first_visit_opens_fullscreen_minimal_setup(client: TestClient):
+def test_first_visit_opens_fullscreen_minimal_setup(client: TestClient) -> None:
+    """Verify initial visit redirects to the minimal split-screen setup view."""
     res = client.get("/", follow_redirects=True)
     assert res.status_code == 200
     assert 'class="split-screen"' in res.text
@@ -79,11 +102,11 @@ def test_first_visit_opens_fullscreen_minimal_setup(client: TestClient):
     assert "Body Only" in res.text
     assert "Intensity" in res.text
     assert "Weekly" in res.text
-    # Verbose sentences removed
     assert "Answer 4 quick questions" not in res.text
 
 
-def test_exercise_seeding_and_all_equipment_programs(session: Session):
+def test_exercise_seeding_and_all_equipment_programs(session: Session) -> None:
+    """Verify exercise catalog seeding covers all curated equipment program entries."""
     exercises = session.exec(select(Exercise)).all()
     assert len(exercises) > 800
 
@@ -96,8 +119,10 @@ def test_exercise_seeding_and_all_equipment_programs(session: Session):
 
 
 def test_onboarding_builds_tailored_body_only_light_plan(
-    client: TestClient, session: Session
-):
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Verify setup form creates a tailored bodyweight light plan."""
     res = client.post(
         "/setup",
         data={
@@ -109,7 +134,7 @@ def test_onboarding_builds_tailored_body_only_light_plan(
         follow_redirects=True,
     )
     assert res.status_code == 200
-    assert "Philipp · 0/2" in res.text
+    assert "Philipp \u00b7 0/2" in res.text
     assert "Body Only Plan (2x/Week)" in res.text
     assert 'id="overview-svg-wrap"' in res.text
 
@@ -131,8 +156,10 @@ def test_onboarding_builds_tailored_body_only_light_plan(
 
 
 def test_fullscreen_workout_coach_and_minimal_intensity_adaptation(
-    client: TestClient, session: Session
-):
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Verify guided workout flow, intensity feedback scaling, and progress view."""
     client.post(
         "/setup",
         data={
@@ -149,21 +176,19 @@ def test_fullscreen_workout_coach_and_minimal_intensity_adaptation(
     )
     day1, day2 = routines[0], routines[1]
 
-    # Open Day 1 full-screen guided workout
     ws = client.get(f"/workouts/{day1.id}")
     assert ws.status_code == 200
-    assert 'class="topbar"' not in ws.text  # No global nav clutter in workout view
+    assert 'class="topbar"' not in ws.text
     assert 'class="workout-viewport"' in ws.text
     assert 'class="workout-svg-canvas"' in ws.text
-    assert "1/4 · S1/3" in ws.text
+    assert "1/4 \u00b7 S1/3" in ws.text
     assert "data-pose-a=" in ws.text
     assert "data-pose-b=" in ws.text
     assert "startSignal()" in ws.text
     assert "What to do:" not in ws.text
     assert "+10%" in ws.text
-    assert "−10%" in ws.text
+    assert "\u221210%" in ws.text
 
-    # 1-tap finish choosing "more"
     done_more = client.post(
         f"/workouts/{day1.id}/complete",
         data={"next_intensity_choice": "more"},
@@ -172,19 +197,17 @@ def test_fullscreen_workout_coach_and_minimal_intensity_adaptation(
     assert done_more.status_code == 200
     assert "+10%" in done_more.text
     assert day2.name in done_more.text
-    assert "3 × 8 @ 44 kg" in done_more.text
+    assert "3 \u00d7 8 @ 44 kg" in done_more.text
 
-    # Finish Day 2 choosing "less"
     done_less = client.post(
         f"/workouts/{day2.id}/complete",
         data={"next_intensity_choice": "less"},
         follow_redirects=True,
     )
     assert done_less.status_code == 200
-    assert "−10%" in done_less.text
-    assert "3 × 8 @ 36 kg" in done_less.text
+    assert "\u221210%" in done_less.text
+    assert "3 \u00d7 8 @ 36 kg" in done_less.text
 
-    # Full-screen Stats / Progress view
     prog = client.get("/progress")
     assert prog.status_code == 200
     assert 'class="progress-screen"' in prog.text
@@ -192,12 +215,14 @@ def test_fullscreen_workout_coach_and_minimal_intensity_adaptation(
     assert "Streak" in prog.text
     assert "Load" in prog.text
     assert "+10%" in prog.text
-    assert "−10%" in prog.text
+    assert "\u221210%" in prog.text
 
 
 def test_simple_routine_customization_with_svg_thumbnails(
-    client: TestClient, session: Session
-):
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Verify routine day creation, SVG search thumbnails, and adding exercises."""
     client.post(
         "/setup",
         data={
@@ -235,19 +260,20 @@ def test_simple_routine_customization_with_svg_thumbnails(
     )
     assert add_ex.status_code == 200
     assert "Pushups" in add_ex.text
-    assert "4 × 12 reps" in add_ex.text
+    assert "4 \u00d7 12 reps" in add_ex.text
 
 
-def test_intensity_math_and_streak():
+def test_intensity_math_and_streak() -> None:
+    """Verify rep scaling math, intensity floor clamping, and weekly streaks."""
     item = RoutineExercise(
         routine_id=1, exercise_id="Pushups", sets=3, base_reps=10, base_weight_kg=None
     )
-    assert compute_scaled_target(item, 0).formatted == "3 × 10 reps"
-    assert compute_scaled_target(item, 1).formatted == "3 × 11 reps"
-    assert compute_scaled_target(item, -1).formatted == "3 × 9 reps"
+    assert compute_scaled_target(item, 0).formatted == "3 \u00d7 10 reps"
+    assert compute_scaled_target(item, 1).formatted == "3 \u00d7 11 reps"
+    assert compute_scaled_target(item, -1).formatted == "3 \u00d7 9 reps"
     assert apply_intensity_feedback(-5, "less") == -5
 
-    now = datetime(2026, 11, 12, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
     logs = [
         WorkoutLog(user_id=1, routine_name="A", completed_at=now - timedelta(days=1)),
         WorkoutLog(user_id=1, routine_name="B", completed_at=now - timedelta(days=8)),
@@ -256,8 +282,10 @@ def test_intensity_math_and_streak():
 
 
 def test_pregenerated_svgs_motion_js_and_minimal_coaching(
-    client: TestClient, session: Session
-):
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Verify pregenerated SVGs, static assets, and minimal coaching metadata."""
     written = pregenerate_all_svgs()
     assert len(written) == len(ARCHETYPE_SPECS) == len(ARCHETYPE_COACHING) == 18
     assert set(ARCHETYPE_SPECS.keys()) == set(ARCHETYPE_COACHING.keys())
@@ -265,24 +293,14 @@ def test_pregenerated_svgs_motion_js_and_minimal_coaching(
     for archetype in ARCHETYPE_SPECS:
         svg_path = SVGS_DIR / f"{archetype}.svg"
         assert svg_path.exists()
-        root = ET.fromstring(svg_path.read_text(encoding="utf-8"))
+        root = _parse_svg(svg_path.read_text(encoding="utf-8"))
         assert root.attrib.get("preserveAspectRatio") == "xMidYMid meet"
         assert root.attrib.get("viewBox") == "0 0 240 200"
         pose_a = json.loads(root.attrib["data-pose-a"])
         pose_b = json.loads(root.attrib["data-pose-b"])
         bones = json.loads(root.attrib["data-bones"])
         assert set(pose_a.keys()) == set(pose_b.keys())
-        assert {
-            "lumbar",
-            "thoracic",
-            "neck",
-            "uarm",
-            "farm",
-            "thigh",
-            "shin",
-            "back_dx",
-            "back_dy",
-        }.issubset(bones.keys())
+        assert set(BONE_KEYS).issubset(bones.keys())
 
         res = client.get(f"/static/svgs/{archetype}.svg")
         assert res.status_code == 200
@@ -305,7 +323,9 @@ def test_pregenerated_svgs_motion_js_and_minimal_coaching(
     squat = session.get(Exercise, "Bodyweight_Squat")
     plank = session.get(Exercise, "Plank")
     pushup = session.get(Exercise, "Pushups")
-    assert squat and plank and pushup
+    assert squat is not None
+    assert plank is not None
+    assert pushup is not None
     assert classify_archetype(squat) == "squat"
     assert classify_archetype(pushup) == "pushup"
 
@@ -315,28 +335,70 @@ def test_pregenerated_svgs_motion_js_and_minimal_coaching(
     assert plank_guide["unit"] == "sec"
 
 
-def test_fk_zero_bone_distortion_and_viewport_bounds_all_18_archetypes():
-    def dist(a: tuple[float, float], b: tuple[float, float]) -> float:
-        return math.hypot(a[0] - b[0], a[1] - b[1])
+def _assert_rig_kinematics_and_bounds(
+    archetype: str,
+    bones: dict[str, float],
+    pose_a: dict[str, float],
+    pose_b: dict[str, float],
+) -> None:
+    segment_pairs = (
+        ("hip", "mid_spine", "lumbar"),
+        ("mid_spine", "shoulder", "thoracic"),
+        ("shoulder", "head", "neck"),
+        ("shoulder", "elbow_f", "uarm"),
+        ("elbow_f", "hand_f", "farm"),
+        ("shoulder_b", "elbow_b", "uarm"),
+        ("elbow_b", "hand_b", "farm"),
+        ("hip", "knee_f", "thigh"),
+        ("knee_f", "foot_f", "shin"),
+        ("hip_b", "knee_b", "thigh"),
+        ("knee_b", "foot_b", "shin"),
+    )
+    for swap in (False, True):
+        for t in (0.0, 0.25, 0.5, 0.75, 1.0):
+            pose = lerp_pose(pose_a, pose_b, t)
+            pts = solve_fk(bones, pose, swap_sides=swap)
 
-    sample_ts = (0.0, 0.25, 0.5, 0.75, 1.0)
+            for p1_key, p2_key, bone_key in segment_pairs:
+                assert _dist(pts[p1_key], pts[p2_key]) == pytest.approx(
+                    bones[bone_key], abs=1e-9
+                )
+
+            for joint_name, (jx, jy) in pts.items():
+                assert 0.0 <= jx <= 240.0, (
+                    f"{archetype} t={t} {joint_name} x={jx} outside viewBox"
+                )
+                assert 0.0 <= jy <= 174.0, (
+                    f"{archetype} t={t} {joint_name} y={jy} penetrates floor/top"
+                )
+            hx, hy = pts["head"]
+            assert 11.5 <= hx <= 228.5, (
+                f"{archetype} t={t} head x clips outside bounds: ({hx}, {hy})"
+            )
+            assert 11.5 <= hy <= 174.0, (
+                f"{archetype} t={t} head y clips outside bounds: ({hx}, {hy})"
+            )
+
+
+def test_fk_zero_bone_distortion_and_viewport_bounds_all_18_archetypes() -> None:
+    """Verify zero bone-length distortion and viewport bounds for all archetypes."""
     assert len(ARCHETYPE_SPECS) == 18
 
     for archetype in ARCHETYPE_SPECS:
         svg_text = render_archetype_svg(archetype, thumbnail=False)
-        root = ET.fromstring(svg_text)
+        root = _parse_svg(svg_text)
         bones = json.loads(root.attrib["data-bones"])
         pose_a = json.loads(root.attrib["data-pose-a"])
         pose_b = json.loads(root.attrib["data-pose-b"])
 
-        # 2-segment spine path + neck line must be present
         torso_el = root.find(".//*[@class='js-torso']")
         neck_el = root.find(".//*[@class='js-neck']")
-        assert torso_el is not None and torso_el.tag.endswith("path")
+        assert torso_el is not None
+        assert torso_el.tag.endswith("path")
         assert " Q " in torso_el.attrib.get("d", "")
-        assert neck_el is not None and neck_el.tag.endswith("line")
+        assert neck_el is not None
+        assert neck_el.tag.endswith("line")
 
-        # Initial t=0 shadow matches compute_shadow
         j0 = solve_fk(bones, lerp_pose(pose_a, pose_b, 0.0))
         expected_cx, expected_rx = compute_shadow(j0)
         shadow_el = root.find(".//*[@class='js-shadow']")
@@ -344,60 +406,9 @@ def test_fk_zero_bone_distortion_and_viewport_bounds_all_18_archetypes():
         assert float(shadow_el.attrib["cx"]) == pytest.approx(expected_cx, abs=0.05)
         assert float(shadow_el.attrib["rx"]) == pytest.approx(expected_rx, abs=0.05)
 
-        for swap in (False, True):
-            for t in sample_ts:
-                pose = lerp_pose(pose_a, pose_b, t)
-                pts = solve_fk(bones, pose, swap_sides=swap)
+        _assert_rig_kinematics_and_bounds(archetype, bones, pose_a, pose_b)
 
-                # 0.0% bone-length distortion across every segment (front and back)
-                assert dist(pts["hip"], pts["mid_spine"]) == pytest.approx(
-                    bones["lumbar"], abs=1e-9
-                )
-                assert dist(pts["mid_spine"], pts["shoulder"]) == pytest.approx(
-                    bones["thoracic"], abs=1e-9
-                )
-                assert dist(pts["shoulder"], pts["head"]) == pytest.approx(
-                    bones["neck"], abs=1e-9
-                )
-                assert dist(pts["shoulder"], pts["elbow_f"]) == pytest.approx(
-                    bones["uarm"], abs=1e-9
-                )
-                assert dist(pts["elbow_f"], pts["hand_f"]) == pytest.approx(
-                    bones["farm"], abs=1e-9
-                )
-                assert dist(pts["shoulder_b"], pts["elbow_b"]) == pytest.approx(
-                    bones["uarm"], abs=1e-9
-                )
-                assert dist(pts["elbow_b"], pts["hand_b"]) == pytest.approx(
-                    bones["farm"], abs=1e-9
-                )
-                assert dist(pts["hip"], pts["knee_f"]) == pytest.approx(
-                    bones["thigh"], abs=1e-9
-                )
-                assert dist(pts["knee_f"], pts["foot_f"]) == pytest.approx(
-                    bones["shin"], abs=1e-9
-                )
-                assert dist(pts["hip_b"], pts["knee_b"]) == pytest.approx(
-                    bones["thigh"], abs=1e-9
-                )
-                assert dist(pts["knee_b"], pts["foot_b"]) == pytest.approx(
-                    bones["shin"], abs=1e-9
-                )
-
-                # Viewport (0..240 x 0..200) & floor (y <= 174) bounds
-                for joint_name, (jx, jy) in pts.items():
-                    assert 0.0 <= jx <= 240.0, (
-                        f"{archetype} t={t} {joint_name} x={jx} outside viewBox"
-                    )
-                    assert 0.0 <= jy <= 174.0, (
-                        f"{archetype} t={t} {joint_name} y={jy} penetrates floor/top"
-                    )
-                hx, hy = pts["head"]
-                assert 11.5 <= hx <= 228.5 and 11.5 <= hy <= 174.0, (
-                    f"{archetype} t={t} head circle clips outside bounds: ({hx}, {hy})"
-                )
-
-    # Overhead press uses sagittal / 3/4 profile (non-zero back-shoulder offset, arms in front)
+    # Overhead press uses sagittal / 3/4 profile (non-zero back-shoulder offset)
     ohp_j0 = solve_fk(
         ARCHETYPE_SPECS["overhead_press"]["bones"],
         ARCHETYPE_SPECS["overhead_press"]["pose_a"],
@@ -405,51 +416,46 @@ def test_fk_zero_bone_distortion_and_viewport_bounds_all_18_archetypes():
     assert ohp_j0["shoulder"] != ohp_j0["shoulder_b"]
 
     # Floor archetypes center aura lower than standing archetypes
-    plank_aura = ET.fromstring(render_archetype_svg("plank")).find(
+    plank_aura = _parse_svg(render_archetype_svg("plank")).find(
         ".//*[@class='js-aura']"
     )
-    squat_aura = ET.fromstring(render_archetype_svg("squat")).find(
+    squat_aura = _parse_svg(render_archetype_svg("squat")).find(
         ".//*[@class='js-aura']"
     )
-    assert plank_aura is not None and squat_aura is not None
+    assert plank_aura is not None
+    assert squat_aura is not None
     assert float(plank_aura.attrib["cy"]) > float(squat_aura.attrib["cy"]) + 15.0
 
 
-def test_decoupled_equipment_props_and_baked_thumbnails():
-    # Barbell squat renders back-rack barbell shaft + plates
-    bb_squat = ET.fromstring(render_archetype_svg("squat", equipment="barbell"))
+def test_decoupled_equipment_props_and_baked_thumbnails() -> None:
+    """Verify equipment-specific SVG props and peak-pose static thumbnails."""
+    bb_squat = _parse_svg(render_archetype_svg("squat", equipment="barbell"))
     assert bb_squat.attrib.get("data-equipment") == "barbell"
     assert bb_squat.attrib.get("data-bar-mode") == "shoulder"
     assert bb_squat.find(".//*[@class='js-bar-shaft']") is not None
     assert bb_squat.find(".//*[@class='js-weight']") is not None
 
-    # Bodyweight row and hinge render zero handheld weights
-    bw_row = ET.fromstring(render_archetype_svg("row_pull", equipment="body only"))
-    bw_hinge = ET.fromstring(render_archetype_svg("hinge", equipment="body only"))
+    bw_row = _parse_svg(render_archetype_svg("row_pull", equipment="body only"))
+    bw_hinge = _parse_svg(render_archetype_svg("hinge", equipment="body only"))
     assert bw_row.find(".//*[@class='js-weight']") is None
     assert bw_hinge.find(".//*[@class='js-weight']") is None
 
-    # Band exercises render taut band lines from anchor without green dumbbell circles
-    band_hinge = ET.fromstring(render_archetype_svg("hinge", equipment="bands"))
+    band_hinge = _parse_svg(render_archetype_svg("hinge", equipment="bands"))
     assert band_hinge.attrib.get("data-equipment") == "bands"
-    assert "data-anchor-x" in band_hinge.attrib and "data-anchor-y" in band_hinge.attrib
+    assert "data-anchor-x" in band_hinge.attrib
+    assert "data-anchor-y" in band_hinge.attrib
     assert band_hinge.find(".//*[@class='js-band-f']") is not None
     assert band_hinge.find(".//*[@class='js-band-b']") is not None
     assert band_hinge.find(".//*[@class='js-weight']") is None
 
-    # Cable exercises render taut cable line + grip
-    cable_pull = ET.fromstring(
-        render_archetype_svg("vertical_pull", equipment="cable")
-    )
+    cable_pull = _parse_svg(render_archetype_svg("vertical_pull", equipment="cable"))
     assert cable_pull.find(".//*[@class='js-cable']") is not None
     assert cable_pull.find(".//*[@class='js-cable-grip']") is not None
 
-    # Kettlebell squat renders kettlebell handle + bell
-    kb_squat = ET.fromstring(render_archetype_svg("squat", equipment="kettlebells"))
+    kb_squat = _parse_svg(render_archetype_svg("squat", equipment="kettlebells"))
     assert kb_squat.find(".//*[@class='js-kb-handle-f']") is not None
     assert kb_squat.find(".//*[@class='js-weight']") is not None
 
-    # Pregenerated static thumbnails are baked near pose_b (t=0.9), distinct from t=0
     pregenerate_all_svgs()
     for archetype in ARCHETYPE_SPECS:
         static_svg = (SVGS_DIR / f"{archetype}.svg").read_text(encoding="utf-8")
@@ -459,7 +465,8 @@ def test_decoupled_equipment_props_and_baked_thumbnails():
         assert static_svg != live_t0_svg
 
 
-def test_expanded_taxonomy_accuracy_holds_and_tempo_metadata(session: Session):
+def test_expanded_taxonomy_accuracy_holds_and_tempo_metadata(session: Session) -> None:
+    """Verify exercise archetype classification, hold units, and tempo modes."""
     expected_mappings = {
         "Wide-Grip_Lat_Pulldown": "vertical_pull",
         "Pullups": "vertical_pull",
@@ -477,7 +484,6 @@ def test_expanded_taxonomy_accuracy_holds_and_tempo_metadata(session: Session):
             f"{ex_id} classified as {classify_archetype(ex)}, expected {expected_arch}"
         )
 
-    # Stretching and isometric hold exercises map to is_hold=True & "sec" units
     stretches = list(
         session.exec(
             select(Exercise).where(Exercise.category == "stretching").limit(10)
@@ -501,15 +507,17 @@ def test_expanded_taxonomy_accuracy_holds_and_tempo_metadata(session: Session):
         )
         assert (
             compute_scaled_target(hold_item, 0, exercise=stretch_ex).formatted
-            == "2 × 30 sec"
+            == "2 \u00d7 30 sec"
         )
 
-    # Explosive & alternating metadata plus equipment-aware guidance SVG
     jump_squat = session.get(Exercise, "Freehand_Jump_Squat")
     air_bike = session.get(Exercise, "Air_Bike")
     band_skull = session.get(Exercise, "Band_Skull_Crusher")
     barbell_squat = session.get(Exercise, "Barbell_Full_Squat")
-    assert jump_squat and air_bike and band_skull and barbell_squat
+    assert jump_squat is not None
+    assert air_bike is not None
+    assert band_skull is not None
+    assert barbell_squat is not None
 
     assert build_exercise_guidance(jump_squat)["tempo_mode"] == "explosive"
     air_guide = build_exercise_guidance(air_bike)
@@ -525,15 +533,18 @@ def test_expanded_taxonomy_accuracy_holds_and_tempo_metadata(session: Session):
 
 
 def test_accessibility_motion_js_selector_caching_and_ui_routes(
-    client: TestClient, session: Session
-):
-    # Human-readable aria-labels with zero raw underscores on all 18 archetypes
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Verify SVG aria-labels, motion.js DOM selector caching, and HTTP UI routes."""
     for archetype in ARCHETYPE_SPECS:
-        root = ET.fromstring(render_archetype_svg(archetype))
+        root = _parse_svg(render_archetype_svg(archetype))
         aria_label = root.attrib.get("aria-label", "")
-        assert aria_label and "_" not in aria_label and aria_label[0].isupper()
+        assert aria_label
+        assert "_" not in aria_label
+        assert aria_label[0].isupper()
 
-    # motion.js exposes required API and performs zero querySelector calls inside applyPose
+    # motion.js exposes required API with zero querySelector calls inside render loop
     motion_js = client.get("/static/motion.js").text
     for symbol in (
         "tempoCurve",
@@ -546,11 +557,9 @@ def test_accessibility_motion_js_selector_caching_and_ui_routes(
     assert "querySelector" in motion_js[:render_state_idx]
     assert "querySelector" not in motion_js[render_state_idx:]
 
-    # style.css includes reduced-motion media query
     style_css = client.get("/static/style.css").text
     assert "@media (prefers-reduced-motion: reduce)" in style_css
 
-    # Verify HTTP routes (/setup, /, /workouts/{id}, /progress, /routines/{id}/edit)
     setup_res = client.get("/setup")
     assert setup_res.status_code == 200
     assert 'id="setup-prescription-pill"' in setup_res.text
@@ -576,7 +585,6 @@ def test_accessibility_motion_js_selector_caching_and_ui_routes(
     )
     assert len(routines) == 3
 
-    # Day 2 (Band & Core) workout renders band props and biomechanical motion hooks
     workout_res = client.get(f"/workouts/{routines[1].id}")
     assert workout_res.status_code == 200
     assert "tempoCurve" in workout_res.text
@@ -591,3 +599,31 @@ def test_accessibility_motion_js_selector_caching_and_ui_routes(
     edit_res = client.get(f"/routines/{routines[0].id}/edit")
     assert edit_res.status_code == 200
     assert 'class="editor-screen"' in edit_res.text
+
+
+def test_svg_public_api_and_ruff_config_contract() -> None:
+    """Verify svg_assets public helpers and pyproject.toml Ruff configuration."""
+    assert len(POSE_KEYS) == 13
+    assert set(STD_BONES.keys()) == set(BONE_KEYS)
+    assert normalize_equipment("e-z curl bar", "curl") == "barbell"
+    assert normalize_equipment(None, "vertical_pull") == "cable"
+
+    mid_joints = evaluate_archetype_pose("mountain_climber", 0.5, swap_sides=True)
+    assert "hip" in mid_joints
+    assert "hand_f" in mid_joints
+
+    pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    assert pyproject["project"]["name"] == "training-aid"
+
+    tool_cfg = pyproject.get("tool", {})
+    if "ruff" in tool_cfg:
+        ruff_cfg = tool_cfg["ruff"]
+        assert "format" in ruff_cfg
+        assert "lint" in ruff_cfg
+        lint_cfg = ruff_cfg["lint"]
+        assert "ALL" in lint_cfg.get("select", [])
+        assert "N" in lint_cfg.get("extend-select", []) or "N" in lint_cfg.get(
+            "select", []
+        )
+        assert "pep8-naming" in lint_cfg
