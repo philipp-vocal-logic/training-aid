@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" aria-label="bench_press" data-archetype="bench_press" data-pose-a="{&quot;head&quot;:[66,124],&quot;shoulder&quot;:[88,128],&quot;hip&quot;:[130,130],&quot;elbow_f&quot;:[92,146],&quot;hand_f&quot;:[94,114],&quot;elbow_b&quot;:[88,144],&quot;hand_b&quot;:[90,114],&quot;knee_f&quot;:[162,134],&quot;foot_f&quot;:[168,172],&quot;knee_b&quot;:[156,134],&quot;foot_b&quot;:[162,172]}" data-pose-b="{&quot;head&quot;:[66,124],&quot;shoulder&quot;:[88,128],&quot;hip&quot;:[130,130],&quot;elbow_f&quot;:[92,102],&quot;hand_f&quot;:[94,72],&quot;elbow_b&quot;:[88,102],&quot;hand_b&quot;:[90,72],&quot;knee_f&quot;:[162,134],&quot;foot_f&quot;:[168,172],&quot;knee_b&quot;:[156,134],&quot;foot_b&quot;:[162,172]}">
+  <defs>
+    <radialGradient id="glow-bench_press" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
+      <stop offset="65%" stop-color="#10b981" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <circle class="js-aura" cx="120" cy="102" r="82" fill="url(#glow-bench_press)" />
+  <circle class="js-ring" cx="120" cy="102" r="64" fill="none" stroke="#34d399" stroke-opacity="0.14" stroke-width="1.2" stroke-dasharray="3 6" />
+  <line x1="16" y1="175" x2="224" y2="175" stroke="#334155" stroke-width="3" stroke-linecap="round" />
+  <ellipse class="js-shadow" cx="128.7" cy="176" rx="28" ry="3.5" fill="#10b981" fill-opacity="0.22" />
+  <rect x="50" y="136" width="96" height="8" rx="4" fill="#334155" stroke="#475569" stroke-width="1.2" /><line x1="66" y1="144" x2="66" y2="174" stroke="#334155" stroke-width="5" stroke-linecap="round" /><line x1="130" y1="144" x2="130" y2="174" stroke="#334155" stroke-width="5" stroke-linecap="round" />
+  <g stroke="#64748b" stroke-width="8" stroke-linecap="round">
+    <line class="js-thigh-b" x1="130" y1="130" x2="156" y2="134" />
+    <line class="js-shin-b" x1="156" y1="134" x2="162" y2="172" />
+    <line class="js-uarm-b" x1="88" y1="128" x2="88" y2="144" />
+    <line class="js-farm-b" x1="88" y1="144" x2="90" y2="114" />
+  </g>
+  <circle class="js-weight-b" cx="90" cy="114" r="7.5" fill="#059669" fill-opacity="0.65" />
+  <g stroke="#e2e8f0" stroke-width="9.5" stroke-linecap="round">
+    <line class="js-thigh-f" x1="130" y1="130" x2="162" y2="134" />
+    <line class="js-shin-f" x1="162" y1="134" x2="168" y2="172" />
+  </g>
+  <line class="js-torso" x1="88" y1="128" x2="130" y2="130" stroke="#f8fafc" stroke-width="11" stroke-linecap="round" />
+  <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">
+    <line class="js-uarm-f" x1="88" y1="128" x2="92" y2="146" />
+    <line class="js-farm-f" x1="92" y1="146" x2="94" y2="114" />
+  </g>
+  <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">
+    <circle class="js-j-shoulder" cx="88" cy="128" r="3" />
+    <circle class="js-j-hip" cx="130" cy="130" r="3" />
+    <circle class="js-j-knee" cx="162" cy="134" r="2.8" />
+    <circle class="js-j-elbow" cx="92" cy="146" r="2.8" />
+  </g>
+  <circle class="js-head" cx="66" cy="124" r="12" fill="#34d399" stroke="#ecfdf5" stroke-width="1.6" />
+  <circle class="js-weight" cx="94" cy="114" r="8.5" fill="#10b981" stroke="#d1fae5" stroke-width="1.8" />
+</svg>
