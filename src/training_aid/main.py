@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, func, select
 
-from training_aid.coaching import build_exercise_guidance, classify_archetype
+from training_aid.coaching import _load_svg, build_exercise_guidance, classify_archetype
 from training_aid.database import create_db_and_tables, engine, get_session
 from training_aid.models import (
     Exercise,
@@ -28,7 +28,7 @@ from training_aid.services import (
     get_next_routine,
     seed_exercises,
 )
-from training_aid.svg_assets import load_svg_markup, pregenerate_all_svgs
+from training_aid.svg_assets import pregenerate_all_svgs
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -38,6 +38,13 @@ EQUIPMENT_ARCHETYPES: dict[str, str] = {
     "dumbbells": "curl",
     "kettlebell_bands": "hinge",
     "full_gym": "bench_press",
+}
+
+SETUP_EQUIPMENT_PROPS: dict[str, str] = {
+    "body_only": "body only",
+    "dumbbells": "dumbbell",
+    "kettlebell_bands": "bands",
+    "full_gym": "barbell",
 }
 
 
@@ -87,21 +94,27 @@ def build_routine_cards(
             if exercise is None:
                 continue
             archetype = classify_archetype(exercise)
+            svg_key = f"{archetype}:{exercise.equipment}"
             rows.append(
                 {
                     "item": item,
                     "exercise": exercise,
                     "archetype": archetype,
+                    "svg_key": svg_key,
                     "svg_url": f"/static/svgs/{archetype}.svg",
-                    "scaled": compute_scaled_target(item, routine.intensity_level),
+                    "scaled": compute_scaled_target(
+                        item, routine.intensity_level, exercise=exercise
+                    ),
                 }
             )
         lead_archetype = rows[0]["archetype"] if rows else "squat"
+        lead_svg_key = rows[0]["svg_key"] if rows else "squat:body only"
         cards.append(
             {
                 "routine": routine,
                 "exercises": rows,
                 "lead_archetype": lead_archetype,
+                "lead_svg_key": lead_svg_key,
             }
         )
     return cards
@@ -143,7 +156,7 @@ def setup_page(request: Request, session: SessionDep):
     current_user = resolve_user(request, session)
     all_users = list(session.exec(select(User).order_by(col(User.id))).all())
     equipment_svgs = {
-        eq_key: load_svg_markup(arch)
+        eq_key: _load_svg(arch, equipment=SETUP_EQUIPMENT_PROPS.get(eq_key))
         for eq_key, arch in EQUIPMENT_ARCHETYPES.items()
     }
     return templates.TemplateResponse(
@@ -244,12 +257,28 @@ def overview(
     )
     stats = build_motivation_and_stats(user, logs, routines)
 
-    used_archetypes = {"squat"}
+    archetype_svgs: dict[str, str] = {
+        "squat": _load_svg("squat"),
+        "squat:body only": _load_svg("squat", equipment="body only"),
+    }
     for card in routine_cards:
+        lead_arch = card["lead_archetype"]
+        if lead_arch not in archetype_svgs:
+            archetype_svgs[lead_arch] = _load_svg(lead_arch)
         for row in card["exercises"]:
-            used_archetypes.add(row["archetype"])
-    archetype_svgs = {arch: load_svg_markup(arch) for arch in used_archetypes}
-    hero_archetype = next_card["lead_archetype"] if next_card else "squat"
+            arch = row["archetype"]
+            if arch not in archetype_svgs:
+                archetype_svgs[arch] = _load_svg(arch)
+            svg_key = row["svg_key"]
+            if svg_key not in archetype_svgs:
+                archetype_svgs[svg_key] = _load_svg(
+                    arch, equipment=row["exercise"].equipment
+                )
+    hero_svg = (
+        archetype_svgs[next_card["lead_svg_key"]]
+        if next_card
+        else archetype_svgs["squat"]
+    )
 
     completed_log = None
     if completed is not None:
@@ -269,7 +298,7 @@ def overview(
             "stats": stats,
             "completed_log": completed_log,
             "archetype_svgs": archetype_svgs,
-            "hero_svg": archetype_svgs[hero_archetype],
+            "hero_svg": hero_svg,
         },
     )
 
@@ -557,6 +586,6 @@ def progress_view(request: Request, session: SessionDep):
             "logs": logs_desc,
             "chart_labels": chart_labels,
             "chart_values": chart_values,
-            "empty_svg": load_svg_markup("squat"),
+            "empty_svg": _load_svg("squat"),
         },
     )
