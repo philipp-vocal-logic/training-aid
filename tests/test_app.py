@@ -3,6 +3,10 @@
 
 import json
 import math
+import os
+import re
+import shutil
+import subprocess
 import tomllib
 import xml.etree.ElementTree as ET
 from collections.abc import Generator
@@ -767,3 +771,495 @@ def test_templates_and_motion_js_have_zero_hardcoded_archetype_branches(
         assert symbol in motion_js
     render_state_idx = motion_js.index("function renderPoseState")
     assert "querySelector" not in motion_js[render_state_idx:]
+
+
+_EXPECTED_SOUND_THEMES: tuple[tuple[str, str], ...] = (
+    ("off", "Off"),
+    ("minimal", "Minimal Cues"),
+    ("techno", "Techno Pulse"),
+    ("trance", "Trance Arp"),
+    ("studio", "Studio Kit"),
+)
+
+_EXPECTED_SOUND_SCALE: dict[str, float] = {
+    "A2": 110.0,
+    "C3": 130.81,
+    "D3": 146.83,
+    "E3": 164.81,
+    "G3": 196.0,
+    "A3": 220.0,
+    "C4": 261.63,
+    "D4": 293.66,
+    "E4": 329.63,
+    "G4": 392.0,
+    "A4": 440.0,
+    "C5": 523.25,
+    "E5": 659.25,
+}
+
+_TURNAROUND_BY_MODE: dict[str, float] = {
+    "standard": 0.43,
+    "explosive": 0.31,
+    "alternating": 0.5,
+    "hold": 1.0,
+}
+
+_SOUND_JS_HARNESS = """\
+const fs = require("node:fs");
+const motionPath = process.env.TA_MOTION_JS;
+const soundPath = process.env.TA_SOUND_JS;
+const coaching = JSON.parse(process.env.TA_COACHING_JSON);
+const assert = (cond, msg) => {
+  if (!cond) throw new Error(msg);
+};
+
+globalThis.window = globalThis;
+
+function makeParam(init) {
+  return {
+    value: init,
+    setValueAtTime(v) { this.value = v; },
+    linearRampToValueAtTime(v) { this.value = v; },
+    exponentialRampToValueAtTime(v) { this.value = v; },
+  };
+}
+
+class MockAudioContext {
+  constructor() {
+    this.currentTime = 10.0;
+    this.state = "running";
+    this.sampleRate = 44100;
+    this.destination = { kind: "dest" };
+    this.sources = [];
+    this.nodes = [];
+  }
+  resume() {
+    this.state = "running";
+    return Promise.resolve();
+  }
+  _node(n) {
+    this.nodes.push(n);
+    return n;
+  }
+  _source(s) {
+    this.sources.push(s);
+    this.nodes.push(s);
+    return s;
+  }
+  createOscillator() {
+    return this._source({
+      type: "sine",
+      frequency: makeParam(440),
+      started: false,
+      immediateStopped: false,
+      disconnected: false,
+      onended: null,
+      connect() {},
+      disconnect() { this.disconnected = true; },
+      start() { this.started = true; },
+      stop(...args) { if (args.length === 0) this.immediateStopped = true; },
+    });
+  }
+  createGain() {
+    return this._node({
+      gain: makeParam(1),
+      disconnected: false,
+      connect() {},
+      disconnect() { this.disconnected = true; },
+    });
+  }
+  createBiquadFilter() {
+    return this._node({
+      type: "lowpass",
+      frequency: makeParam(1000),
+      Q: makeParam(1),
+      disconnected: false,
+      connect() {},
+      disconnect() { this.disconnected = true; },
+    });
+  }
+  createBuffer(_ch, len, sr) {
+    const arr = new Float32Array(len);
+    return { sampleRate: sr, length: len, getChannelData: () => arr };
+  }
+  createBufferSource() {
+    return this._source({
+      buffer: null,
+      started: false,
+      immediateStopped: false,
+      disconnected: false,
+      onended: null,
+      connect() {},
+      disconnect() { this.disconnected = true; },
+      start() { this.started = true; },
+      stop(...args) { if (args.length === 0) this.immediateStopped = true; },
+    });
+  }
+}
+globalThis.AudioContext = MockAudioContext;
+
+new Function(fs.readFileSync(motionPath, "utf8"))();
+new Function(fs.readFileSync(soundPath, "utf8"))();
+
+const TM = globalThis.TrainingMotion;
+const TS = globalThis.TrainingSound;
+assert(TM && TS, "TrainingMotion and TrainingSound must load");
+assert(TS.STORAGE_KEY === "training_aid_sound_theme", "STORAGE_KEY mismatch");
+assert(
+  JSON.stringify(TS.THEMES.map((t) => [t.id, t.label])) ===
+    JSON.stringify([
+      ["off", "Off"],
+      ["minimal", "Minimal Cues"],
+      ["techno", "Techno Pulse"],
+      ["trance", "Trance Arp"],
+      ["studio", "Studio Kit"],
+    ]),
+  "THEMES mismatch"
+);
+
+for (const [arch, meta] of Object.entries(coaching)) {
+  const expectedSub = meta.is_hold ? 2 : meta.rep_seconds >= 2.4 ? 8 : 4;
+  assert(
+    TS.subdivisionsForRep(meta.rep_seconds, meta.is_hold) === expectedSub,
+    `subdivisions mismatch for ${arch}`
+  );
+  for (const silent of ["off", "minimal"]) {
+    const emptyPat = TS.buildRepPattern({
+      theme: silent,
+      repSeconds: meta.rep_seconds,
+    });
+    assert(emptyPat.length === 0, `${silent} must return []`);
+  }
+  for (const theme of ["techno", "trance", "studio"]) {
+    const pat = TS.buildRepPattern({
+      theme,
+      repSeconds: meta.rep_seconds,
+      tempoMode: meta.tempo_mode,
+      isHold: meta.is_hold,
+      repIndex: 8,
+      totalReps: 10,
+    });
+    assert(
+      pat.length >= 1 && pat[0].role === "downbeat" && pat[0].offsetSec === 0,
+      "downbeat"
+    );
+    assert(pat.every((e) => e.isFinalStretch === true), "final stretch");
+    const early = TS.buildRepPattern({
+      theme,
+      repSeconds: meta.rep_seconds,
+      tempoMode: meta.tempo_mode,
+      isHold: meta.is_hold,
+      repIndex: 0,
+      totalReps: 10,
+    });
+    assert(early.every((e) => e.isFinalStretch === false), "early rep");
+    const turns = pat.filter((e) => e.role === "turnaround");
+    if (meta.is_hold) {
+      assert(turns.length === 0, "hold omits turnaround");
+    } else {
+      const turnFrac = TM.turnaroundForMode(meta.tempo_mode);
+      const expectedOff = Number((turnFrac * meta.rep_seconds).toFixed(4));
+      assert(
+        turns.length === 1 && turns[0].offsetSec === expectedOff,
+        `turnaround ${arch}`
+      );
+      for (const sub of pat.filter((e) => e.role === "subdivision")) {
+        assert(Math.abs(sub.offsetSec - expectedOff) >= 0.045, `flam ${arch}`);
+      }
+    }
+  }
+}
+
+const tempoPairs = [
+  ["explosive", 0.31],
+  ["standard", 0.43],
+  ["alternating", 0.5],
+];
+for (const [mode, frac] of tempoPairs) {
+  for (const theme of ["techno", "trance", "studio"]) {
+    const pat = TS.buildRepPattern({
+      theme,
+      repSeconds: 2.6,
+      tempoMode: mode,
+      isHold: false,
+    });
+    const turn = pat.find((e) => e.role === "turnaround");
+    assert(
+      turn && turn.offsetSec === Number((frac * 2.6).toFixed(4)),
+      `mode ${mode}`
+    );
+  }
+}
+
+const store = {};
+const mockStorage = {
+  getItem: (k) => (k in store ? store[k] : null),
+  setItem: (k, v) => { store[k] = String(v); },
+};
+const ctrl = TS.createController({
+  turnaroundForMode: TM.turnaroundForMode,
+  storage: mockStorage,
+});
+assert(ctrl.getTheme() === "minimal" && !ctrl.isMuted(), "default minimal");
+ctrl.setTheme("trance");
+assert(store[TS.STORAGE_KEY] === "trance", "persisted trance");
+ctrl.toggleMute();
+assert(
+  ctrl.getTheme() === "off" &&
+    ctrl.isMuted() &&
+    store[TS.STORAGE_KEY] === "off",
+  "muted"
+);
+ctrl.toggleMute();
+assert(ctrl.getTheme() === "trance" && !ctrl.isMuted(), "restored trance");
+
+const ctx = ctrl.ensureAudio();
+assert(ctx instanceof MockAudioContext, "AudioContext created");
+ctrl.beginPhase("ACTIVE", {
+  repSeconds: 2.8,
+  reps: 4,
+  tempoMode: "standard",
+  isHold: false,
+});
+assert(ctx.sources.length > 0, "lookahead primed");
+ctx.currentTime = 10.65;
+assert(Math.abs(ctrl.advancePhase(0.016) - 0.65) < 1e-6, "clock tracks currentTime");
+
+const prePauseSources = ctx.sources.slice();
+ctrl.pause();
+assert(
+  prePauseSources.every((s) => s.immediateStopped && s.disconnected),
+  "pause cleanup"
+);
+assert(ctx.nodes.every((n) => n.disconnected), "pause disconnects nodes");
+assert(Math.abs(ctrl.advancePhase(0.5) - 0.65) < 1e-6, "paused freezes elapsed");
+
+ctrl.resume();
+ctrl.toggleMute();
+assert(Math.abs(ctrl.advancePhase(0.25) - 0.9) < 1e-6, "off falls back to dt");
+
+ctrl.toggleMute();
+const preStopCount = ctx.sources.length;
+ctrl.startSignal();
+assert(ctx.sources.length > preStopCount, "cue scheduled");
+ctrl.stopAll();
+assert(
+  ctx.sources.every((s) => s.immediateStopped && s.disconnected),
+  "stopAll cleanup"
+);
+
+process.stdout.write(JSON.stringify({ ok: true }));
+"""
+
+
+def _expected_subdivisions(rep_seconds: float, *, is_hold: bool) -> int:
+    if is_hold:
+        return 2
+    return 8 if rep_seconds >= 2.4 else 4
+
+
+def _verify_rep_grid(
+    rep_seconds: float,
+    tempo_mode: str,
+    *,
+    is_hold: bool,
+    flam_guard: float,
+) -> None:
+    subdivs = _expected_subdivisions(rep_seconds, is_hold=is_hold)
+    sub_offsets = [round((i * rep_seconds) / subdivs, 4) for i in range(1, subdivs)]
+    assert all(0.0 < off < rep_seconds for off in sub_offsets)
+    if is_hold:
+        assert subdivs == 2
+        assert sub_offsets == [round(rep_seconds / 2, 4)]
+        return
+
+    turnaround = _TURNAROUND_BY_MODE[tempo_mode]
+    turn_offset = round(turnaround * rep_seconds, 4)
+    assert 0.0 < turn_offset < rep_seconds
+    kept_subs = [off for off in sub_offsets if abs(off - turn_offset) >= flam_guard]
+    for off in kept_subs:
+        assert abs(off - turn_offset) >= 0.045
+
+
+def test_sound_js_asset_and_workout_hud_integration(
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Verify /static/sound.js contract, 5-theme HUD selector, and zero audio assets."""
+    repo_root = Path(__file__).resolve().parents[1]
+    for folder in ("src", "data"):
+        audio_files = [
+            p
+            for p in (repo_root / folder).rglob("*")
+            if p.suffix.lower() in {".wav", ".mp3", ".ogg", ".flac", ".m4a"}
+        ]
+        assert audio_files == []
+
+    sound_res = client.get("/static/sound.js")
+    assert sound_res.status_code == 200
+    assert "javascript" in sound_res.headers["content-type"]
+    sound_js = sound_res.text
+
+    for required in (
+        "TrainingSound",
+        "STORAGE_KEY",
+        '"training_aid_sound_theme"',
+        "THEMES",
+        "subdivisionsForRep",
+        "buildRepPattern",
+        "createController",
+    ):
+        assert required in sound_js
+    assert "rock" not in sound_js.lower()
+
+    parsed_themes = re.findall(
+        r'\{\s*id:\s*"([^"]+)",\s*label:\s*"([^"]+)"\s*\}',
+        sound_js,
+    )
+    assert tuple(parsed_themes) == _EXPECTED_SOUND_THEMES
+
+    client.post(
+        "/setup",
+        data={
+            "name": "Morgan",
+            "equipment": "body_only",
+            "starting_intensity": "moderate",
+            "days_per_week": "3",
+        },
+        follow_redirects=True,
+    )
+    routine = session.exec(
+        select(WorkoutRoutine).order_by(WorkoutRoutine.day_order)
+    ).first()
+    assert routine is not None
+
+    ws = client.get(f"/workouts/{routine.id}")
+    assert ws.status_code == 200
+    assert '<script src="/static/motion.js"></script>' in ws.text
+    assert '<script src="/static/sound.js"></script>' in ws.text
+    assert ws.text.index("/static/motion.js") < ws.text.index("/static/sound.js")
+
+    select_match = re.search(
+        r'<select[^>]*id="sound-theme-select"[^>]*>.*?</select>',
+        ws.text,
+        flags=re.DOTALL,
+    )
+    assert select_match is not None
+    select_el = _parse_svg(select_match.group(0))
+    options = [(opt.attrib.get("value", ""), (opt.text or "")) for opt in select_el]
+    assert tuple(options) == _EXPECTED_SOUND_THEMES
+    assert "rock" not in select_match.group(0).lower()
+
+    for hud_contract in (
+        'id="sound-toggle"',
+        'id="icon-vol-on"',
+        'id="icon-vol-off"',
+        "window.TrainingSound.createController",
+        "Sound.beginPhase(",
+        "Sound.advancePhase(",
+        "Sound.pause()",
+        "Sound.resume()",
+        "Sound.stopAll()",
+        "Sound.startSignal()",
+        "Sound.stopSet()",
+        "Sound.workoutComplete()",
+        "visibilitychange",
+    ):
+        assert hud_contract in ws.text
+
+    style_css = client.get("/static/style.css").text
+    assert ".hud-select" in style_css
+    reduced_idx = style_css.index("@media (prefers-reduced-motion: reduce)")
+    assert ".hud-select" in style_css[reduced_idx:]
+
+
+def test_sound_kinematic_rhythm_and_controller_contract() -> None:
+    """Verify subdivisions, kinematic turnarounds, scale, and controller invariants."""
+    static_dir = Path(__file__).resolve().parents[1] / "src" / "training_aid" / "static"
+    sound_js = (static_dir / "sound.js").read_text(encoding="utf-8")
+    motion_js = (static_dir / "motion.js").read_text(encoding="utf-8")
+
+    flam_match = re.search(r"FLAM_GUARD_SEC\s*=\s*([0-9.]+)", sound_js)
+    lookahead_match = re.search(r"LOOKAHEAD_SEC\s*=\s*([0-9.]+)", sound_js)
+    rest_match = re.search(r"REST_PULSE_INTERVAL_SEC\s*=\s*([0-9.]+)", sound_js)
+    assert flam_match is not None
+    assert lookahead_match is not None
+    assert rest_match is not None
+    flam_guard = float(flam_match.group(1))
+    assert flam_guard >= 0.045
+    assert float(lookahead_match.group(1)) == pytest.approx(0.14)
+    assert float(rest_match.group(1)) == pytest.approx(2.0)
+
+    scale_block = re.search(
+        r"SCALE\s*=\s*Object\.freeze\(\{(.*?)\}\);",
+        sound_js,
+        re.DOTALL,
+    )
+    assert scale_block is not None
+    parsed_scale = {
+        note: float(hz)
+        for note, hz in re.findall(r"([A-G]\d):\s*([0-9.]+)", scale_block.group(1))
+    }
+    assert parsed_scale == _EXPECTED_SOUND_SCALE
+
+    for mode, frac in _TURNAROUND_BY_MODE.items():
+        assert re.search(rf"{mode}:\s*{frac}\b", motion_js) is not None
+        assert re.search(rf"{mode}:\s*{frac}\b", sound_js) is not None
+
+    assert len(ARCHETYPE_COACHING) == 18
+    subdiv_buckets: set[int] = set()
+    for meta in ARCHETYPE_COACHING.values():
+        rep_sec = float(meta["rep_seconds"])
+        is_hold = bool(meta["is_hold"])
+        mode = str(meta["tempo_mode"])
+        subdiv_buckets.add(_expected_subdivisions(rep_sec, is_hold=is_hold))
+        _verify_rep_grid(rep_sec, mode, is_hold=is_hold, flam_guard=flam_guard)
+    assert subdiv_buckets == {2, 4, 8}
+
+    for mode in ("explosive", "standard", "alternating"):
+        _verify_rep_grid(2.6, mode, is_hold=False, flam_guard=flam_guard)
+
+    for controller_invariant in (
+        "storage.setItem(STORAGE_KEY, themeId)",
+        'setTheme(lastActiveTheme || "minimal")',
+        "audioCtx.currentTime - audioAnchorTime",
+        "phaseElapsed += dt",
+        "totalReps - repIndex <= (isHold ? 3 : 2)",
+        "round4(turnaround * repSeconds)",
+        "stopAllNodes()",
+        "stopScheduledNodes()",
+    ):
+        assert controller_invariant in sound_js
+
+
+def test_sound_js_behavioral_mock_webaudio_harness() -> None:
+    """Verify motion.js + sound.js behavioral harness via Node when on PATH."""
+    static_dir = Path(__file__).resolve().parents[1] / "src" / "training_aid" / "static"
+    motion_path = static_dir / "motion.js"
+    sound_path = static_dir / "sound.js"
+    assert motion_path.is_file()
+    assert sound_path.is_file()
+
+    for js_path in (motion_path, sound_path):
+        src = js_path.read_text(encoding="utf-8")
+        assert src.count("{") == src.count("}")
+        assert src.count("(") == src.count(")")
+
+    node_bin = shutil.which("node")
+    if node_bin is None:
+        return
+
+    proc = subprocess.run(  # noqa: S603
+        [node_bin, "-e", _SOUND_JS_HARNESS],
+        env={
+            **os.environ,
+            "TA_MOTION_JS": str(motion_path),
+            "TA_SOUND_JS": str(sound_path),
+            "TA_COACHING_JSON": json.dumps(ARCHETYPE_COACHING),
+        },
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert json.loads(proc.stdout) == {"ok": True}
