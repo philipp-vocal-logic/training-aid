@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from sqlmodel import Session, func, select
 
+from training_aid.coaching import is_hold_exercise
 from training_aid.models import (
     Exercise,
     RoutineExercise,
@@ -209,7 +210,11 @@ def round_half_kg(val: float) -> float:
     return max(0.5, round(val * 2) / 2)
 
 
-def compute_scaled_target(item: RoutineExercise, intensity_level: int) -> ScaledTarget:
+def compute_scaled_target(
+    item: RoutineExercise,
+    intensity_level: int,
+    exercise: Exercise | None = None,
+) -> ScaledTarget:
     """Scale target weight (if weighted) or target reps (if bodyweight) by 10% per step."""
     clamped = max(-5, intensity_level)
     intensity_pct = 100 + clamped * 10
@@ -241,7 +246,7 @@ def compute_scaled_target(item: RoutineExercise, intensity_level: int) -> Scaled
     else:
         target_reps = item.base_reps
 
-    unit = "sec" if "plank" in item.exercise_id.lower() else "reps"
+    unit = "sec" if is_hold_exercise(exercise or item.exercise_id) else "reps"
     formatted = f"{item.sets} × {target_reps} {unit}"
     return ScaledTarget(
         sets=item.sets,
