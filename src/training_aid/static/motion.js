@@ -21,6 +21,19 @@
     );
   }
 
+  var TURNAROUND_BY_MODE = {
+    standard: 0.43,
+    explosive: 0.31,
+    alternating: 0.5,
+    hold: 1.0,
+  };
+
+  function turnaroundForMode(mode) {
+    return TURNAROUND_BY_MODE[mode] !== undefined
+      ? TURNAROUND_BY_MODE[mode]
+      : 0.43;
+  }
+
   function tempoCurve(frac, mode) {
     var f = ((frac % 1) + 1) % 1;
     if (mode === "alternating") {
@@ -70,6 +83,15 @@
       return {
         applyPose: function () {},
         applyRestBreath: function () {},
+        applyHold: function () {},
+        tempoMode:
+          svgEl && svgEl.dataset && svgEl.dataset.tempoMode
+            ? svgEl.dataset.tempoMode
+            : "standard",
+        holdStyle:
+          svgEl && svgEl.dataset && svgEl.dataset.holdStyle
+            ? svgEl.dataset.holdStyle
+            : "settle",
       };
     }
 
@@ -77,6 +99,8 @@
     var poseA = JSON.parse(svgEl.dataset.poseA);
     var poseB = JSON.parse(svgEl.dataset.poseB);
 
+    var tempoMode = svgEl.dataset.tempoMode || "standard";
+    var holdStyle = svgEl.dataset.holdStyle || "settle";
     var eqMode = svgEl.dataset.equipment || "body_only";
     var barMode = svgEl.dataset.barMode || "hands";
     var bandTarget = svgEl.dataset.bandTarget || "hand";
@@ -320,15 +344,30 @@
       renderPoseState(pose, breathAmt, false);
     }
 
+    function applyHold(phaseElapsed) {
+      var phase = phaseElapsed || 0;
+      if (holdStyle === "pulse") {
+        applyPose(0.5 - 0.5 * Math.cos(phase * Math.PI));
+      } else {
+        var settle = Math.min(1, phase / 0.45);
+        var holdBreath = 0.92 + 0.08 * (0.5 - 0.5 * Math.cos(phase * Math.PI));
+        applyPose(settle * holdBreath);
+      }
+    }
+
     return {
       applyPose: applyPose,
       applyRestBreath: applyRestBreath,
+      applyHold: applyHold,
+      tempoMode: tempoMode,
+      holdStyle: holdStyle,
     };
   }
 
   window.TrainingMotion = {
     bindSvg: bindSvg,
     tempoCurve: tempoCurve,
+    turnaroundForMode: turnaroundForMode,
     prefersReducedMotion: prefersReducedMotion,
   };
 })();

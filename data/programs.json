@@ -1,0 +1,441 @@
+{
+  "equipment_programs": {
+    "body_only": {
+      "label": "Body Only",
+      "routines": [
+        [
+          "Day 1: Full Body Basics",
+          [
+            [
+              "Bodyweight_Squat",
+              15,
+              null
+            ],
+            [
+              "Pushups",
+              10,
+              null
+            ],
+            [
+              "Single_Leg_Glute_Bridge",
+              12,
+              null
+            ],
+            [
+              "Plank",
+              40,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 2: Legs & Core",
+          [
+            [
+              "Bodyweight_Walking_Lunge",
+              12,
+              null
+            ],
+            [
+              "Bench_Dips",
+              10,
+              null
+            ],
+            [
+              "Mountain_Climbers",
+              20,
+              null
+            ],
+            [
+              "Crunches",
+              15,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 3: Energy & Strength",
+          [
+            [
+              "Freehand_Jump_Squat",
+              10,
+              null
+            ],
+            [
+              "Incline_Push-Up",
+              12,
+              null
+            ],
+            [
+              "Air_Bike",
+              20,
+              null
+            ],
+            [
+              "Plank",
+              40,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 4: Total Body Finish",
+          [
+            [
+              "Bodyweight_Squat",
+              15,
+              null
+            ],
+            [
+              "Pushups_Close_and_Wide_Hand_Positions",
+              10,
+              null
+            ],
+            [
+              "Single_Leg_Glute_Bridge",
+              12,
+              null
+            ],
+            [
+              "3_4_Sit-Up",
+              15,
+              null
+            ]
+          ]
+        ]
+      ]
+    },
+    "dumbbells": {
+      "label": "Dumbbells",
+      "routines": [
+        [
+          "Day 1: Squat, Press & Row",
+          [
+            [
+              "Dumbbell_Squat",
+              10,
+              12.0
+            ],
+            [
+              "Dumbbell_Bench_Press",
+              10,
+              12.0
+            ],
+            [
+              "One-Arm_Dumbbell_Row",
+              10,
+              12.0
+            ],
+            [
+              "Plank",
+              40,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 2: Lunge & Shoulders",
+          [
+            [
+              "Dumbbell_Lunges",
+              10,
+              10.0
+            ],
+            [
+              "Dumbbell_Shoulder_Press",
+              10,
+              10.0
+            ],
+            [
+              "Alternate_Hammer_Curl",
+              12,
+              8.0
+            ],
+            [
+              "Crunches",
+              15,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 3: Full Body Dumbbells",
+          [
+            [
+              "Dumbbell_Squat_To_A_Bench",
+              12,
+              12.0
+            ],
+            [
+              "Bent_Over_Two-Dumbbell_Row",
+              10,
+              10.0
+            ],
+            [
+              "Arnold_Dumbbell_Press",
+              10,
+              10.0
+            ],
+            [
+              "Air_Bike",
+              20,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 4: Upper & Core Focus",
+          [
+            [
+              "Dumbbell_Lunges",
+              10,
+              10.0
+            ],
+            [
+              "Dumbbell_Bench_Press",
+              10,
+              12.0
+            ],
+            [
+              "Alternate_Incline_Dumbbell_Curl",
+              12,
+              8.0
+            ],
+            [
+              "Plank",
+              45,
+              null
+            ]
+          ]
+        ]
+      ]
+    },
+    "kettlebell_bands": {
+      "label": "Kettlebell & Bands",
+      "routines": [
+        [
+          "Day 1: Kettlebell Strength",
+          [
+            [
+              "Goblet_Squat",
+              12,
+              12.0
+            ],
+            [
+              "Alternating_Kettlebell_Press",
+              10,
+              10.0
+            ],
+            [
+              "Alternating_Kettlebell_Row",
+              10,
+              12.0
+            ],
+            [
+              "Plank",
+              40,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 2: Band & Core",
+          [
+            [
+              "Band_Good_Morning",
+              12,
+              null
+            ],
+            [
+              "Bench_Press_-_With_Bands",
+              12,
+              null
+            ],
+            [
+              "Band_Pull_Apart",
+              15,
+              null
+            ],
+            [
+              "Crunches",
+              15,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 3: Athletic Mix",
+          [
+            [
+              "Goblet_Squat",
+              12,
+              12.0
+            ],
+            [
+              "Pushups",
+              10,
+              null
+            ],
+            [
+              "Band_Skull_Crusher",
+              12,
+              null
+            ],
+            [
+              "Air_Bike",
+              20,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 4: Posture & Legs",
+          [
+            [
+              "Bodyweight_Walking_Lunge",
+              12,
+              null
+            ],
+            [
+              "Alternating_Kettlebell_Row",
+              10,
+              12.0
+            ],
+            [
+              "Back_Flyes_-_With_Bands",
+              15,
+              null
+            ],
+            [
+              "Plank",
+              45,
+              null
+            ]
+          ]
+        ]
+      ]
+    },
+    "full_gym": {
+      "label": "Full Gym",
+      "routines": [
+        [
+          "Day 1: Full Body A",
+          [
+            [
+              "Barbell_Full_Squat",
+              8,
+              40.0
+            ],
+            [
+              "Barbell_Bench_Press_-_Medium_Grip",
+              8,
+              35.0
+            ],
+            [
+              "Bent_Over_Barbell_Row",
+              10,
+              30.0
+            ],
+            [
+              "Plank",
+              45,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 2: Full Body B",
+          [
+            [
+              "Romanian_Deadlift",
+              8,
+              40.0
+            ],
+            [
+              "Dumbbell_Shoulder_Press",
+              10,
+              10.0
+            ],
+            [
+              "Wide-Grip_Lat_Pulldown",
+              10,
+              35.0
+            ],
+            [
+              "Crunches",
+              15,
+              null
+            ]
+          ]
+        ],
+        [
+          "Day 3: Strength & Pull",
+          [
+            [
+              "Barbell_Deadlift",
+              6,
+              50.0
+            ],
+            [
+              "Dumbbell_Bench_Press",
+              10,
+              16.0
+            ],
+            [
+              "One-Arm_Dumbbell_Row",
+              10,
+              14.0
+            ],
+            [
+              "Alternate_Hammer_Curl",
+              12,
+              10.0
+            ]
+          ]
+        ],
+        [
+          "Day 4: Legs & Cables",
+          [
+            [
+              "Dumbbell_Lunges",
+              10,
+              12.0
+            ],
+            [
+              "Barbell_Shoulder_Press",
+              8,
+              25.0
+            ],
+            [
+              "Cable_Chest_Press",
+              12,
+              25.0
+            ],
+            [
+              "Cable_Crunch",
+              15,
+              25.0
+            ]
+          ]
+        ]
+      ]
+    }
+  },
+  "intensity_labels": {
+    "light": "Easy Start",
+    "moderate": "Moderate",
+    "intense": "Intense"
+  },
+  "equipment_archetypes": {
+    "body_only": "squat",
+    "dumbbells": "curl",
+    "kettlebell_bands": "hinge",
+    "full_gym": "bench_press"
+  },
+  "setup_equipment_props": {
+    "body_only": "body only",
+    "dumbbells": "dumbbell",
+    "kettlebell_bands": "bands",
+    "full_gym": "barbell"
+  }
+}

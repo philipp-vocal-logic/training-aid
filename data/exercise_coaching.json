@@ -1,0 +1,5258 @@
+{
+  "3_4_Sit-Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "90_90_Hamstring": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Ab_Crunch_Machine": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Ab_Roller": {
+    "archetype": "plank",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Adductor": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Adductor_Groin": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Advanced_Kettlebell_Windmill": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Air_Bike": {
+    "archetype": "bicycle_crunch",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "All_Fours_Quad_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Alternate_Hammer_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternate_Heel_Touchers": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternate_Incline_Dumbbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternate_Leg_Diagonal_Bound": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Alternating_Cable_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternating_Deltoid_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternating_Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternating_Hang_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Alternating_Kettlebell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternating_Kettlebell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Alternating_Renegade_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Ankle_Circles": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Ankle_On_The_Knee": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Anterior_Tibialis-SMR": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Anti-Gravity_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Arm_Circles": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Arnold_Dumbbell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Around_The_Worlds": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Atlas_Stone_Trainer": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Atlas_Stones": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Axle_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Back_Flyes_-_With_Bands": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Backward_Drag": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Backward_Medicine_Ball_Throw": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Balance_Board": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Ball_Leg_Curl": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Band_Assisted_Pull-Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Band_Good_Morning": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Band_Good_Morning_Pull_Through": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Band_Hip_Adductions": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Band_Pull_Apart": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Band_Skull_Crusher": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Ab_Rollout": {
+    "archetype": "plank",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Ab_Rollout_-_On_Knees": {
+    "archetype": "plank",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Bench_Press_-_Medium_Grip": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Curls_Lying_Against_An_Incline": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Full_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Glute_Bridge": {
+    "archetype": "glute_bridge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Guillotine_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Hack_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Hip_Thrust": {
+    "archetype": "glute_bridge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Incline_Bench_Press_-_Medium_Grip": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Incline_Shoulder_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Lunge": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Rear_Delt_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Rollout_from_Bench": {
+    "archetype": "plank",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Seated_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Shrug_Behind_The_Back": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Side_Bend": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Side_Split_Squat": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Squat_To_A_Bench": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Step_Ups": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Barbell_Walking_Lunge": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Battling_Ropes": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bear_Crawl_Sled_Drags": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Behind_Head_Chest_Stretch": {
+    "archetype": "bench_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Bench_Dips": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bench_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Bench_Press_-_Powerlifting": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bench_Press_-_With_Bands": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bench_Press_with_Chains": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bench_Sprint": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent-Arm_Barbell_Pullover": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent-Arm_Dumbbell_Pullover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent-Knee_Hip_Raise": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Over_Barbell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Over_Low-Pulley_Side_Lateral": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Over_One-Arm_Long_Bar_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Bent_Over_Two-Arm_Long_Bar_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Over_Two-Dumbbell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Over_Two-Dumbbell_Row_With_Palms_In": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bent_Press": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bicycling": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Bicycling_Stationary": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Board_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Body-Up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Body_Tricep_Press": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bodyweight_Flyes": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bodyweight_Mid_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bodyweight_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bodyweight_Walking_Lunge": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Bosu_Ball_Cable_Crunch_With_Side_Bends": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Bottoms-Up_Clean_From_The_Hang_Position": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Bottoms_Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Box_Jump_Multiple_Response": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Box_Skip": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Box_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Box_Squat_with_Bands": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Box_Squat_with_Chains": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Brachialis-SMR": {
+    "archetype": "curl",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Bradford_Rocky_Presses": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Butt-Ups": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Butt_Lift_Bridge": {
+    "archetype": "glute_bridge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Butterfly": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Chest_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Crossover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Deadlifts": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Hammer_Curls_-_Rope_Attachment": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Hip_Adduction": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Incline_Pushdown": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Incline_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Internal_Rotation": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Iron_Cross": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Judo_Flip": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Lying_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_One_Arm_Tricep_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Cable_Preacher_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Rear_Delt_Fly": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Reverse_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Rope_Overhead_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Rope_Rear-Delt_Rows": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Russian_Twists": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Seated_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Seated_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Shrugs": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cable_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Calf-Machine_Shoulder_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Calf_Press": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Calf_Press_On_The_Leg_Press_Machine": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Calf_Raise_On_A_Dumbbell": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Calf_Raises_-_With_Bands": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Calf_Stretch_Elbows_Against_Wall": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Calf_Stretch_Hands_Against_Wall": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Calves-SMR": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Car_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Car_Drivers": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Carioca_Quick_Step": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cat_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Catch_and_Overhead_Throw": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Chain_Handle_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Chain_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Chair_Leg_Extended_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Chair_Lower_Back_Stretch": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Chair_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Chair_Upper_Body_Stretch": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Chest_And_Front_Of_Shoulder_Stretch": {
+    "archetype": "bench_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Chest_Push_from_3_point_stance": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Chest_Push_multiple_response": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Chest_Push_single_response": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Chest_Push_with_Run_Release": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Chest_Stretch_on_Stability_Ball": {
+    "archetype": "bench_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Childs_Pose": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Chin-Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Chin_To_Chest_Stretch": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Circus_Bell": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clean_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clean_Pull": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clean_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clean_and_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clean_and_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clean_from_Blocks": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Clock_Push-Up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_Barbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_Dumbbell_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_EZ-Bar_Curl_with_Band": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_EZ-Bar_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_EZ_Bar_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_Front_Lat_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_Push-Up_off_of_a_Dumbbell": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Close-Grip_Standing_Barbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cocoons": {
+    "archetype": "bicycle_crunch",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Conans_Wheel": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Concentration_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cross-Body_Crunch": {
+    "archetype": "bicycle_crunch",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Cross_Body_Hammer_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cross_Over_-_With_Bands": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Crossover_Reverse_Lunge": {
+    "archetype": "lunge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Crucifix": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Crunch_-_Hands_Overhead": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Crunch_-_Legs_On_Exercise_Ball": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Crunches": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Cuban_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dancers_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Dead_Bug": {
+    "archetype": "bicycle_crunch",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Deadlift_with_Bands": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Deadlift_with_Chains": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Barbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Close-Grip_Bench_To_Skull_Crusher": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Dumbbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Dumbbell_Flyes": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_EZ_Bar_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Oblique_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Push-Up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Reverse_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Decline_Smith_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Deficit_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Depth_Jump_Leap": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Dip_Machine": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dips_-_Chest_Version": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dips_-_Triceps_Version": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Donkey_Calf_Raises": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Double_Kettlebell_Alternating_Hang_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Double_Kettlebell_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Double_Kettlebell_Push_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Double_Kettlebell_Snatch": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Double_Kettlebell_Windmill": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Double_Leg_Butt_Kick": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Downward_Facing_Balance": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Drag_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Drop_Push": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Dumbbell_Alternate_Bicep_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Dumbbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Bench_Press_with_Neutral_Grip": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Bicep_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Dumbbell_Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Flyes": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Incline_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Incline_Shoulder_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Lunges": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Lying_One-Arm_Rear_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Dumbbell_Lying_Pronation": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Lying_Rear_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Lying_Supination": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_One-Arm_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Dumbbell_One-Arm_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Dumbbell_One-Arm_Upright_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Dumbbell_Prone_Incline_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Rear_Lunge": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Scaption": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Seated_Box_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Dumbbell_Seated_One-Leg_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Dumbbell_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Side_Bend": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Squat_To_A_Bench": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Step_Ups": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dumbbell_Tricep_Extension_-Pronated_Grip": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Dynamic_Back_Stretch": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Dynamic_Chest_Stretch": {
+    "archetype": "pushup",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "EZ-Bar_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "EZ-Bar_Skullcrusher": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Elbow_Circles": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Elbow_to_Knee": {
+    "archetype": "bicycle_crunch",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Elbows_Back": {
+    "archetype": "pushup",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Elevated_Back_Lunge": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Elevated_Cable_Rows": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Elliptical_Trainer": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Exercise_Ball_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Exercise_Ball_Pull-In": {
+    "archetype": "plank",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Extended_Range_One-Arm_Kettlebell_Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "External_Rotation": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "External_Rotation_with_Band": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "External_Rotation_with_Cable": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Face_Pull": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Farmers_Walk": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Fast_Skipping": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Finger_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Flat_Bench_Cable_Flyes": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Flat_Bench_Leg_Pull-In": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Flat_Bench_Lying_Leg_Raise": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Flexor_Incline_Dumbbell_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Floor_Glute-Ham_Raise": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Floor_Press_with_Chains": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Flutter_Kicks": {
+    "archetype": "bicycle_crunch",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Foot-SMR": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Forward_Drag_with_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Frankenstein_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Freehand_Jump_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Frog_Hops": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Frog_Sit-Ups": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Barbell_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Barbell_Squat_To_A_Bench": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Box_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Front_Cable_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Cone_Hops_or_hurdle_hops": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Front_Dumbbell_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Incline_Dumbbell_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Leg_Raises": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Front_Plate_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Raise_And_Pullover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Squat_Clean_Grip": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Squats_With_Two_Kettlebells": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Front_Two-Dumbbell_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Full_Range-Of-Motion_Lat_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Gironda_Sternum_Chins": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Glute_Ham_Raise": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Glute_Kickback": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Goblet_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Good_Morning": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Good_Morning_off_Pins": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Gorilla_Chin_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Groin_and_Back_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Groiners": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Hack_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hammer_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hammer_Grip_Incline_DB_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hamstring-SMR": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Hamstring_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Handstand_Push-Ups": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hang_Clean": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Hang_Clean_-_Below_the_Knees": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Hang_Snatch": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Hang_Snatch_-_Below_Knees": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Hanging_Bar_Good_Morning": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hanging_Leg_Raise": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hanging_Pike": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Heaving_Snatch_Balance": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Heavy_Bag_Thrust": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "High_Cable_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hip_Circles_prone": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Hip_Extension_with_Bands": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hip_Flexion_with_Band": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hip_Lift_with_Band": {
+    "archetype": "glute_bridge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hug_A_Ball": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Hug_Knees_To_Chest": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Hurdle_Hops": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Hyperextensions_Back_Extensions": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Hyperextensions_With_No_Hyperextension_Bench": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "IT_Band_and_Glute_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Iliotibial_Tract-SMR": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Inchworm": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Incline_Barbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Bench_Pull": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Cable_Chest_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Cable_Flye": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Dumbbell_Bench_With_Palms_Facing_In": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Dumbbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Dumbbell_Flyes": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Dumbbell_Flyes_-_With_A_Twist": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Dumbbell_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Hammer_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Inner_Biceps_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Push-Up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Push-Up_Close-Grip": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Push-Up_Depth_Jump": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Incline_Push-Up_Medium": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Push-Up_Reverse_Grip": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Incline_Push-Up_Wide": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Intermediate_Groin_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Intermediate_Hip_Flexor_and_Quad_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Internal_Rotation_with_Band": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Inverted_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Inverted_Row_with_Straps": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Iron_Cross": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Iron_Crosses_stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Isometric_Chest_Squeezes": {
+    "archetype": "pushup",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Isometric_Neck_Exercise_-_Front_And_Back": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Isometric_Neck_Exercise_-_Sides": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Isometric_Wipers": {
+    "archetype": "pushup",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "JM_Press": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Jackknife_Sit-Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Janda_Sit-Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Jefferson_Squats": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Jerk_Balance": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Jerk_Dip_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Jogging_Treadmill": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Keg_Load": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Arnold_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Dead_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Kettlebell_Figure_8": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Halo": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Halo_With_Overhead_Extension": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Hang_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Kettlebell_One-Legged_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Kettlebell_Overhead_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Pass_Between_The_Legs": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Pirate_Ships": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Pistol_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Seated_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Seesaw_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Sumo_High_Pull": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Kettlebell_Thruster": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Turkish_Get-Up_Lunge_style": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Turkish_Get-Up_Squat_style": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kettlebell_Windmill": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kipping_Muscle_Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Knee_Across_The_Body": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Knee_Circles": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Knee_Hip_Raise_On_Parallel_Bars": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Knee_Tuck_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Kneeling_Arm_Drill": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Kneeling_Cable_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kneeling_Forearm_Stretch": {
+    "archetype": "curl",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Kneeling_High_Pulley_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Kneeling_Hip_Flexor": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Kneeling_Jump_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Kneeling_Single-Arm_High_Pulley_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Kneeling_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Landmine_180s": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Landmine_Linear_Jammer": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lateral_Bound": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Lateral_Box_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Lateral_Cone_Hops": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Lateral_Raise_-_With_Bands": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Latissimus_Dorsi-SMR": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Leg-Over_Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leg-Up_Hamstring_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Leg_Extensions": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leg_Lift": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leg_Press": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leg_Pull-In": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Chest_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Decline_Chest_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_High_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Incline_Chest_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Iso_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Leverage_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Linear_3-Part_Start_Technique": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Linear_Acceleration_Wall_Drill": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Linear_Depth_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Log_Lift": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "London_Bridges": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Looking_At_Ceiling": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Low_Cable_Crossover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Low_Cable_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Low_Pulley_Row_To_Neck": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lower_Back-SMR": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lower_Back_Curl": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lunge_Pass_Through": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lunge_Sprint": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Bent_Leg_Groin": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lying_Cable_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Cambered_Barbell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Close-Grip_Bar_Curl_On_High_Pulley": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Close-Grip_Barbell_Triceps_Press_To_Chin": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Crossover": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lying_Dumbbell_Tricep_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Face_Down_Plate_Neck_Resistance": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Face_Up_Plate_Neck_Resistance": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Glute": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lying_Hamstring": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lying_High_Bench_Barbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Leg_Curls": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Machine_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_One-Arm_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Lying_Prone_Quadriceps": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Lying_Rear_Delt_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Supine_Dumbbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_T-Bar_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Lying_Triceps_Press": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Machine_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Machine_Bicep_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Machine_Preacher_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Machine_Shoulder_Military_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Machine_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Medicine_Ball_Chest_Pass": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Medicine_Ball_Full_Twist": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Medicine_Ball_Scoop_Throw": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Middle_Back_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Middle_Back_Stretch": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Mixed_Grip_Chin": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Monster_Walk": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Mountain_Climbers": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Moving_Claw_Series": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Muscle_Snatch": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Muscle_Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Narrow_Stance_Hack_Squats": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Narrow_Stance_Leg_Press": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Narrow_Stance_Squats": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Natural_Glute_Ham_Raise": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Neck-SMR": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Neck_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Oblique_Crunches": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Oblique_Crunches_-_On_The_Floor": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Olympic_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "On-Your-Back_Quad_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "On_Your_Side_Quad_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "One-Arm_Dumbbell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Flat_Bench_Dumbbell_Flye": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_High-Pulley_Cable_Side_Bends": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Incline_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Clean_and_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Military_Press_To_The_Side": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Para_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Push_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Snatch": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Split_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Split_Snatch": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Kettlebell_Swings": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Long_Bar_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Medicine_Ball_Slam": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Open_Palm_Kettlebell_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "One-Arm_Overhead_Kettlebell_Squats": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Side_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Arm_Side_Laterals": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One-Legged_Cable_Kickback": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Against_Wall": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": true
+  },
+  "One_Arm_Chin-Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Dumbbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Dumbbell_Preacher_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Floor_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Lat_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Pronated_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Arm_Supinated_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "One_Half_Locust": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "One_Handed_Hang": {
+    "archetype": "vertical_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "One_Knee_To_Chest": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "One_Leg_Barbell_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Open_Palm_Kettlebell_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Otis-Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Overhead_Cable_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Overhead_Lat": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Overhead_Slam": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Overhead_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Overhead_Stretch": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Overhead_Triceps": {
+    "archetype": "triceps_extension",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Pallof_Press": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Pallof_Press_With_Rotation": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Palms-Down_Wrist_Curl_Over_A_Bench": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Parallel_Bar_Dip": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Pelvic_Tilt_Into_Bridge": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Peroneals-SMR": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Peroneals_Stretch": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Physioball_Hip_Bridge": {
+    "archetype": "glute_bridge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Pin_Presses": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Piriformis-SMR": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Plank": {
+    "archetype": "plank",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Plate_Pinch": {
+    "archetype": "curl",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Plate_Twist": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Platform_Hamstring_Slides": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Plie_Dumbbell_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Plyo_Kettlebell_Pushups": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Plyo_Push-up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Posterior_Tibialis_Stretch": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Power_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Power_Clean_from_Blocks": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Power_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Power_Partials": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Power_Snatch": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Power_Snatch_from_Blocks": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Power_Stairs": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Preacher_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Preacher_Hammer_Dumbbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Press_Sit-Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Prone_Manual_Hamstring": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Prowler_Sprint": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Pull_Through": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Pullups": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Push-Up_Wide": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Push-Ups_-_Close_Triceps_Position": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Push-Ups_With_Feet_Elevated": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Push-Ups_With_Feet_On_An_Exercise_Ball": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Push_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Push_Press_-_Behind_the_Neck": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Push_Up_to_Side_Plank": {
+    "archetype": "plank",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Pushups": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Pushups_Close_and_Wide_Hand_Positions": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Pyramid": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Quad_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Quadriceps-SMR": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Quick_Leap": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Rack_Delivery": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rack_Pull_with_Bands": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rack_Pulls": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rear_Leg_Raises": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Recumbent_Bike": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Return_Push_from_Stance": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Reverse_Band_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Band_Box_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Band_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Band_Power_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Band_Sumo_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Barbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Barbell_Preacher_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Cable_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Flyes": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Flyes_With_External_Rotation": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Grip_Bent-Over_Rows": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Grip_Triceps_Pushdown": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Hyperextension": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Machine_Flyes": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Plate_Curls": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Reverse_Triceps_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rhomboids-SMR": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Rickshaw_Carry": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rickshaw_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Ring_Dips": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rocket_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Rocking_Standing_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rocky_Pull-Ups_Pulldowns": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Romanian_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Romanian_Deadlift_from_Deficit": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rope_Climb": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rope_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Rope_Jumping": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Rope_Straight-Arm_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Round_The_World_Shoulder_Stretch": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Rowing_Stationary": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Runners_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Running_Treadmill": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Russian_Twist": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sandbag_Load": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Scapular_Pull-Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Scissor_Kick": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Scissors_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Seated_Band_Hamstring_Curl": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Barbell_Military_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Barbell_Twist": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Seated_Bent-Over_Rear_Delt_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Biceps": {
+    "archetype": "curl",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Cable_Rows": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Cable_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Calf_Stretch": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Close-Grip_Concentration_Barbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Dumbbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Dumbbell_Inner_Biceps_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Dumbbell_Palms-Down_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Dumbbell_Palms-Up_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Dumbbell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Flat_Bench_Leg_Pull-In": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Floor_Hamstring_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Front_Deltoid": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Glute": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Good_Mornings": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Hamstring": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Hamstring_and_Calf_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Head_Harness_Neck_Resistance": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Leg_Curl": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Leg_Tucks": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Seated_One-arm_Cable_Pulley_Rows": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Seated_Overhead_Stretch": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Seated_Palm-Up_Barbell_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Palms-Down_Barbell_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Side_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Triceps_Press": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "See-Saw_Press_Alternating_Side_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Shotgun_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Shoulder_Circles": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Shoulder_Press_-_With_Bands": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Shoulder_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Shoulder_Stretch": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side-Lying_Floor_Stretch": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side_Bridge": {
+    "archetype": "plank",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side_Hop-Sprint": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Side_Jackknife": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Side_Lateral_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Side_Laterals_to_Front_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Side_Leg_Raises": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side_Lying_Groin_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side_Neck_Stretch": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side_Standing_Long_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Side_To_Side_Chins": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Side_Wrist_Pull": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Side_to_Side_Box_Shuffle": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Single-Arm_Cable_Crossover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single-Arm_Linear_Jammer": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single-Arm_Push-Up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single-Cone_Sprint_Drill": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Single-Leg_High_Box_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single-Leg_Hop_Progression": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Single-Leg_Lateral_Hop": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Single-Leg_Leg_Extension": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single-Leg_Stride_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Single_Dumbbell_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Single_Leg_Butt_Kick": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single_Leg_Glute_Bridge": {
+    "archetype": "glute_bridge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Single_Leg_Push-off": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Sit-Up": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sit_Squats": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Skating": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Sled_Drag_-_Harness": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sled_Overhead_Backward_Walk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sled_Overhead_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sled_Push": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sled_Reverse_Flye": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sled_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sledgehammer_Swings": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Smith_Incline_Shoulder_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Behind_the_Back_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Bent_Over_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Close-Grip_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Decline_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Hang_Power_Clean": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Smith_Machine_Hip_Raise": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Incline_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Leg_Press": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_One-Arm_Upright_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Smith_Machine_Overhead_Shoulder_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Pistol_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Reverse_Calf_Raises": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Stiff-Legged_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Machine_Upright_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Smith_Single-Leg_Split_Squat": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Snatch": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Snatch_Balance": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Snatch_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Snatch_Pull": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Snatch_Shrug": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Snatch_from_Blocks": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Speed_Band_Overhead_Triceps": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Speed_Box_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Speed_Squats": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Spell_Caster": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Spider_Crawl": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Spider_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Spinal_Stretch": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Split_Clean": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Split_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Split_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Split_Snatch": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Split_Squat_with_Dumbbells": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Split_Squats": {
+    "archetype": "lunge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Squat_Jerk": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Squat_with_Bands": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Squat_with_Chains": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Squat_with_Plate_Movers": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Squats_-_With_Bands": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Stairmaster": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Standing_Alternating_Dumbbell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_Barbell_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Barbell_Press_Behind_Neck": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Biceps_Cable_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Biceps_Stretch": {
+    "archetype": "curl",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Bradford_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Cable_Chest_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Cable_Lift": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Cable_Wood_Chop": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Calf_Raises": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Concentration_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Dumbbell_Calf_Raise": {
+    "archetype": "calf_raise",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Dumbbell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Dumbbell_Reverse_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Dumbbell_Upright_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Elevated_Quad_Stretch": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Front_Barbell_Raise_Over_Head": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Gastrocnemius_Calf_Stretch": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Hamstring_and_Calf_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Hip_Circles": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Hip_Flexors": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Inner-Biceps_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Lateral_Stretch": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Leg_Curl": {
+    "archetype": "leg_extension_curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Long_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Standing_Low-Pulley_Deltoid_Raise": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Low-Pulley_One-Arm_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_Military_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Olympic_Plate_Hand_Squeeze": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_One-Arm_Cable_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_One-Arm_Dumbbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_Overhead_Barbell_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Palm-In_One-Arm_Dumbbell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": true
+  },
+  "Standing_Palms-In_Dumbbell_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Pelvic_Tilt": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Rope_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Soleus_And_Achilles_Stretch": {
+    "archetype": "calf_raise",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Toe_Touches": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Standing_Towel_Triceps_Extension": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Standing_Two-Arm_Overhead_Throw": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Star_Jump": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Step-up_with_Knee_Raise": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Step_Mill": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Stiff-Legged_Barbell_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Stiff-Legged_Dumbbell_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Stiff_Leg_Barbell_Good_Morning": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Stomach_Vacuum": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Straight-Arm_Dumbbell_Pullover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Straight-Arm_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Straight_Bar_Bench_Mid_Rows": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Straight_Raises_on_Incline_Bench": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Stride_Jump_Crossover": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Sumo_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sumo_Deadlift_with_Bands": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Sumo_Deadlift_with_Chains": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Superman": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Supine_Chest_Throw": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Supine_One-Arm_Overhead_Throw": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": true
+  },
+  "Supine_Two-Arm_Overhead_Throw": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Suspended_Fallout": {
+    "archetype": "plank",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Suspended_Push-Up": {
+    "archetype": "pushup",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Suspended_Reverse_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Suspended_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Suspended_Split_Squat": {
+    "archetype": "lunge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Svend_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "T-Bar_Row_with_Handle": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Tate_Press": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "The_Straddle": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Thigh_Abductor": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Thigh_Adductor": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Tire_Flip": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Toe_Touchers": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Torso_Rotation": {
+    "archetype": "crunch_core",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Trail_Running_Walking": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Trap_Bar_Deadlift": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Tricep_Dumbbell_Kickback": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Tricep_Side_Stretch": {
+    "archetype": "triceps_extension",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Triceps_Overhead_Extension_with_Rope": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Triceps_Pushdown": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Triceps_Pushdown_-_Rope_Attachment": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Triceps_Pushdown_-_V-Bar_Attachment": {
+    "archetype": "triceps_extension",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Triceps_Stretch": {
+    "archetype": "triceps_extension",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Tuck_Crunch": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Two-Arm_Dumbbell_Preacher_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Two-Arm_Kettlebell_Clean": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Two-Arm_Kettlebell_Jerk": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Two-Arm_Kettlebell_Military_Press": {
+    "archetype": "overhead_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Two-Arm_Kettlebell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Underhand_Cable_Pulldowns": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Upper_Back-Leg_Grab": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Upper_Back_Stretch": {
+    "archetype": "row_pull",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Upright_Barbell_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Upright_Cable_Row": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Upright_Row_-_With_Bands": {
+    "archetype": "row_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Upward_Stretch": {
+    "archetype": "overhead_press",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "V-Bar_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "V-Bar_Pullup": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Vertical_Swing": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Walking_Treadmill": {
+    "archetype": "mountain_climber",
+    "is_hold": false,
+    "tempo_mode": "alternating",
+    "is_alternating": true
+  },
+  "Weighted_Ball_Hyperextension": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Ball_Side_Bend": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Bench_Dip": {
+    "archetype": "dip",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Crunches": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Jump_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "explosive",
+    "is_alternating": false
+  },
+  "Weighted_Pull_Ups": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Sissy_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Sit-Ups_-_With_Bands": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Weighted_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Barbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Decline_Barbell_Bench_Press": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Decline_Barbell_Pullover": {
+    "archetype": "bench_press",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Lat_Pulldown": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Pulldown_Behind_The_Neck": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Rear_Pull-Up": {
+    "archetype": "vertical_pull",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide-Grip_Standing_Barbell_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide_Stance_Barbell_Squat": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wide_Stance_Stiff_Legs": {
+    "archetype": "hinge",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wind_Sprints": {
+    "archetype": "crunch_core",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Windmills": {
+    "archetype": "squat",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Worlds_Greatest_Stretch": {
+    "archetype": "hinge",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Wrist_Circles": {
+    "archetype": "curl",
+    "is_hold": true,
+    "tempo_mode": "hold",
+    "is_alternating": false
+  },
+  "Wrist_Roller": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Wrist_Rotations_with_Straight_Bar": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Yoke_Walk": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Zercher_Squats": {
+    "archetype": "squat",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Zottman_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  },
+  "Zottman_Preacher_Curl": {
+    "archetype": "curl",
+    "is_hold": false,
+    "tempo_mode": "standard",
+    "is_alternating": false
+  }
+}

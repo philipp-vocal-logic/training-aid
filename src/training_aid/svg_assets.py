@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 SVGS_DIR = Path(__file__).resolve().parent / "static" / "svgs"
+ANIMATIONS_JSON = Path(__file__).resolve().parents[2] / "data" / "animations.json"
 
 Point = tuple[float, float]
 LimbAngles = tuple[float, float]
@@ -44,49 +45,6 @@ BONE_KEYS: tuple[str, ...] = (
     "back_dx",
     "back_dy",
 )
-
-BACK_RACK_ARCHETYPES: frozenset[str] = frozenset({"squat", "lunge", "calf_raise"})
-
-STD_BONES: dict[str, float] = {
-    "lumbar": 22.0,
-    "thoracic": 22.0,
-    "neck": 19.0,
-    "uarm": 25.0,
-    "farm": 24.0,
-    "thigh": 36.0,
-    "shin": 36.0,
-    "back_dx": -5.0,
-    "back_dy": -2.0,
-}
-
-_EQUIPMENT_ALIASES: dict[str, str] = {
-    "body_only": "body_only",
-    "none": "body_only",
-    "bodyweight": "body_only",
-    "foam_roll": "body_only",
-    "exercise_ball": "body_only",
-    "other": "body_only",
-    "dumbbell": "dumbbell",
-    "dumbbells": "dumbbell",
-    "medicine_ball": "dumbbell",
-    "barbell": "barbell",
-    "barbells": "barbell",
-    "e_z_curl_bar": "barbell",
-    "ez_curl_bar": "barbell",
-    "ez_bar": "barbell",
-    "full_gym": "barbell",
-    "kettlebells": "kettlebells",
-    "kettlebell": "kettlebells",
-    "kettlebell_bands": "kettlebells",
-    "bands": "bands",
-    "band": "bands",
-    "resistance_band": "bands",
-    "resistance_bands": "bands",
-    "cable": "cable",
-    "cables": "cable",
-    "machine": "machine",
-    "machines": "machine",
-}
 
 _STATIC_FIXTURES: dict[str, str] = {
     "bench": (
@@ -204,6 +162,123 @@ def _pose(
     }
 
 
+def _compile_limb(
+    limb_spec: list[float] | dict[str, Any],
+    roots: dict[str, Point],
+    default_root: str,
+    lengths: tuple[float, float],
+    near: LimbAngles | None,
+) -> LimbAngles:
+    if isinstance(limb_spec, list):
+        return (float(limb_spec[0]), float(limb_spec[1]))
+    root_name = str(limb_spec.get("root", default_root))
+    target: Point = (float(limb_spec["target"][0]), float(limb_spec["target"][1]))
+    bend_sign = int(limb_spec.get("bend_sign", -1))
+    return _solve_2link_ik(
+        roots[root_name],
+        target,
+        lengths,
+        bend_sign=bend_sign,
+        near=near,
+    )
+
+
+def _compile_pose(
+    pose_spec: dict[str, Any],
+    bones: dict[str, float],
+    prev_spec: dict[str, Any] | None = None,
+    prev_limbs: dict[str, LimbAngles] | None = None,
+) -> tuple[dict[str, float], dict[str, LimbAngles]]:
+    hip: Point = (float(pose_spec["hip"][0]), float(pose_spec["hip"][1]))
+    spine: SpineAngles = (
+        float(pose_spec["spine"][0]),
+        float(pose_spec["spine"][1]),
+        float(pose_spec["spine"][2]),
+    )
+    mid_spine = _step(hip, bones["lumbar"], spine[0])
+    shoulder = _step(mid_spine, bones["thoracic"], spine[1])
+    roots: dict[str, Point] = {
+        "hip": hip,
+        "hip_b": (hip[0] + bones["back_dx"], hip[1] + bones["back_dy"]),
+        "shoulder": shoulder,
+        "shoulder_b": (shoulder[0] + bones["back_dx"], shoulder[1] + bones["back_dy"]),
+    }
+    limb_defs: tuple[tuple[str, str, tuple[float, float]], ...] = (
+        ("arm_f", "shoulder", (bones["uarm"], bones["farm"])),
+        ("arm_b", "shoulder_b", (bones["uarm"], bones["farm"])),
+        ("leg_f", "hip", (bones["thigh"], bones["shin"])),
+        ("leg_b", "hip_b", (bones["thigh"], bones["shin"])),
+    )
+    limbs: dict[str, LimbAngles] = {}
+    for key, default_root, lengths in limb_defs:
+        raw_limb = pose_spec[key]
+        near: LimbAngles | None = None
+        if isinstance(raw_limb, dict) and prev_limbs is not None:
+            default_unwrap = prev_spec is not None and isinstance(prev_spec[key], dict)
+            if bool(raw_limb.get("unwrap", default_unwrap)):
+                near = prev_limbs[key]
+        limbs[key] = _compile_limb(raw_limb, roots, default_root, lengths, near)
+
+    compiled = _pose(
+        hip,
+        spine,
+        limbs["arm_f"],
+        limbs["arm_b"],
+        (limbs["leg_f"], limbs["leg_b"]),
+    )
+    return (compiled, limbs)
+
+
+def compile_animation_spec(
+    cfg: dict[str, Any],
+    std_bones: dict[str, float],
+) -> dict[str, Any]:
+    """Compile a declarative animation entry into FK poses and rig metadata."""
+    bones: dict[str, float] = {
+        **std_bones,
+        **{k: float(v) for k, v in cfg.get("bones", {}).items()},
+    }
+    pose_a, limbs_a = _compile_pose(cfg["pose_a"], bones)
+    pose_b, _ = _compile_pose(cfg["pose_b"], bones, cfg["pose_a"], limbs_a)
+    band_anchor = cfg["band_anchor"]
+    cable_anchor = cfg["cable_anchor"]
+    spec: dict[str, Any] = {
+        "label": str(cfg["label"]),
+        "fixture": cfg.get("fixture"),
+        "default_equipment": str(cfg["default_equipment"]),
+        "bar_mode": str(cfg.get("bar_mode", "hands")),
+        "hold_style": str(cfg.get("hold_style", "settle")),
+        "band_anchor": (float(band_anchor[0]), float(band_anchor[1])),
+        "band_target": str(cfg.get("band_target", "hand")),
+        "cable_anchor": (float(cable_anchor[0]), float(cable_anchor[1])),
+        "cable_target": str(cfg.get("cable_target", "hand")),
+        "bones": bones,
+        "pose_a": pose_a,
+        "pose_b": pose_b,
+        "coaching": dict(cfg["coaching"]),
+    }
+    forefoot = cfg.get("forefoot")
+    if forefoot is not None:
+        spec["forefoot"] = (float(forefoot[0]), float(forefoot[1]))
+    return spec
+
+
+def _load_animation_registry(
+    path: Path = ANIMATIONS_JSON,
+) -> tuple[dict[str, float], dict[str, str], dict[str, dict[str, Any]]]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    std_bones = {str(k): float(v) for k, v in raw["std_bones"].items()}
+    aliases = {str(k): str(v) for k, v in raw["equipment_aliases"].items()}
+    specs = {
+        str(arch): compile_animation_spec(cfg, std_bones)
+        for arch, cfg in raw["animations"].items()
+    }
+    return (std_bones, aliases, specs)
+
+
+STD_BONES, _EQUIPMENT_ALIASES, ARCHETYPE_SPECS = _load_animation_registry()
+
+
 def lerp_pose(
     pose_a: dict[str, float],
     pose_b: dict[str, float],
@@ -297,521 +372,6 @@ def compute_shadow(joints: dict[str, Point]) -> tuple[float, float]:
     cx = (min_x + max_x) * 0.5
     rx = max(22.0, min(82.0, (max_x - min_x) * 0.5 + 12.0))
     return (cx, rx)
-
-
-def _build_foundation_specs() -> dict[str, dict[str, Any]]:
-    specs: dict[str, dict[str, Any]] = {}
-
-    # 1. Squat
-    b_sq = {**STD_BONES, "thigh": 37.0, "shin": 37.0}
-    sq_lf_a = _solve_2link_ik((114, 98), (126, 168), (37, 37))
-    sq_lb_a = _solve_2link_ik((109, 96), (118, 166), (37, 37))
-    sq_lf_b = _solve_2link_ik((98, 132), (126, 168), (37, 37), near=sq_lf_a)
-    sq_lb_b = _solve_2link_ik((93, 130), (118, 166), (37, 37), near=sq_lb_a)
-    specs["squat"] = {
-        "label": "Squat",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (124.0, 173.0),
-        "band_target": "shoulder",
-        "cable_anchor": (152.0, 170.0),
-        "bones": b_sq,
-        "pose_a": _pose(
-            (114, 98), (-86, -86, -84), (102, -48), (100, -44), (sq_lf_a, sq_lb_a)
-        ),
-        "pose_b": _pose(
-            (98, 132), (-62, -58, -68), (68, -28), (66, -24), (sq_lf_b, sq_lb_b)
-        ),
-    }
-
-    # 2. Lunge
-    b_lg = {**STD_BONES, "thigh": 37.0, "shin": 37.0, "back_dx": -3.0, "back_dy": -1.0}
-    lg_lf_a = _solve_2link_ik((118, 108), (150, 169), (37, 37))
-    lg_lb_a = _solve_2link_ik((115, 107), (84, 169), (37, 37))
-    lg_lf_b = _solve_2link_ik((118, 131), (150, 169), (37, 37), near=lg_lf_a)
-    lg_lb_b = _solve_2link_ik((115, 130), (84, 169), (37, 37), near=lg_lb_a)
-    specs["lunge"] = {
-        "label": "Lunge",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (150.0, 173.0),
-        "band_target": "hand",
-        "cable_anchor": (176.0, 168.0),
-        "bones": b_lg,
-        "pose_a": _pose(
-            (118, 108), (-88, -88, -86), (98, -42), (96, -38), (lg_lf_a, lg_lb_a)
-        ),
-        "pose_b": _pose(
-            (118, 131), (-86, -86, -84), (74, -28), (72, -24), (lg_lf_b, lg_lb_b)
-        ),
-    }
-
-    # 3. Pushup (rigid straight plank pivoting about toes)
-    b_pu = {
-        **STD_BONES,
-        "uarm": 29.0,
-        "farm": 29.0,
-        "thigh": 37.5,
-        "shin": 37.5,
-        "back_dx": -4.0,
-        "back_dy": -2.0,
-    }
-    hip_pua = (119.0, 134.0)
-    sh_pua = _step(_step(hip_pua, 22, -26.0), 22, -26.0)
-    pu_af_a = _solve_2link_ik(sh_pua, (162.0, 169.0), (29, 29), bend_sign=1)
-    pu_ab_a = _solve_2link_ik(
-        (sh_pua[0] - 4, sh_pua[1] - 2), (158.0, 167.0), (29, 29), bend_sign=1
-    )
-    pu_lf_a = _solve_2link_ik(hip_pua, (53.0, 169.0), (37.5, 37.5))
-    pu_lb_a = _solve_2link_ik(
-        (hip_pua[0] - 4, hip_pua[1] - 2), (49.0, 167.0), (37.5, 37.5)
-    )
-    hip_pub = (125.5, 152.0)
-    sh_pub = _step(_step(hip_pub, 22, -11.0), 22, -11.0)
-    pu_af_b = _solve_2link_ik(
-        sh_pub, (162.0, 169.0), (29, 29), bend_sign=1, near=pu_af_a
-    )
-    pu_ab_b = _solve_2link_ik(
-        (sh_pub[0] - 4, sh_pub[1] - 2),
-        (158.0, 167.0),
-        (29, 29),
-        bend_sign=1,
-        near=pu_ab_a,
-    )
-    pu_lf_b = _solve_2link_ik(hip_pub, (53.0, 169.0), (37.5, 37.5), near=pu_lf_a)
-    pu_lb_b = _solve_2link_ik(
-        (hip_pub[0] - 4, hip_pub[1] - 2), (49.0, 167.0), (37.5, 37.5), near=pu_lb_a
-    )
-    specs["pushup"] = {
-        "label": "Pushup",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (162.0, 172.0),
-        "band_target": "shoulder",
-        "cable_anchor": (162.0, 172.0),
-        "bones": b_pu,
-        "pose_a": _pose(hip_pua, (-26, -26, -22), pu_af_a, pu_ab_a, (pu_lf_a, pu_lb_a)),
-        "pose_b": _pose(hip_pub, (-11, -11, -7), pu_af_b, pu_ab_b, (pu_lf_b, pu_lb_b)),
-    }
-
-    # 4. Plank
-    b_pl = {
-        **STD_BONES,
-        "uarm": 28.0,
-        "farm": 24.0,
-        "thigh": 36.2,
-        "shin": 36.2,
-        "back_dx": -4.0,
-        "back_dy": -2.0,
-    }
-    hip_pla = (120.0, 146.0)
-    pl_lf_a = _solve_2link_ik(hip_pla, (52.0, 170.0), (36.2, 36.2))
-    pl_lb_a = _solve_2link_ik(
-        (hip_pla[0] - 4, hip_pla[1] - 2), (48.0, 168.0), (36.2, 36.2)
-    )
-    hip_plb = (120.0, 142.0)
-    pl_lf_b = _solve_2link_ik(hip_plb, (52.0, 170.0), (36.2, 36.2), near=pl_lf_a)
-    pl_lb_b = _solve_2link_ik(
-        (hip_plb[0] - 4, hip_plb[1] - 2), (48.0, 168.0), (36.2, 36.2), near=pl_lb_a
-    )
-    specs["plank"] = {
-        "label": "Plank",
-        "fixture": "pulse",
-        "default_equipment": "body_only",
-        "band_anchor": (164.0, 172.0),
-        "band_target": "shoulder",
-        "cable_anchor": (164.0, 172.0),
-        "bones": b_pl,
-        "pose_a": _pose(hip_pla, (-8, -8, -4), (88, 0), (88, 0), (pl_lf_a, pl_lb_a)),
-        "pose_b": _pose(hip_plb, (-4, -5, -2), (88, 0), (88, 0), (pl_lf_b, pl_lb_b)),
-    }
-
-    # 5. Hinge
-    b_hg = {**STD_BONES, "thigh": 36.0, "shin": 36.0}
-    hg_lf_a = _solve_2link_ik((114, 100), (122, 170), (36, 36))
-    hg_lb_a = _solve_2link_ik((109, 98), (116, 168), (36, 36))
-    hg_lf_b = _solve_2link_ik((92, 105), (122, 170), (36, 36), near=hg_lf_a)
-    hg_lb_b = _solve_2link_ik((87, 103), (116, 168), (36, 36), near=hg_lb_a)
-    specs["hinge"] = {
-        "label": "Hip Hinge",
-        "fixture": None,
-        "default_equipment": "dumbbell",
-        "band_anchor": (122.0, 173.0),
-        "band_target": "shoulder",
-        "cable_anchor": (158.0, 170.0),
-        "bones": b_hg,
-        "pose_a": _pose(
-            (114, 100), (-87, -87, -85), (84, 80), (86, 82), (hg_lf_a, hg_lb_a)
-        ),
-        "pose_b": _pose(
-            (92, 105), (-22, -20, -18), (88, 88), (90, 90), (hg_lf_b, hg_lb_b)
-        ),
-    }
-
-    # 6. Glute Bridge
-    b_gb = {**STD_BONES, "thigh": 36.0, "shin": 36.0, "back_dx": -4.0, "back_dy": -2.0}
-    gb_lf_a = _solve_2link_ik((116, 164), (166, 170), (36, 36))
-    gb_lb_a = _solve_2link_ik((112, 162), (160, 168), (36, 36))
-    gb_lf_b = _solve_2link_ik((114, 136), (166, 170), (36, 36), near=gb_lf_a)
-    gb_lb_b = _solve_2link_ik((110, 134), (160, 168), (36, 36), near=gb_lb_a)
-    specs["glute_bridge"] = {
-        "label": "Glute Bridge",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (115.0, 173.0),
-        "band_target": "hand",
-        "cable_anchor": (115.0, 173.0),
-        "bones": b_gb,
-        "pose_a": _pose(
-            (116, 164), (183, 184, 196), (10, 4), (10, 4), (gb_lf_a, gb_lb_a)
-        ),
-        "pose_b": _pose(
-            (114, 136), (144, 146, 192), (10, 4), (10, 4), (gb_lf_b, gb_lb_b)
-        ),
-    }
-
-    return specs
-
-
-def _build_calisthenic_and_press_specs() -> dict[str, dict[str, Any]]:
-    specs: dict[str, dict[str, Any]] = {}
-
-    # 7. Crunch Core
-    b_cc = {**STD_BONES, "thigh": 36.0, "shin": 36.0, "back_dx": -4.0, "back_dy": -2.0}
-    cc_lf = _solve_2link_ik((120, 164), (170, 170), (36, 36))
-    cc_lb = _solve_2link_ik((116, 162), (164, 168), (36, 36))
-    specs["crunch_core"] = {
-        "label": "Crunch Core",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (42.0, 168.0),
-        "band_target": "hand",
-        "cable_anchor": (42.0, 148.0),
-        "bones": b_cc,
-        "pose_a": _pose(
-            (120, 164), (-174, -168, -152), (-88, -192), (-94, -192), (cc_lf, cc_lb)
-        ),
-        "pose_b": _pose(
-            (120, 164), (-152, -108, -88), (-36, -162), (-44, -162), (cc_lf, cc_lb)
-        ),
-    }
-
-    # 8. Mountain Climber
-    b_mc = {
-        **STD_BONES,
-        "uarm": 30.0,
-        "farm": 30.0,
-        "thigh": 35.0,
-        "shin": 35.0,
-        "back_dx": -3.0,
-        "back_dy": -1.5,
-    }
-    hip_mc = (114.0, 124.0)
-    sh_mc = _step(_step(hip_mc, 22, -18.0), 22, -18.0)
-    mc_af = _solve_2link_ik(sh_mc, (160.0, 169.0), (30, 30), bend_sign=1)
-    mc_ab = _solve_2link_ik(
-        (sh_mc[0] - 3, sh_mc[1] - 1.5), (156.0, 167.5), (30, 30), bend_sign=1
-    )
-    mc_ext = _solve_2link_ik(hip_mc, (59.5, 166.0), (35, 35))
-    mc_drv: LimbAngles = (18.0, 176.0)
-    specs["mountain_climber"] = {
-        "label": "Mountain Climber",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (58.0, 172.0),
-        "band_target": "hand",
-        "cable_anchor": (58.0, 172.0),
-        "bones": b_mc,
-        "pose_a": _pose(hip_mc, (-18, -18, -16), mc_af, mc_ab, (mc_drv, mc_ext)),
-        "pose_b": _pose(hip_mc, (-18, -18, -16), mc_af, mc_ab, (mc_ext, mc_drv)),
-    }
-
-    # 9. Dip
-    b_dp = {
-        **STD_BONES,
-        "uarm": 27.0,
-        "farm": 27.0,
-        "thigh": 36.5,
-        "shin": 36.5,
-        "back_dx": -4.0,
-        "back_dy": -2.0,
-    }
-    hip_da = (104.0, 133.0)
-    sh_da = _step(_step(hip_da, 22, -94.0), 22, -92.0)
-    dp_af_a = _solve_2link_ik(sh_da, (88.0, 138.0), (27, 27), bend_sign=1)
-    dp_ab_a = _solve_2link_ik(
-        (sh_da[0] - 4, sh_da[1] - 2), (84.0, 136.0), (27, 27), bend_sign=1
-    )
-    dp_lf_a = _solve_2link_ik(hip_da, (164.0, 169.0), (36.5, 36.5))
-    dp_lb_a = _solve_2link_ik(
-        (hip_da[0] - 4, hip_da[1] - 2), (160.0, 167.0), (36.5, 36.5)
-    )
-    hip_db = (108.0, 151.0)
-    sh_db = _step(_step(hip_db, 22, -94.0), 22, -92.0)
-    dp_af_b = _solve_2link_ik(sh_db, (88.0, 138.0), (27, 27), bend_sign=1, near=dp_af_a)
-    dp_ab_b = _solve_2link_ik(
-        (sh_db[0] - 4, sh_db[1] - 2),
-        (84.0, 136.0),
-        (27, 27),
-        bend_sign=1,
-        near=dp_ab_a,
-    )
-    dp_lf_b = _solve_2link_ik(hip_db, (164.0, 169.0), (36.5, 36.5), near=dp_lf_a)
-    dp_lb_b = _solve_2link_ik(
-        (hip_db[0] - 4, hip_db[1] - 2), (160.0, 167.0), (36.5, 36.5), near=dp_lb_a
-    )
-    specs["dip"] = {
-        "label": "Triceps Dip",
-        "fixture": "dip_box",
-        "default_equipment": "body_only",
-        "band_anchor": (88.0, 138.0),
-        "band_target": "shoulder",
-        "cable_anchor": (88.0, 138.0),
-        "bones": b_dp,
-        "pose_a": _pose(hip_da, (-94, -92, -88), dp_af_a, dp_ab_a, (dp_lf_a, dp_lb_a)),
-        "pose_b": _pose(hip_db, (-94, -92, -88), dp_af_b, dp_ab_b, (dp_lf_b, dp_lb_b)),
-    }
-
-    # 10. Overhead Press (3/4 sagittal profile facing right)
-    b_op = {
-        **STD_BONES,
-        "lumbar": 21.0,
-        "thoracic": 21.0,
-        "neck": 18.0,
-        "uarm": 23.0,
-        "farm": 22.0,
-        "thigh": 34.0,
-        "shin": 34.0,
-        "back_dx": -6.0,
-        "back_dy": -2.0,
-    }
-    op_lf = _solve_2link_ik((116, 108), (126, 171), (34, 34))
-    op_lb = _solve_2link_ik((110, 106), (108, 169), (34, 34))
-    specs["overhead_press"] = {
-        "label": "Overhead Press",
-        "fixture": None,
-        "default_equipment": "dumbbell",
-        "band_anchor": (124.0, 173.0),
-        "band_target": "hand",
-        "cable_anchor": (124.0, 172.0),
-        "bones": b_op,
-        "pose_a": _pose(
-            (116, 108), (-88, -89, -86), (52, -76), (46, -78), (op_lf, op_lb)
-        ),
-        "pose_b": _pose(
-            (116, 108), (-89, -92, -87), (-82, -86), (-88, -88), (op_lf, op_lb)
-        ),
-    }
-
-    # 11. Bench Press
-    b_bp = {
-        **STD_BONES,
-        "uarm": 24.0,
-        "farm": 24.0,
-        "thigh": 35.0,
-        "shin": 35.0,
-        "back_dx": -4.0,
-        "back_dy": -2.0,
-    }
-    bp_lf = _solve_2link_ik((132, 129), (170, 171), (35, 35))
-    bp_lb = _solve_2link_ik((128, 127), (164, 169), (35, 35))
-    specs["bench_press"] = {
-        "label": "Bench Press",
-        "fixture": "bench",
-        "default_equipment": "barbell",
-        "band_anchor": (90.0, 172.0),
-        "band_target": "hand",
-        "cable_anchor": (90.0, 170.0),
-        "bones": b_bp,
-        "pose_a": _pose(
-            (132, 129), (-178, -178, -172), (48, -86), (44, -86), (bp_lf, bp_lb)
-        ),
-        "pose_b": _pose(
-            (132, 129), (-178, -178, -172), (-86, -88), (-88, -88), (bp_lf, bp_lb)
-        ),
-    }
-
-    # 12. Row Pull
-    b_rw = {**STD_BONES, "uarm": 25.0, "farm": 24.0, "thigh": 36.0, "shin": 36.0}
-    rw_lf = _solve_2link_ik((94, 106), (122, 171), (36, 36))
-    rw_lb = _solve_2link_ik((89, 104), (115, 169), (36, 36))
-    specs["row_pull"] = {
-        "label": "Row Pull",
-        "fixture": None,
-        "default_equipment": "dumbbell",
-        "band_anchor": (158.0, 172.0),
-        "band_target": "hand",
-        "cable_anchor": (186.0, 128.0),
-        "bones": b_rw,
-        "pose_a": _pose((94, 106), (-30, -28, -24), (88, 86), (86, 84), (rw_lf, rw_lb)),
-        "pose_b": _pose(
-            (94, 106), (-32, -30, -26), (196, 70), (186, 72), (rw_lf, rw_lb)
-        ),
-    }
-
-    return specs
-
-
-def _build_isolation_and_pull_specs() -> dict[str, dict[str, Any]]:
-    specs: dict[str, dict[str, Any]] = {}
-
-    # 13. Curl
-    b_cu = {**STD_BONES, "thigh": 36.0, "shin": 36.0}
-    cu_lf = _solve_2link_ik((114, 102), (122, 171), (36, 36))
-    cu_lb = _solve_2link_ik((109, 100), (114, 169), (36, 36))
-    specs["curl"] = {
-        "label": "Bicep Curl",
-        "fixture": None,
-        "default_equipment": "dumbbell",
-        "band_anchor": (126.0, 173.0),
-        "band_target": "hand",
-        "cable_anchor": (156.0, 170.0),
-        "bones": b_cu,
-        "pose_a": _pose(
-            (114, 102), (-88, -88, -86), (88, 76), (86, 74), (cu_lf, cu_lb)
-        ),
-        "pose_b": _pose(
-            (114, 102), (-88, -89, -86), (78, -58), (80, -46), (cu_lf, cu_lb)
-        ),
-    }
-
-    # 14. Vertical Pull (overhead bar/pulley fixture + vertical pull to upper chest)
-    b_vp = {
-        **STD_BONES,
-        "lumbar": 21.0,
-        "thoracic": 21.0,
-        "neck": 18.0,
-        "uarm": 26.0,
-        "farm": 25.0,
-        "thigh": 34.0,
-        "shin": 34.0,
-    }
-    vp_lf = _solve_2link_ik((106, 134), (148, 171), (34, 34))
-    vp_lb = _solve_2link_ik((101, 132), (142, 169), (34, 34))
-    specs["vertical_pull"] = {
-        "label": "Vertical Pull",
-        "fixture": "pull_station",
-        "default_equipment": "cable",
-        "band_anchor": (116.0, 20.0),
-        "band_target": "hand",
-        "cable_anchor": (116.0, 20.0),
-        "bones": b_vp,
-        "pose_a": _pose(
-            (106, 134), (-88, -86, -82), (-76, -84), (-80, -86), (vp_lf, vp_lb)
-        ),
-        "pose_b": _pose(
-            (106, 134), (-94, -98, -86), (102, -58), (96, -62), (vp_lf, vp_lb)
-        ),
-    }
-
-    # 15. Triceps Extension (incline skull crusher: pinned humerus, elbow extension)
-    b_te = {
-        **STD_BONES,
-        "uarm": 24.0,
-        "farm": 24.0,
-        "thigh": 35.0,
-        "shin": 35.0,
-        "back_dx": -4.0,
-        "back_dy": -2.0,
-    }
-    te_lf = _solve_2link_ik((128, 132), (168, 171), (35, 35))
-    te_lb = _solve_2link_ik((124, 130), (162, 169), (35, 35))
-    specs["triceps_extension"] = {
-        "label": "Triceps Extension",
-        "fixture": "incline_bench",
-        "default_equipment": "dumbbell",
-        "band_anchor": (52.0, 170.0),
-        "band_target": "hand",
-        "cable_anchor": (48.0, 168.0),
-        "bones": b_te,
-        "pose_a": _pose(
-            (128, 132), (-146, -144, -136), (-98, -174), (-102, -176), (te_lf, te_lb)
-        ),
-        "pose_b": _pose(
-            (128, 132), (-146, -144, -136), (-94, -82), (-98, -84), (te_lf, te_lb)
-        ),
-    }
-
-    # 16. Leg Extension & Curl (seated bench fixture + isolated knee extension/flexion)
-    b_le = {**STD_BONES, "thigh": 36.0, "shin": 36.0, "back_dx": -4.0, "back_dy": -2.0}
-    specs["leg_extension_curl"] = {
-        "label": "Leg Extension and Curl",
-        "fixture": "leg_bench",
-        "default_equipment": "machine",
-        "band_anchor": (96.0, 166.0),
-        "band_target": "foot",
-        "cable_anchor": (96.0, 164.0),
-        "cable_target": "foot",
-        "bones": b_le,
-        "pose_a": _pose(
-            (96, 122), (-102, -100, -90), (72, 86), (74, 86), ((4, 102), (4, 98))
-        ),
-        "pose_b": _pose(
-            (96, 122), (-102, -100, -90), (72, 86), (74, 86), ((2, 4), (2, 8))
-        ),
-    }
-
-    # 17. Calf Raise (standing plantarflexion elevating body from ball of foot)
-    b_cr = {**STD_BONES, "thigh": 34.0, "shin": 34.0}
-    cr_lf_a = _solve_2link_ik((114, 105), (119, 170), (34, 34))
-    cr_lb_a = _solve_2link_ik((109, 103), (114, 168), (34, 34))
-    cr_lf_b = _solve_2link_ik((120, 91), (124, 156), (34, 34), near=cr_lf_a)
-    cr_lb_b = _solve_2link_ik((115, 89), (119, 154), (34, 34), near=cr_lb_a)
-    specs["calf_raise"] = {
-        "label": "Calf Raise",
-        "fixture": "calf_block",
-        "forefoot": (136.0, 167.0),
-        "default_equipment": "body_only",
-        "band_anchor": (130.0, 173.0),
-        "band_target": "shoulder",
-        "cable_anchor": (154.0, 170.0),
-        "bones": b_cr,
-        "pose_a": _pose(
-            (114, 105), (-88, -88, -86), (102, -48), (100, -44), (cr_lf_a, cr_lb_a)
-        ),
-        "pose_b": _pose(
-            (120, 91), (-88, -88, -86), (98, -46), (96, -42), (cr_lf_b, cr_lb_b)
-        ),
-    }
-
-    # 18. Bicycle Crunch (supine spinal flexion + alternating pedaling legs off floor)
-    b_bc = {**STD_BONES, "thigh": 34.0, "shin": 34.0, "back_dx": -4.0, "back_dy": -2.0}
-    specs["bicycle_crunch"] = {
-        "label": "Bicycle Crunch",
-        "fixture": None,
-        "default_equipment": "body_only",
-        "band_anchor": (184.0, 146.0),
-        "band_target": "foot",
-        "cable_anchor": (42.0, 142.0),
-        "bones": b_bc,
-        "pose_a": _pose(
-            (116, 162),
-            (-154, -116, -96),
-            (-36, -146),
-            (-142, -52),
-            ((-114, 10), (-20, -8)),
-        ),
-        "pose_b": _pose(
-            (116, 162),
-            (-156, -124, -102),
-            (-142, -52),
-            (-36, -146),
-            ((-20, -8), (-114, 10)),
-        ),
-    }
-
-    return specs
-
-
-def _build_archetype_specs() -> dict[str, dict[str, Any]]:
-    return {
-        **_build_foundation_specs(),
-        **_build_calisthenic_and_press_specs(),
-        **_build_isolation_and_pull_specs(),
-    }
-
-
-ARCHETYPE_SPECS: dict[str, dict[str, Any]] = _build_archetype_specs()
 
 
 def normalize_equipment(equipment: str | None, archetype: str = "squat") -> str:
@@ -1048,6 +608,8 @@ def render_archetype_svg(
     pose_b_attr = escape(json.dumps(pb, separators=(",", ":")), quote=True)
     bones_attr = escape(json.dumps(bones, separators=(",", ":")), quote=True)
     label = escape(str(spec["label"]), quote=True)
+    tempo_mode = escape(str(spec["coaching"]["tempo_mode"]), quote=True)
+    hold_style = escape(str(spec["hold_style"]), quote=True)
     grad_id = f"glow-{arch}"
 
     aura_cx, aura_cy = _compute_aura_center(spec)
@@ -1055,7 +617,7 @@ def render_archetype_svg(
     ring_r = 62.0 + 6.0 * t_init
     shadow_cx, shadow_rx = compute_shadow(j)
 
-    bar_mode = "shoulder" if arch in BACK_RACK_ARCHETYPES else "hands"
+    bar_mode = str(spec["bar_mode"])
     extra_svg_attrs, prop_back_markup, prop_front_markup = _render_equipment_props(
         eq_mode, bar_mode, spec, j
     )
@@ -1069,6 +631,7 @@ def render_archetype_svg(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" '
         'preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" '
         f'aria-label="{label}" data-archetype="{arch}" '
+        f'data-tempo-mode="{tempo_mode}" data-hold-style="{hold_style}" '
         f'data-bones="{bones_attr}" data-pose-a="{pose_a_attr}" '
         f'data-pose-b="{pose_b_attr}" {extra_attr_str}>'
     )

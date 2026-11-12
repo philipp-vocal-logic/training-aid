@@ -4,6 +4,7 @@
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -19,182 +20,54 @@ from training_aid.models import (
     WorkoutRoutine,
 )
 
-DEFAULT_EXERCISES_JSON = Path(__file__).resolve().parents[2] / "data" / "exercises.json"
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DEFAULT_EXERCISES_JSON = DATA_DIR / "exercises.json"
+DEFAULT_PROGRAMS_JSON = DATA_DIR / "programs.json"
 
-# Verified exercises from free-exercise-db grouped by user's available workout tools.
-# Each entry is (exercise_id, moderate_reps, moderate_weight_kg)
-EQUIPMENT_PROGRAMS: dict[str, dict[str, Any]] = {
-    "body_only": {
-        "label": "Body Only",
-        "routines": [
-            (
-                "Day 1: Full Body Basics",
-                [
-                    ("Bodyweight_Squat", 15, None),
-                    ("Pushups", 10, None),
-                    ("Single_Leg_Glute_Bridge", 12, None),
-                    ("Plank", 40, None),
-                ],
-            ),
-            (
-                "Day 2: Legs & Core",
-                [
-                    ("Bodyweight_Walking_Lunge", 12, None),
-                    ("Bench_Dips", 10, None),
-                    ("Mountain_Climbers", 20, None),
-                    ("Crunches", 15, None),
-                ],
-            ),
-            (
-                "Day 3: Energy & Strength",
-                [
-                    ("Freehand_Jump_Squat", 10, None),
-                    ("Incline_Push-Up", 12, None),
-                    ("Air_Bike", 20, None),
-                    ("Plank", 40, None),
-                ],
-            ),
-            (
-                "Day 4: Total Body Finish",
-                [
-                    ("Bodyweight_Squat", 15, None),
-                    ("Pushups_Close_and_Wide_Hand_Positions", 10, None),
-                    ("Single_Leg_Glute_Bridge", 12, None),
-                    ("3_4_Sit-Up", 15, None),
-                ],
-            ),
-        ],
-    },
-    "dumbbells": {
-        "label": "Dumbbells",
-        "routines": [
-            (
-                "Day 1: Squat, Press & Row",
-                [
-                    ("Dumbbell_Squat", 10, 12.0),
-                    ("Dumbbell_Bench_Press", 10, 12.0),
-                    ("One-Arm_Dumbbell_Row", 10, 12.0),
-                    ("Plank", 40, None),
-                ],
-            ),
-            (
-                "Day 2: Lunge & Shoulders",
-                [
-                    ("Dumbbell_Lunges", 10, 10.0),
-                    ("Dumbbell_Shoulder_Press", 10, 10.0),
-                    ("Alternate_Hammer_Curl", 12, 8.0),
-                    ("Crunches", 15, None),
-                ],
-            ),
-            (
-                "Day 3: Full Body Dumbbells",
-                [
-                    ("Dumbbell_Squat_To_A_Bench", 12, 12.0),
-                    ("Bent_Over_Two-Dumbbell_Row", 10, 10.0),
-                    ("Arnold_Dumbbell_Press", 10, 10.0),
-                    ("Air_Bike", 20, None),
-                ],
-            ),
-            (
-                "Day 4: Upper & Core Focus",
-                [
-                    ("Dumbbell_Lunges", 10, 10.0),
-                    ("Dumbbell_Bench_Press", 10, 12.0),
-                    ("Alternate_Incline_Dumbbell_Curl", 12, 8.0),
-                    ("Plank", 45, None),
-                ],
-            ),
-        ],
-    },
-    "kettlebell_bands": {
-        "label": "Kettlebell & Bands",
-        "routines": [
-            (
-                "Day 1: Kettlebell Strength",
-                [
-                    ("Goblet_Squat", 12, 12.0),
-                    ("Alternating_Kettlebell_Press", 10, 10.0),
-                    ("Alternating_Kettlebell_Row", 10, 12.0),
-                    ("Plank", 40, None),
-                ],
-            ),
-            (
-                "Day 2: Band & Core",
-                [
-                    ("Band_Good_Morning", 12, None),
-                    ("Bench_Press_-_With_Bands", 12, None),
-                    ("Band_Pull_Apart", 15, None),
-                    ("Crunches", 15, None),
-                ],
-            ),
-            (
-                "Day 3: Athletic Mix",
-                [
-                    ("Goblet_Squat", 12, 12.0),
-                    ("Pushups", 10, None),
-                    ("Band_Skull_Crusher", 12, None),
-                    ("Air_Bike", 20, None),
-                ],
-            ),
-            (
-                "Day 4: Posture & Legs",
-                [
-                    ("Bodyweight_Walking_Lunge", 12, None),
-                    ("Alternating_Kettlebell_Row", 10, 12.0),
-                    ("Back_Flyes_-_With_Bands", 15, None),
-                    ("Plank", 45, None),
-                ],
-            ),
-        ],
-    },
-    "full_gym": {
-        "label": "Full Gym",
-        "routines": [
-            (
-                "Day 1: Full Body A",
-                [
-                    ("Barbell_Full_Squat", 8, 40.0),
-                    ("Barbell_Bench_Press_-_Medium_Grip", 8, 35.0),
-                    ("Bent_Over_Barbell_Row", 10, 30.0),
-                    ("Plank", 45, None),
-                ],
-            ),
-            (
-                "Day 2: Full Body B",
-                [
-                    ("Romanian_Deadlift", 8, 40.0),
-                    ("Dumbbell_Shoulder_Press", 10, 10.0),
-                    ("Wide-Grip_Lat_Pulldown", 10, 35.0),
-                    ("Crunches", 15, None),
-                ],
-            ),
-            (
-                "Day 3: Strength & Pull",
-                [
-                    ("Barbell_Deadlift", 6, 50.0),
-                    ("Dumbbell_Bench_Press", 10, 16.0),
-                    ("One-Arm_Dumbbell_Row", 10, 14.0),
-                    ("Alternate_Hammer_Curl", 12, 10.0),
-                ],
-            ),
-            (
-                "Day 4: Legs & Cables",
-                [
-                    ("Dumbbell_Lunges", 10, 12.0),
-                    ("Barbell_Shoulder_Press", 8, 25.0),
-                    ("Cable_Chest_Press", 12, 25.0),
-                    ("Cable_Crunch", 15, 25.0),
-                ],
-            ),
-        ],
-    },
-}
 
-INTENSITY_LABELS = {
-    "light": "Easy Start",
-    "moderate": "Moderate",
-    "intense": "Intense",
-}
+@lru_cache(maxsize=1)
+def load_programs_config(
+    programs_path: Path = DEFAULT_PROGRAMS_JSON,
+) -> dict[str, Any]:
+    """Load declarative workout programs, intensity labels, and setup presets."""
+    raw = json.loads(programs_path.read_text(encoding="utf-8"))
+    equipment_programs: dict[str, dict[str, Any]] = {}
+    for eq_key, prog in raw["equipment_programs"].items():
+        routines = [
+            (
+                str(routine_name),
+                [
+                    (
+                        str(ex_id),
+                        int(reps),
+                        float(weight) if weight is not None else None,
+                    )
+                    for ex_id, reps, weight in specs
+                ],
+            )
+            for routine_name, specs in prog["routines"]
+        ]
+        equipment_programs[str(eq_key)] = {
+            "label": str(prog["label"]),
+            "routines": routines,
+        }
+    return {
+        "equipment_programs": equipment_programs,
+        "intensity_labels": {
+            str(k): str(v) for k, v in raw["intensity_labels"].items()
+        },
+        "equipment_archetypes": {
+            str(k): str(v) for k, v in raw["equipment_archetypes"].items()
+        },
+        "setup_equipment_props": {
+            str(k): str(v) for k, v in raw["setup_equipment_props"].items()
+        },
+    }
+
+
+_PROGRAMS_CONFIG = load_programs_config()
+EQUIPMENT_PROGRAMS: dict[str, dict[str, Any]] = _PROGRAMS_CONFIG["equipment_programs"]
+INTENSITY_LABELS: dict[str, str] = _PROGRAMS_CONFIG["intensity_labels"]
 
 
 @dataclass

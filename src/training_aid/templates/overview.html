@@ -147,7 +147,10 @@
     const initialCard =
       document.querySelector(".routine-card.is-next") ||
       document.querySelector(".routine-card");
-    const initialArch = wrap.querySelector("svg")?.dataset.archetype || "squat";
+    const initialArch =
+      wrap.querySelector("svg")?.dataset.archetype ||
+      Object.keys(SVGS)[0] ||
+      "";
     let currentKey =
       resolveSvgKey(initialCard?.dataset.svgKey, initialArch) || initialArch;
     let rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
@@ -157,9 +160,8 @@
     let rafId = null;
 
     function activeTempoMode() {
-      const bareArch = currentKey.split(":")[0];
-      return bareArch === "mountain_climber" || bareArch === "bicycle_crunch"
-        ? "alternating"
+      return rig && rig.tempoMode && rig.tempoMode !== "hold"
+        ? rig.tempoMode
         : "standard";
     }
 

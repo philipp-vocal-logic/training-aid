@@ -181,11 +181,15 @@
       if (mins >= 1) durationInput.value = mins;
     }, 10000);
 
-    const TURNAROUND_BY_MODE = {
-      standard: 0.43,
-      explosive: 0.31,
-      alternating: 0.50,
-    };
+    function turnaroundFor(mode) {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.turnaroundForMode === "function"
+      ) {
+        return window.TrainingMotion.turnaroundForMode(mode);
+      }
+      return 0.43;
+    }
 
     const reducedMotionQuery = window.matchMedia
       ? window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -428,17 +432,13 @@
                 lastDiscretePoseKey = "hold";
                 rig.applyPose(1);
               }
-            } else if (ex.archetype === "plank") {
-              rig.applyPose(0.5 - 0.5 * Math.cos(phaseElapsed * Math.PI));
             } else {
-              const settle = Math.min(1, phaseElapsed / 0.45);
-              const holdBreath = 0.92 + 0.08 * (0.5 - 0.5 * Math.cos(phaseElapsed * Math.PI));
-              rig.applyPose(settle * holdBreath);
+              rig.applyHold(phaseElapsed);
             }
             setCueText(Math.floor(phaseElapsed / 2) % 2 === 0 ? ex.cue_work : ex.cue_return);
           } else {
-            const mode = ex.tempo_mode || "standard";
-            const turnaround = TURNAROUND_BY_MODE[mode] ?? 0.43;
+            const mode = ex.tempo_mode || rig.tempoMode || "standard";
+            const turnaround = turnaroundFor(mode);
             const isWorkPhase = frac < turnaround;
             const poseOpts = {
               swapSides: Boolean(ex.is_alternating && (repIndex % 2 === 1)),

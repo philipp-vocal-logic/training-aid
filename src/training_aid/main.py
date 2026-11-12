@@ -30,6 +30,7 @@ from training_aid.services import (
     format_weight,
     generate_tailored_plan,
     get_next_routine,
+    load_programs_config,
     seed_exercises,
 )
 from training_aid.svg_assets import pregenerate_all_svgs
@@ -37,19 +38,9 @@ from training_aid.svg_assets import pregenerate_all_svgs
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-EQUIPMENT_ARCHETYPES: dict[str, str] = {
-    "body_only": "squat",
-    "dumbbells": "curl",
-    "kettlebell_bands": "hinge",
-    "full_gym": "bench_press",
-}
-
-SETUP_EQUIPMENT_PROPS: dict[str, str] = {
-    "body_only": "body only",
-    "dumbbells": "dumbbell",
-    "kettlebell_bands": "bands",
-    "full_gym": "barbell",
-}
+_PROGRAMS_CONFIG = load_programs_config()
+EQUIPMENT_ARCHETYPES: dict[str, str] = _PROGRAMS_CONFIG["equipment_archetypes"]
+SETUP_EQUIPMENT_PROPS: dict[str, str] = _PROGRAMS_CONFIG["setup_equipment_props"]
 
 
 @asynccontextmanager

@@ -16,6 +16,7 @@ from sqlmodel.pool import StaticPool
 
 from training_aid.coaching import (
     ARCHETYPE_COACHING,
+    EXERCISE_COACHING,
     build_exercise_guidance,
     classify_archetype,
     is_hold_exercise,
@@ -35,14 +36,17 @@ from training_aid.services import (
     apply_intensity_feedback,
     compute_scaled_target,
     compute_week_streak,
+    load_programs_config,
     seed_exercises,
 )
 from training_aid.svg_assets import (
+    ANIMATIONS_JSON,
     ARCHETYPE_SPECS,
     BONE_KEYS,
     POSE_KEYS,
     STD_BONES,
     SVGS_DIR,
+    compile_animation_spec,
     compute_shadow,
     evaluate_archetype_pose,
     lerp_pose,
@@ -627,3 +631,139 @@ def test_svg_public_api_and_ruff_config_contract() -> None:
             "select", []
         )
         assert "pep8-naming" in lint_cfg
+
+
+def test_declarative_animations_json_and_ik_compiler() -> None:
+    """Verify animations.json unifies rig + coaching config with declarative IK."""
+    raw = json.loads(ANIMATIONS_JSON.read_text(encoding="utf-8"))
+    assert {"std_bones", "equipment_aliases", "animations"} <= set(raw.keys())
+    animations = raw["animations"]
+    assert set(animations.keys()) == set(ARCHETYPE_SPECS.keys())
+
+    grounded = (
+        "squat",
+        "lunge",
+        "pushup",
+        "plank",
+        "hinge",
+        "glute_bridge",
+        "dip",
+        "calf_raise",
+    )
+    for arch in grounded:
+        pose_a_cfg = animations[arch]["pose_a"]
+        has_ik = any(
+            isinstance(pose_a_cfg[limb], dict) and "target" in pose_a_cfg[limb]
+            for limb in ("arm_f", "arm_b", "leg_f", "leg_b")
+        )
+        assert has_ik, f"{arch} should preserve declarative IK targets in animations"
+
+    for arch, cfg in animations.items():
+        compiled = compile_animation_spec(cfg, STD_BONES)
+        assert compiled["pose_a"] == ARCHETYPE_SPECS[arch]["pose_a"]
+        assert compiled["pose_b"] == ARCHETYPE_SPECS[arch]["pose_b"]
+        assert compiled["coaching"] == ARCHETYPE_COACHING[arch]
+
+    plank_svg = _parse_svg(render_archetype_svg("plank"))
+    squat_svg = _parse_svg(render_archetype_svg("squat"))
+    bike_svg = _parse_svg(render_archetype_svg("bicycle_crunch"))
+    assert plank_svg.attrib.get("data-hold-style") == "pulse"
+    assert plank_svg.attrib.get("data-tempo-mode") == "hold"
+    assert squat_svg.attrib.get("data-hold-style") == "settle"
+    assert squat_svg.attrib.get("data-tempo-mode") == "standard"
+    assert bike_svg.attrib.get("data-tempo-mode") == "alternating"
+
+
+def test_declarative_exercise_coaching_and_programs_configs(session: Session) -> None:
+    """Verify 2-tier exercise coaching and program configs without catalog pollution."""
+    data_dir = Path(__file__).resolve().parents[1] / "data"
+    catalog = json.loads((data_dir / "exercises.json").read_text(encoding="utf-8"))
+    coaching_map = json.loads(
+        (data_dir / "exercise_coaching.json").read_text(encoding="utf-8")
+    )
+    programs_cfg = load_programs_config(data_dir / "programs.json")
+
+    expected_catalog_keys = {
+        "id",
+        "name",
+        "force",
+        "level",
+        "mechanic",
+        "equipment",
+        "primaryMuscles",
+        "secondaryMuscles",
+        "instructions",
+        "category",
+        "images",
+    }
+    assert set(catalog[0].keys()) == expected_catalog_keys
+    assert "pose_a" not in Exercise.model_fields
+    assert "bones" not in Exercise.model_fields
+
+    catalog_ids = {item["id"] for item in catalog}
+    assert set(coaching_map.keys()) == catalog_ids
+    assert set(EXERCISE_COACHING.keys()) == catalog_ids
+
+    valid_tempos = {"standard", "explosive", "alternating", "hold"}
+    for item in catalog:
+        entry = coaching_map[item["id"]]
+        assert entry["archetype"] in ARCHETYPE_SPECS
+        assert entry["tempo_mode"] in valid_tempos
+        if item.get("category") == "stretching":
+            assert entry["is_hold"] is True
+            assert entry["tempo_mode"] == "hold"
+
+    box_jump = session.get(Exercise, "Box_Jump_Multiple_Response")
+    ab_roller = session.get(Exercise, "Ab_Roller")
+    shrug = session.get(Exercise, "Barbell_Shrug")
+    side_bridge = session.get(Exercise, "Side_Bridge")
+    assert box_jump is not None
+    assert ab_roller is not None
+    assert shrug is not None
+    assert side_bridge is not None
+    assert build_exercise_guidance(box_jump)["archetype"] == "squat"
+    assert build_exercise_guidance(box_jump)["tempo_mode"] == "explosive"
+    assert build_exercise_guidance(ab_roller)["archetype"] == "plank"
+    assert build_exercise_guidance(ab_roller)["is_hold"] is False
+    assert classify_archetype(shrug) == "row_pull"
+    assert is_hold_exercise(side_bridge) is True
+
+    synthetic = Exercise(
+        id="Custom_Unlisted_Goblet_Jump_Squat",
+        name="Custom Unlisted Goblet Jump Squat",
+        category="strength",
+        equipment="kettlebells",
+        primary_muscle="quadriceps",
+    )
+    syn_guide = build_exercise_guidance(synthetic)
+    assert syn_guide["archetype"] == "squat"
+    assert syn_guide["tempo_mode"] == "explosive"
+
+    assert programs_cfg["equipment_programs"] == EQUIPMENT_PROGRAMS
+    assert set(programs_cfg["equipment_archetypes"].values()) <= set(ARCHETYPE_SPECS)
+
+
+def test_templates_and_motion_js_have_zero_hardcoded_archetype_branches(
+    client: TestClient,
+) -> None:
+    """Verify templates and motion.js delegate tempo/hold behavior to data attrs."""
+    templates_dir = (
+        Path(__file__).resolve().parents[1] / "src" / "training_aid" / "templates"
+    )
+    workout_tpl = (templates_dir / "workout_session.html").read_text(encoding="utf-8")
+    overview_tpl = (templates_dir / "overview.html").read_text(encoding="utf-8")
+
+    assert 'archetype === "plank"' not in workout_tpl
+    assert "const TURNAROUND_BY_MODE" not in workout_tpl
+    assert "applyHold(" in workout_tpl
+    assert "turnaroundForMode(" in workout_tpl
+
+    assert "mountain_climber" not in overview_tpl
+    assert "bicycle_crunch" not in overview_tpl
+    assert "rig.tempoMode" in overview_tpl
+
+    motion_js = client.get("/static/motion.js").text
+    for symbol in ("turnaroundForMode", "applyHold", "tempoMode", "holdStyle"):
+        assert symbol in motion_js
+    render_state_idx = motion_js.index("function renderPoseState")
+    assert "querySelector" not in motion_js[render_state_idx:]

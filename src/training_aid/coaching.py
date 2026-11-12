@@ -5,7 +5,6 @@ import inspect
 import json
 import re
 from collections.abc import Callable
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +12,9 @@ from training_aid import svg_assets
 from training_aid.models import Exercise
 from training_aid.svg_assets import load_svg_markup
 
-DEFAULT_EXERCISES_JSON = Path(__file__).resolve().parents[2] / "data" / "exercises.json"
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DEFAULT_ANIMATIONS_JSON = DATA_DIR / "animations.json"
+DEFAULT_EXERCISE_COACHING_JSON = DATA_DIR / "exercise_coaching.json"
 
 _ROW_WORD_RE = re.compile(r"\b(?:rows?|rowing)\b")
 _CHIN_WORD_RE = re.compile(r"\bchins?\b")
@@ -23,6 +24,7 @@ type _ArchetypePredicate = Callable[[str, str, str], bool]
 HOLD_KEYWORDS: tuple[str, ...] = (
     "plank",
     "wall sit",
+    "side bridge",
     "isometric",
     "l-sit",
     "l sit",
@@ -52,152 +54,64 @@ ALTERNATING_KEYWORDS: tuple[str, ...] = (
     "walking lunge",
 )
 
-ARCHETYPE_COACHING: dict[str, dict[str, Any]] = {
-    "squat": {
-        "rep_seconds": 2.8,
-        "is_hold": False,
-        "how_to": "Hips back, chest up",
-        "cue_work": "↓ Squat",
-        "cue_return": "↑ Stand",
-        "tempo_mode": "standard",
-    },
-    "lunge": {
-        "rep_seconds": 2.8,
-        "is_hold": False,
-        "how_to": "Drop back knee, drive up",
-        "cue_work": "↓ Lunge",
-        "cue_return": "↑ Rise",
-        "tempo_mode": "standard",
-    },
-    "pushup": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Body straight, chest down",
-        "cue_work": "↓ Lower",
-        "cue_return": "↑ Press",
-        "tempo_mode": "standard",
-    },
-    "plank": {
-        "rep_seconds": 1.0,
-        "is_hold": True,
-        "how_to": "Straight line, core braced",
-        "cue_work": "Hold",
-        "cue_return": "Breathe",
-        "tempo_mode": "hold",
-    },
-    "hinge": {
-        "rep_seconds": 3.0,
-        "is_hold": False,
-        "how_to": "Flat spine, hinge hips",
-        "cue_work": "↓ Hinge",
-        "cue_return": "↑ Stand",
-        "tempo_mode": "standard",
-    },
-    "glute_bridge": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Drive heels, lift hips",
-        "cue_work": "↑ Lift",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "crunch_core": {
-        "rep_seconds": 2.2,
-        "is_hold": False,
-        "how_to": "Curl ribs to pelvis",
-        "cue_work": "↑ Crunch",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "mountain_climber": {
-        "rep_seconds": 1.4,
-        "is_hold": False,
-        "how_to": "Plank hold, drive knees",
-        "cue_work": "Drive",
-        "cue_return": "Switch",
-        "tempo_mode": "alternating",
-    },
-    "dip": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Bend elbows, press tall",
-        "cue_work": "↓ Dip",
-        "cue_return": "↑ Press",
-        "tempo_mode": "standard",
-    },
-    "overhead_press": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Brace core, press overhead",
-        "cue_work": "↑ Press",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "bench_press": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Shoulders set, press up",
-        "cue_work": "↑ Press",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "row_pull": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Flat back, pull elbows",
-        "cue_work": "↑ Row",
-        "cue_return": "↓ Extend",
-        "tempo_mode": "standard",
-    },
-    "curl": {
-        "rep_seconds": 2.4,
-        "is_hold": False,
-        "how_to": "Elbows pinned, curl up",
-        "cue_work": "↑ Curl",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "vertical_pull": {
-        "rep_seconds": 2.6,
-        "is_hold": False,
-        "how_to": "Chest tall, pull elbows down",
-        "cue_work": "↓ Pull",
-        "cue_return": "↑ Reach",
-        "tempo_mode": "standard",
-    },
-    "triceps_extension": {
-        "rep_seconds": 2.4,
-        "is_hold": False,
-        "how_to": "Lock elbows, extend forearms",
-        "cue_work": "↑ Extend",
-        "cue_return": "↓ Bend",
-        "tempo_mode": "standard",
-    },
-    "leg_extension_curl": {
-        "rep_seconds": 2.5,
-        "is_hold": False,
-        "how_to": "Control knee arc, squeeze peak",
-        "cue_work": "↑ Squeeze",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "calf_raise": {
-        "rep_seconds": 2.0,
-        "is_hold": False,
-        "how_to": "Press balls of feet, pause high",
-        "cue_work": "↑ Rise",
-        "cue_return": "↓ Lower",
-        "tempo_mode": "standard",
-    },
-    "bicycle_crunch": {
-        "rep_seconds": 1.6,
-        "is_hold": False,
-        "how_to": "Pedal legs, rotate shoulder to knee",
-        "cue_work": "Twist",
-        "cue_return": "Switch",
-        "tempo_mode": "alternating",
-    },
+_DEFAULT_COACHING_META: dict[str, Any] = {
+    "rep_seconds": 2.8,
+    "is_hold": False,
+    "how_to": "Hips back, chest up",
+    "cue_work": "↓ Squat",
+    "cue_return": "↑ Stand",
+    "tempo_mode": "standard",
 }
+
+
+def _load_archetype_coaching(
+    animations_path: Path = DEFAULT_ANIMATIONS_JSON,
+) -> dict[str, dict[str, Any]]:
+    if not animations_path.exists():
+        return {"squat": dict(_DEFAULT_COACHING_META)}
+    try:
+        raw = json.loads(animations_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"squat": dict(_DEFAULT_COACHING_META)}
+    animations = raw.get("animations")
+    if not isinstance(animations, dict):
+        return {"squat": dict(_DEFAULT_COACHING_META)}
+    loaded = {
+        str(arch): dict(spec["coaching"])
+        for arch, spec in animations.items()
+        if isinstance(spec, dict) and isinstance(spec.get("coaching"), dict)
+    }
+    return loaded or {"squat": dict(_DEFAULT_COACHING_META)}
+
+
+def _load_exercise_coaching(
+    coaching_path: Path = DEFAULT_EXERCISE_COACHING_JSON,
+) -> dict[str, dict[str, Any]]:
+    if not coaching_path.exists():
+        return {}
+    try:
+        raw = json.loads(coaching_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {
+        str(ex_id): dict(meta) for ex_id, meta in raw.items() if isinstance(meta, dict)
+    }
+
+
+ARCHETYPE_COACHING: dict[str, dict[str, Any]] = _load_archetype_coaching()
+EXERCISE_COACHING: dict[str, dict[str, Any]] = _load_exercise_coaching()
+_EXERCISE_COACHING_LOWER: dict[str, dict[str, Any]] = {
+    ex_id.lower(): meta for ex_id, meta in EXERCISE_COACHING.items()
+}
+
+
+def _lookup_exercise_coaching(exercise_id: str) -> dict[str, Any] | None:
+    entry = EXERCISE_COACHING.get(exercise_id)
+    if entry is not None:
+        return entry
+    return _EXERCISE_COACHING_LOWER.get(exercise_id.lower())
 
 
 def _normalized_text(exercise_id: str, name: str = "") -> str:
@@ -205,32 +119,21 @@ def _normalized_text(exercise_id: str, name: str = "") -> str:
     return f"{raw} {raw.replace('_', ' ')}"
 
 
-@lru_cache(maxsize=1)
-def _stretching_exercise_ids() -> frozenset[str]:
-    if not DEFAULT_EXERCISES_JSON.exists():
-        return frozenset()
-    try:
-        items = json.loads(DEFAULT_EXERCISES_JSON.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return frozenset()
-    return frozenset(
-        str(item["id"]).lower()
-        for item in items
-        if (item.get("category") or "").lower() == "stretching" and "id" in item
-    )
-
-
 def is_hold_exercise(exercise_or_id: Exercise | str) -> bool:
     """Return True if an exercise or exercise ID is an isometric hold or stretch."""
     if isinstance(exercise_or_id, Exercise):
         if (exercise_or_id.category or "").lower() == "stretching":
             return True
+        entry = _lookup_exercise_coaching(exercise_or_id.id)
+        if entry is not None:
+            return bool(entry["is_hold"])
         text = _normalized_text(exercise_or_id.id, exercise_or_id.name)
-        return any(k in text for k in HOLD_KEYWORDS)
+        return any(k in text for k in HOLD_KEYWORDS) or "stretch" in text
 
     ex_id = str(exercise_or_id)
-    if ex_id.lower() in _stretching_exercise_ids():
-        return True
+    entry = _lookup_exercise_coaching(ex_id)
+    if entry is not None:
+        return bool(entry["is_hold"])
     text = _normalized_text(ex_id)
     return any(k in text for k in HOLD_KEYWORDS) or "stretch" in text
 
@@ -243,8 +146,13 @@ def _load_svg(archetype: str, equipment: str | None = None) -> str:
     return load_svg_markup(effective_arch)
 
 
-def _matches_chin_pull(n: str, _pm: str, _cat: str) -> bool:
-    return bool(_CHIN_WORD_RE.search(n)) and "crunch" not in n and "chest" not in n
+def _matches_chin_pull(n: str, pm: str, _cat: str) -> bool:
+    return (
+        bool(_CHIN_WORD_RE.search(n))
+        and "crunch" not in n
+        and "chest" not in n
+        and pm != "triceps"
+    )
 
 
 def _matches_triceps_kickback(n: str, pm: str, _cat: str) -> bool:
@@ -266,7 +174,7 @@ def _matches_cardio(_n: str, _pm: str, cat: str) -> bool:
 _ARCHETYPE_RULES: tuple[
     tuple[str, tuple[str, ...], _ArchetypePredicate | None], ...
 ] = (
-    ("plank", ("plank",), None),
+    ("plank", ("plank", "ab rollout", "ab roller", "side bridge"), None),
     ("mountain_climber", ("mountain climber",), None),
     (
         "bicycle_crunch",
@@ -284,7 +192,6 @@ _ARCHETYPE_RULES: tuple[
         ("glute bridge", "hip thrust", "hip bridge", "butt lift (bridge)"),
         None,
     ),
-    # Vertical pull BEFORE generic row / pull / crunch
     (
         "vertical_pull",
         (
@@ -304,7 +211,6 @@ _ARCHETYPE_RULES: tuple[
         ),
         _matches_chin_pull,
     ),
-    # Knee isolation BEFORE generic curl / extension
     (
         "leg_extension_curl",
         (
@@ -317,9 +223,7 @@ _ARCHETYPE_RULES: tuple[
         ),
         None,
     ),
-    # Spinal / hip extensions -> hinge (NEVER curl!)
     ("hinge", ("hyperextension", "back extension", "reverse hyper"), None),
-    # Calf isolation BEFORE press / squat
     (
         "calf_raise",
         (
@@ -332,7 +236,6 @@ _ARCHETYPE_RULES: tuple[
         ),
         None,
     ),
-    # Triceps isolation BEFORE bench / overhead press / generic extension
     (
         "triceps_extension",
         (
@@ -352,7 +255,7 @@ _ARCHETYPE_RULES: tuple[
     ),
     ("pushup", ("pushup", "push-up", "push up"), None),
     ("lunge", ("lunge", "split squat"), None),
-    ("squat", ("squat",), None),
+    ("squat", ("squat", "box jump", "tuck jump", "depth jump"), None),
     ("dip", ("dip",), None),
     (
         "hinge",
@@ -383,11 +286,11 @@ _ARCHETYPE_RULES: tuple[
             "back fly",
             "reverse fly",
             "rear delt fly",
+            "shrug",
         ),
         _matches_row_variant,
     ),
     ("curl", (), _matches_bicep_curl),
-    # Cardio locomotion -> mountain_climber rather than squat
     (
         "mountain_climber",
         (
@@ -414,7 +317,7 @@ _MUSCLE_ARCHETYPE_MAP: dict[str, str] = {
     "abdominals": "crunch_core",
     "shoulders": "overhead_press",
     "neck": "overhead_press",
-    "traps": "overhead_press",
+    "traps": "row_pull",
     "lats": "row_pull",
     "middle back": "row_pull",
     "biceps": "curl",
@@ -430,6 +333,10 @@ def _fallback_muscle_archetype(pm: str, equipment: str | None) -> str:
 
 def classify_archetype(exercise: Exercise) -> str:
     """Classify an exercise into one of the 18 movement archetypes."""
+    entry = _lookup_exercise_coaching(exercise.id)
+    if entry is not None:
+        return str(entry["archetype"])
+
     n = _normalized_text(exercise.id, exercise.name)
     pm = (exercise.primary_muscle or "").lower()
     cat = (exercise.category or "").lower()
@@ -445,21 +352,29 @@ def classify_archetype(exercise: Exercise) -> str:
 
 def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
     """Build SVG markup, tempo pacing, and movement cues for an exercise."""
-    archetype = classify_archetype(exercise)
-    meta = ARCHETYPE_COACHING[archetype]
-    n = _normalized_text(exercise.id, exercise.name)
-    is_hold = is_hold_exercise(exercise)
+    entry = _lookup_exercise_coaching(exercise.id)
+    is_stretch = (exercise.category or "").lower() == "stretching"
 
-    if is_hold:
-        tempo_mode = "hold"
-    elif any(k in n for k in EXPLOSIVE_KEYWORDS):
-        tempo_mode = "explosive"
+    if entry is not None:
+        archetype = str(entry["archetype"])
+        meta = ARCHETYPE_COACHING.get(archetype, _DEFAULT_COACHING_META)
+        is_hold = True if is_stretch else bool(entry["is_hold"])
+        tempo_mode = "hold" if is_hold else str(entry["tempo_mode"])
+        is_alternating = bool(entry["is_alternating"])
     else:
-        tempo_mode = meta["tempo_mode"]
-
-    is_alternating = archetype in {"mountain_climber", "bicycle_crunch"} or any(
-        k in n for k in ALTERNATING_KEYWORDS
-    )
+        archetype = classify_archetype(exercise)
+        meta = ARCHETYPE_COACHING.get(archetype, _DEFAULT_COACHING_META)
+        n = _normalized_text(exercise.id, exercise.name)
+        is_hold = is_hold_exercise(exercise)
+        if is_hold:
+            tempo_mode = "hold"
+        elif any(k in n for k in EXPLOSIVE_KEYWORDS):
+            tempo_mode = "explosive"
+        else:
+            tempo_mode = str(meta["tempo_mode"])
+        is_alternating = archetype in {"mountain_climber", "bicycle_crunch"} or any(
+            k in n for k in ALTERNATING_KEYWORDS
+        )
 
     return {
         "archetype": archetype,
