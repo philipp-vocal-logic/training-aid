@@ -17,6 +17,13 @@
       </div>
 
       <div class="hud-actions">
+        <select id="sound-theme-select" class="hud-select" aria-label="Sound theme">
+          <option value="off">Off</option>
+          <option value="minimal">Minimal Cues</option>
+          <option value="techno">Techno Pulse</option>
+          <option value="trance">Trance Arp</option>
+          <option value="studio">Studio Kit</option>
+        </select>
         <button type="button" id="sound-toggle" class="hud-icon-btn" aria-label="Sound">
           <svg id="icon-vol-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
           <svg id="icon-vol-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
@@ -91,68 +98,53 @@
     const PLAYLIST = {{ playlist | tojson }};
     const REST_SECONDS = 20;
 
-    let audioCtx = null;
-    let soundEnabled = true;
-
-    function ensureAudio() {
-      if (!soundEnabled) return null;
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return null;
-      if (!audioCtx) audioCtx = new Ctx();
-      if (audioCtx.state === "suspended") audioCtx.resume();
-      return audioCtx;
-    }
-
-    function playTone(freq, durSec, type, peakGain, delaySec) {
-      const ctx = ensureAudio();
-      if (!ctx) return;
-      const start = ctx.currentTime + (delaySec || 0);
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type || "sine";
-      osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.linearRampToValueAtTime(peakGain || 0.18, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + durSec);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + durSec + 0.015);
-    }
-
-    const Sound = {
-      countdown() { playTone(440, 0.09, "sine", 0.16, 0); },
-      startSignal() {
-        playTone(784, 0.10, "triangle", 0.22, 0);
-        playTone(1046.5, 0.18, "triangle", 0.25, 0.13);
-      },
-      midRep() {
-        playTone(330, 0.045, "triangle", 0.09, 0);
-      },
-      repDone(rep, total) {
-        const left = total - rep;
-        const freq = left <= 1 ? 830 : (left === 2 ? 740 : 660);
-        playTone(freq, 0.085, "sine", 0.20, 0);
-      },
-      holdTick(remaining) {
-        if (remaining <= 3 && remaining > 0) {
-          playTone(660, 0.08, "sine", 0.18, 0);
-        } else {
-          playTone(480, 0.035, "sine", 0.07, 0);
-        }
-      },
-      stopSet() {
-        playTone(880, 0.09, "triangle", 0.22, 0);
-        playTone(880, 0.09, "triangle", 0.22, 0.12);
-        playTone(587.3, 0.22, "triangle", 0.24, 0.25);
-      },
-      workoutComplete() {
-        playTone(523.25, 0.12, "triangle", 0.22, 0.00);
-        playTone(659.25, 0.12, "triangle", 0.22, 0.13);
-        playTone(783.99, 0.12, "triangle", 0.22, 0.26);
-        playTone(1046.5, 0.30, "triangle", 0.26, 0.39);
+    function turnaroundFor(mode) {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.turnaroundForMode === "function"
+      ) {
+        return window.TrainingMotion.turnaroundForMode(mode);
       }
-    };
+      return 0.43;
+    }
+
+    function createFallbackSound() {
+      let theme = "minimal";
+      let lastActive = "minimal";
+      let elapsed = 0;
+      return {
+        getTheme() { return theme; },
+        setTheme(id) {
+          theme = id || "minimal";
+          if (theme !== "off") lastActive = theme;
+          return theme;
+        },
+        toggleMute() {
+          theme = theme === "off" ? (lastActive || "minimal") : "off";
+          return theme;
+        },
+        isMuted() { return theme === "off"; },
+        ensureAudio() { return null; },
+        beginPhase() { elapsed = 0; },
+        advancePhase(dt) { elapsed += Math.max(0, dt || 0); return elapsed; },
+        pause() {},
+        resume() {},
+        stopAll() {},
+        countdown() {},
+        startSignal() {},
+        midRep() {},
+        repDone() {},
+        holdTick() {},
+        stopSet() {},
+        workoutComplete() {},
+      };
+    }
+
+    const Sound =
+      window.TrainingSound &&
+      typeof window.TrainingSound.createController === "function"
+        ? window.TrainingSound.createController({ turnaroundForMode: turnaroundFor })
+        : createFallbackSound();
 
     const viewportEl = document.getElementById("workout-viewport");
     const stageEl = document.getElementById("coach-stage");
@@ -165,11 +157,26 @@
     const progressFillEl = document.getElementById("set-progress-fill");
     const primaryBtn = document.getElementById("primary-btn");
     const skipBtn = document.getElementById("skip-btn");
+    const soundSelect = document.getElementById("sound-theme-select");
     const soundBtn = document.getElementById("sound-toggle");
+    const iconVolOn = document.getElementById("icon-vol-on");
+    const iconVolOff = document.getElementById("icon-vol-off");
     const fsBtn = document.getElementById("fs-toggle");
     const earlyBtn = document.getElementById("early-finish-btn");
     const finishForm = document.getElementById("finish-form");
     const durationInput = document.getElementById("duration-input");
+
+    function syncSoundUi() {
+      const theme = Sound.getTheme();
+      if (soundSelect) {
+        soundSelect.value = theme;
+      }
+      const muted = Sound.isMuted();
+      iconVolOn.style.display = muted ? "none" : "block";
+      iconVolOff.style.display = muted ? "block" : "none";
+    }
+
+    syncSoundUi();
 
     const sessionStartMs = Date.now();
     const durationInterval = setInterval(() => {
@@ -180,16 +187,6 @@
       const mins = Math.floor((Date.now() - sessionStartMs) / 60000);
       if (mins >= 1) durationInput.value = mins;
     }, 10000);
-
-    function turnaroundFor(mode) {
-      if (
-        window.TrainingMotion &&
-        typeof window.TrainingMotion.turnaroundForMode === "function"
-      ) {
-        return window.TrainingMotion.turnaroundForMode(mode);
-      }
-      return 0.43;
-    }
 
     const reducedMotionQuery = window.matchMedia
       ? window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -321,7 +318,9 @@
       repReadoutEl.textContent = formatReadout(0, ex);
       progressFillEl.style.width = "0%";
       setCueText("3");
-      Sound.countdown();
+      Sound.resume();
+      Sound.beginPhase("COUNTDOWN", { countdownSeconds: 3.0, repSeconds: ex.rep_seconds });
+      Sound.countdown(3);
       primaryBtn.textContent = "⏸";
       skipBtn.style.display = "inline-flex";
       ensureLoop();
@@ -329,6 +328,7 @@
 
     function beginActiveSet() {
       const ex = currentEx();
+      const mode = ex.tempo_mode || rig.tempoMode || "standard";
       setState("ACTIVE");
       paused = false;
       phaseElapsed = 0;
@@ -339,6 +339,13 @@
       progressFillEl.style.width = "0%";
       primaryBtn.textContent = "⏸";
       skipBtn.style.display = "inline-flex";
+      Sound.beginPhase("ACTIVE", {
+        repSeconds: ex.rep_seconds,
+        reps: ex.reps,
+        tempoMode: mode,
+        turnaround: turnaroundFor(mode),
+        isHold: Boolean(ex.is_hold),
+      });
       Sound.startSignal();
       setCueText(ex.cue_work);
       if (isReducedMotion() && rig) {
@@ -364,11 +371,12 @@
         return;
       }
 
-      Sound.stopSet();
       setState("REST");
       phaseElapsed = 0;
       lastCountdownInt = null;
       loadStagePreview();
+      Sound.beginPhase("REST", { restSeconds: REST_SECONDS });
+      Sound.stopSet();
       setCueText(`Rest · ${currentEx().name}`);
       primaryBtn.textContent = "⏸";
       ensureLoop();
@@ -378,6 +386,7 @@
       setState("FINISHED");
       stopLoop();
       clearInterval(durationInterval);
+      Sound.beginPhase("FINISHED", {});
       Sound.workoutComplete();
       stageEl.style.display = "none";
       finishForm.style.display = "flex";
@@ -397,7 +406,7 @@
         idleElapsed += dt;
         applyNeutralBreath(idleElapsed);
       } else if (state === "COUNTDOWN") {
-        phaseElapsed += dt;
+        phaseElapsed = Sound.advancePhase(dt);
         applyNeutralBreath(phaseElapsed);
 
         const rem = Math.ceil(3.0 - phaseElapsed);
@@ -405,14 +414,14 @@
           setCueText(String(rem));
           if (rem !== lastCountdownInt) {
             lastCountdownInt = rem;
-            Sound.countdown();
+            Sound.countdown(rem);
           }
         }
         if (phaseElapsed >= 3.0) {
           beginActiveSet();
         }
       } else if (state === "ACTIVE") {
-        phaseElapsed += dt;
+        phaseElapsed = Sound.advancePhase(dt);
         const ex = currentEx();
         const totalSec = ex.reps * ex.rep_seconds;
 
@@ -478,7 +487,7 @@
           }
         }
       } else if (state === "REST") {
-        phaseElapsed += dt;
+        phaseElapsed = Sound.advancePhase(dt);
         const rem = Math.max(0, Math.ceil(REST_SECONDS - phaseElapsed));
         if (phaseElapsed >= 0.6) {
           const restReadout = `${rem}s`;
@@ -492,7 +501,7 @@
 
         if (rem <= 3 && rem >= 1 && rem !== lastCountdownInt) {
           lastCountdownInt = rem;
-          Sound.countdown();
+          Sound.countdown(rem);
         }
         if (phaseElapsed >= REST_SECONDS) {
           beginActiveSet();
@@ -508,7 +517,7 @@
     ensureLoop();
 
     function togglePlayPause() {
-      ensureAudio();
+      Sound.ensureAudio();
       if (state === "IDLE") {
         beginCountdown();
         return;
@@ -517,17 +526,23 @@
       paused = !paused;
       primaryBtn.textContent = paused ? "▶" : "⏸";
       if (paused) {
+        Sound.pause();
         stopLoop();
         setCueText("Paused");
       } else {
+        Sound.resume();
         ensureLoop();
       }
     }
 
     function skipCurrentPhase() {
-      ensureAudio();
+      Sound.ensureAudio();
       if (state === "IDLE" || state === "FINISHED") return;
-      paused = false;
+      if (paused) {
+        Sound.stopAll();
+        paused = false;
+        Sound.resume();
+      }
       primaryBtn.textContent = "⏸";
       if (state === "REST" || state === "COUNTDOWN") {
         beginActiveSet();
@@ -540,10 +555,23 @@
     document.getElementById("canvas-tap-area").addEventListener("click", togglePlayPause);
     skipBtn.addEventListener("click", skipCurrentPhase);
 
+    soundSelect.addEventListener("change", () => {
+      Sound.setTheme(soundSelect.value);
+      Sound.ensureAudio();
+      syncSoundUi();
+      soundSelect.blur();
+    });
+
+    soundSelect.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.stopPropagation();
+      }
+    });
+
     soundBtn.addEventListener("click", () => {
-      soundEnabled = !soundEnabled;
-      document.getElementById("icon-vol-on").style.display = soundEnabled ? "block" : "none";
-      document.getElementById("icon-vol-off").style.display = soundEnabled ? "none" : "block";
+      Sound.toggleMute();
+      Sound.ensureAudio();
+      syncSoundUi();
     });
 
     fsBtn.addEventListener("click", () => {
@@ -557,6 +585,8 @@
     earlyBtn.addEventListener("click", () => {
       paused = true;
       setState("FINISHED");
+      Sound.stopAll();
+      Sound.beginPhase("FINISHED", {});
       stopLoop();
       clearInterval(durationInterval);
       stageEl.style.display = "none";
@@ -565,8 +595,12 @@
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
+        Sound.pause();
         stopLoop();
       } else {
+        if (!paused && state !== "IDLE" && state !== "FINISHED") {
+          Sound.resume();
+        }
         ensureLoop();
       }
     });
@@ -582,6 +616,7 @@
     }
 
     window.addEventListener("keydown", (e) => {
+      if (e.target && e.target.tagName === "SELECT") return;
       if (e.code === "Space" && state !== "FINISHED") {
         e.preventDefault();
         togglePlayPause();

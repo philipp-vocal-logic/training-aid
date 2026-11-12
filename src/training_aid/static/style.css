@@ -184,10 +184,44 @@ select {
   font-size: 1rem;
 }
 
+.hud-select {
+  height: 42px;
+  max-width: 9.25rem;
+  padding: 0 1.85rem 0 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat right 0.65rem center;
+  color: var(--text);
+  color-scheme: dark;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.hud-select option {
+  background: #0f172a;
+  color: var(--text);
+}
+
 .btn-ghost:hover,
-.hud-icon-btn:hover {
+.hud-icon-btn:hover,
+.btn-ghost:focus-visible,
+.hud-icon-btn:focus-visible,
+.hud-select:hover,
+.hud-select:focus-visible {
   border-color: var(--brand-bright);
-  background: rgba(30, 41, 59, 0.9);
+  background-color: rgba(30, 41, 59, 0.9);
 }
 
 .svg-thumb {
@@ -581,6 +615,7 @@ select {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  flex-shrink: 0;
 }
 
 .phase-cue-float {
@@ -938,6 +973,34 @@ select {
   }
 }
 
+@media (max-width: 600px) {
+  .workout-hud-top {
+    padding: 0.7rem 0.75rem;
+    gap: 0.45rem;
+  }
+
+  .hud-title-cluster {
+    gap: 0.4rem;
+  }
+
+  .hud-actions {
+    gap: 0.3rem;
+  }
+
+  .hud-select {
+    max-width: 6.2rem;
+    padding: 0 1.45rem 0 0.6rem;
+    background-position: right 0.45rem center;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .hud-select {
+    max-width: 4.8rem;
+  }
+}
+
 /* ------------------------------------------------------------------
    Reduced Motion Accessibility
 ------------------------------------------------------------------ */
@@ -958,6 +1021,7 @@ select {
   .btn-primary,
   .btn-ghost,
   .hud-icon-btn,
+  .hud-select,
   .finish-tile,
   .routine-card,
   .ex-row,
