@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" aria-label="overhead_press" data-archetype="overhead_press" data-pose-a="{&quot;head&quot;:[120,44],&quot;shoulder&quot;:[120,64],&quot;hip&quot;:[120,104],&quot;elbow_f&quot;:[144,80],&quot;hand_f&quot;:[140,54],&quot;elbow_b&quot;:[96,80],&quot;hand_b&quot;:[100,54],&quot;knee_f&quot;:[130,138],&quot;foot_f&quot;:[132,172],&quot;knee_b&quot;:[110,138],&quot;foot_b&quot;:[108,172]}" data-pose-b="{&quot;head&quot;:[120,44],&quot;shoulder&quot;:[120,64],&quot;hip&quot;:[120,104],&quot;elbow_f&quot;:[135,40],&quot;hand_f&quot;:[132,16],&quot;elbow_b&quot;:[105,40],&quot;hand_b&quot;:[108,16],&quot;knee_f&quot;:[130,138],&quot;foot_f&quot;:[132,172],&quot;knee_b&quot;:[110,138],&quot;foot_b&quot;:[108,172]}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" aria-label="Overhead Press" data-archetype="overhead_press" data-bones="{&quot;lumbar&quot;:21.0,&quot;thoracic&quot;:21.0,&quot;neck&quot;:18.0,&quot;uarm&quot;:23.0,&quot;farm&quot;:22.0,&quot;thigh&quot;:34.0,&quot;shin&quot;:34.0,&quot;back_dx&quot;:-6.0,&quot;back_dy&quot;:-2.0}" data-pose-a="{&quot;hip_x&quot;:116,&quot;hip_y&quot;:108,&quot;lumbar&quot;:-88,&quot;thoracic&quot;:-89,&quot;neck&quot;:-86,&quot;uarm_f&quot;:52,&quot;farm_f&quot;:-76,&quot;uarm_b&quot;:46,&quot;farm_b&quot;:-78,&quot;thigh_f&quot;:60.71,&quot;shin_f&quot;:101.25,&quot;thigh_b&quot;:69.78,&quot;shin_b&quot;:113.86}" data-pose-b="{&quot;hip_x&quot;:116,&quot;hip_y&quot;:108,&quot;lumbar&quot;:-89,&quot;thoracic&quot;:-92,&quot;neck&quot;:-87,&quot;uarm_f&quot;:-82,&quot;farm_f&quot;:-86,&quot;uarm_b&quot;:-88,&quot;farm_b&quot;:-88,&quot;thigh_f&quot;:60.71,&quot;shin_f&quot;:101.25,&quot;thigh_b&quot;:69.78,&quot;shin_b&quot;:113.86}" data-equipment="dumbbell">
   <defs>
     <radialGradient id="glow-overhead_press" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
@@ -6,33 +6,36 @@
       <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
     </radialGradient>
   </defs>
-  <circle class="js-aura" cx="120" cy="102" r="82" fill="url(#glow-overhead_press)" />
-  <circle class="js-ring" cx="120" cy="102" r="64" fill="none" stroke="#34d399" stroke-opacity="0.14" stroke-width="1.2" stroke-dasharray="3 6" />
+  <circle class="js-aura" cx="121.0" cy="109.5" r="87.20" fill="url(#glow-overhead_press)" />
+  <circle class="js-ring" cx="121.0" cy="109.5" r="67.40" fill="none" stroke="#34d399" stroke-opacity="0.14" stroke-width="1.2" stroke-dasharray="3 6" />
   <line x1="16" y1="175" x2="224" y2="175" stroke="#334155" stroke-width="3" stroke-linecap="round" />
-  <ellipse class="js-shadow" cx="124.0" cy="176" rx="28" ry="3.5" fill="#10b981" fill-opacity="0.22" />
+  <ellipse class="js-shadow" cx="117.04" cy="176" rx="22.00" ry="3.5" fill="#10b981" fill-opacity="0.22" />
   
   <g stroke="#64748b" stroke-width="8" stroke-linecap="round">
-    <line class="js-thigh-b" x1="120" y1="104" x2="110" y2="138" />
-    <line class="js-shin-b" x1="110" y1="138" x2="108" y2="172" />
-    <line class="js-uarm-b" x1="120" y1="64" x2="96" y2="80" />
-    <line class="js-farm-b" x1="96" y1="80" x2="100" y2="54" />
+    <line class="js-thigh-b" x1="110.00" y1="106.00" x2="121.75" y2="137.90" />
+    <line class="js-shin-b" x1="121.75" y1="137.90" x2="108.00" y2="169.00" />
+    
+    <line class="js-uarm-b" x1="109.78" y1="64.01" x2="115.89" y2="41.84" />
+    <line class="js-farm-b" x1="115.89" y1="41.84" x2="117.04" y2="19.87" />
   </g>
-  <circle class="js-weight-b" cx="100" cy="54" r="7.5" fill="#059669" fill-opacity="0.65" />
+  <circle class="js-weight-b" cx="117.04" cy="19.87" r="7" fill="#059669" fill-opacity="0.68" />
   <g stroke="#e2e8f0" stroke-width="9.5" stroke-linecap="round">
-    <line class="js-thigh-f" x1="120" y1="104" x2="130" y2="138" />
-    <line class="js-shin-f" x1="130" y1="138" x2="132" y2="172" />
+    <line class="js-thigh-f" x1="116.00" y1="108.00" x2="132.63" y2="137.65" />
+    <line class="js-shin-f" x1="132.63" y1="137.65" x2="126.00" y2="171.00" />
+    
   </g>
-  <line class="js-torso" x1="120" y1="64" x2="120" y2="104" stroke="#f8fafc" stroke-width="11" stroke-linecap="round" />
+  <line class="js-neck" x1="115.78" y1="66.01" x2="116.75" y2="48.04" stroke="#cbd5e1" stroke-width="6.5" stroke-linecap="round" />
+  <path class="js-torso" d="M 116.00 108.00 Q 116.40 87.00 115.78 66.01" fill="none" stroke="#f8fafc" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
   <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">
-    <line class="js-uarm-f" x1="120" y1="64" x2="144" y2="80" />
-    <line class="js-farm-f" x1="144" y1="80" x2="140" y2="54" />
+    <line class="js-uarm-f" x1="115.78" y1="66.01" x2="124.17" y2="44.60" />
+    <line class="js-farm-f" x1="124.17" y1="44.60" x2="126.09" y2="22.68" />
   </g>
   <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">
-    <circle class="js-j-shoulder" cx="120" cy="64" r="3" />
-    <circle class="js-j-hip" cx="120" cy="104" r="3" />
-    <circle class="js-j-knee" cx="130" cy="138" r="2.8" />
-    <circle class="js-j-elbow" cx="144" cy="80" r="2.8" />
+    <circle class="js-j-shoulder" cx="115.78" cy="66.01" r="3" />
+    <circle class="js-j-hip" cx="116.00" cy="108.00" r="3" />
+    <circle class="js-j-knee" cx="132.63" cy="137.65" r="2.8" />
+    <circle class="js-j-elbow" cx="124.17" cy="44.60" r="2.8" />
   </g>
-  <circle class="js-head" cx="120" cy="44" r="12" fill="#34d399" stroke="#ecfdf5" stroke-width="1.6" />
-  <circle class="js-weight" cx="140" cy="54" r="8.5" fill="#10b981" stroke="#d1fae5" stroke-width="1.8" />
+  <circle class="js-head" cx="116.75" cy="48.04" r="11.5" fill="#34d399" stroke="#ecfdf5" stroke-width="1.6" />
+  <circle class="js-weight" cx="126.09" cy="22.68" r="8.2" fill="#10b981" stroke="#d1fae5" stroke-width="1.8" /><circle class="js-weight-cap" cx="126.09" cy="22.68" r="3" fill="#064e3b" />
 </svg>

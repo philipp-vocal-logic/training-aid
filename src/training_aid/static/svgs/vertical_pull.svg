@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" aria-label="Vertical Pull" data-archetype="vertical_pull" data-bones="{&quot;lumbar&quot;:21.0,&quot;thoracic&quot;:21.0,&quot;neck&quot;:18.0,&quot;uarm&quot;:26.0,&quot;farm&quot;:25.0,&quot;thigh&quot;:34.0,&quot;shin&quot;:34.0,&quot;back_dx&quot;:-5.0,&quot;back_dy&quot;:-2.0}" data-pose-a="{&quot;hip_x&quot;:106,&quot;hip_y&quot;:134,&quot;lumbar&quot;:-88,&quot;thoracic&quot;:-86,&quot;neck&quot;:-82,&quot;uarm_f&quot;:-76,&quot;farm_f&quot;:-84,&quot;uarm_b&quot;:-80,&quot;farm_b&quot;:-86,&quot;thigh_f&quot;:6.78,&quot;shin_f&quot;:75.98,&quot;thigh_b&quot;:6.37,&quot;shin_b&quot;:77.76}" data-pose-b="{&quot;hip_x&quot;:106,&quot;hip_y&quot;:134,&quot;lumbar&quot;:-94,&quot;thoracic&quot;:-98,&quot;neck&quot;:-86,&quot;uarm_f&quot;:102,&quot;farm_f&quot;:-58,&quot;uarm_b&quot;:96,&quot;farm_b&quot;:-62,&quot;thigh_f&quot;:6.78,&quot;shin_f&quot;:75.98,&quot;thigh_b&quot;:6.37,&quot;shin_b&quot;:77.76}" data-equipment="cable" data-anchor-x="116.00" data-anchor-y="20.00" data-cable-target="hand">
+  <defs>
+    <radialGradient id="glow-vertical_pull" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
+      <stop offset="65%" stop-color="#10b981" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <circle class="js-aura" cx="126.4" cy="122.6" r="87.20" fill="url(#glow-vertical_pull)" />
+  <circle class="js-ring" cx="126.4" cy="122.6" r="67.40" fill="none" stroke="#34d399" stroke-opacity="0.14" stroke-width="1.2" stroke-dasharray="3 6" />
+  <line x1="16" y1="175" x2="224" y2="175" stroke="#334155" stroke-width="3" stroke-linecap="round" />
+  <ellipse class="js-shadow" cx="125.13" cy="176" rx="34.87" ry="3.5" fill="#10b981" fill-opacity="0.22" />
+  <line x1="72" y1="18" x2="72" y2="174" stroke="#334155" stroke-width="5" stroke-linecap="round" /><line x1="72" y1="18" x2="138" y2="18" stroke="#475569" stroke-width="5" stroke-linecap="round" /><line x1="94" y1="20" x2="138" y2="20" stroke="#94a3b8" stroke-width="3.2" stroke-linecap="round" /><rect x="86" y="140" width="38" height="7" rx="3.5" fill="#334155" stroke="#475569" stroke-width="1.2" /><line x1="104" y1="147" x2="104" y2="174" stroke="#334155" stroke-width="4.5" stroke-linecap="round" />
+  <g stroke="#64748b" stroke-width="8" stroke-linecap="round">
+    <line class="js-thigh-b" x1="101.00" y1="132.00" x2="134.79" y2="135.77" />
+    <line class="js-shin-b" x1="134.79" y1="135.77" x2="142.00" y2="169.00" />
+    
+    <line class="js-uarm-b" x1="97.27" y1="90.18" x2="102.50" y2="115.65" />
+    <line class="js-farm-b" x1="102.50" y1="115.65" x2="113.30" y2="93.11" />
+  </g>
+  <circle cx="116.00" cy="20.00" r="4.8" fill="#1e293b" stroke="#94a3b8" stroke-width="1.8" /><line class="js-cable" x1="116.00" y1="20.00" x2="117.17" y2="96.27" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round" />
+  <g stroke="#e2e8f0" stroke-width="9.5" stroke-linecap="round">
+    <line class="js-thigh-f" x1="106.00" y1="134.00" x2="139.76" y2="138.01" />
+    <line class="js-shin-f" x1="139.76" y1="138.01" x2="148.00" y2="171.00" />
+    
+  </g>
+  <line class="js-neck" x1="102.27" y1="92.18" x2="103.65" y2="74.24" stroke="#cbd5e1" stroke-width="6.5" stroke-linecap="round" />
+  <path class="js-torso" d="M 106.00 134.00 Q 104.75 113.04 102.27 92.18" fill="none" stroke="#f8fafc" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+  <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">
+    <line class="js-uarm-f" x1="102.27" y1="92.18" x2="104.90" y2="118.05" />
+    <line class="js-farm-f" x1="104.90" y1="118.05" x2="117.17" y2="96.27" />
+  </g>
+  <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">
+    <circle class="js-j-shoulder" cx="102.27" cy="92.18" r="3" />
+    <circle class="js-j-hip" cx="106.00" cy="134.00" r="3" />
+    <circle class="js-j-knee" cx="139.76" cy="138.01" r="2.8" />
+    <circle class="js-j-elbow" cx="104.90" cy="118.05" r="2.8" />
+  </g>
+  <circle class="js-head" cx="103.65" cy="74.24" r="11.5" fill="#34d399" stroke="#ecfdf5" stroke-width="1.6" />
+  <circle class="js-cable-grip" cx="117.17" cy="96.27" r="5.2" fill="#10b981" stroke="#ecfdf5" stroke-width="1.6" />
+</svg>

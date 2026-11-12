@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" aria-label="row_pull" data-archetype="row_pull" data-pose-a="{&quot;head&quot;:[151,69],&quot;shoulder&quot;:[134,80],&quot;hip&quot;:[96,106],&quot;elbow_f&quot;:[134,110],&quot;hand_f&quot;:[136,138],&quot;elbow_b&quot;:[129,108],&quot;hand_b&quot;:[131,136],&quot;knee_f&quot;:[124,138],&quot;foot_f&quot;:[120,172],&quot;knee_b&quot;:[118,138],&quot;foot_b&quot;:[114,172]}" data-pose-b="{&quot;head&quot;:[151,69],&quot;shoulder&quot;:[134,80],&quot;hip&quot;:[96,106],&quot;elbow_f&quot;:[110,68],&quot;hand_f&quot;:[122,96],&quot;elbow_b&quot;:[105,66],&quot;hand_b&quot;:[117,94],&quot;knee_f&quot;:[124,138],&quot;foot_f&quot;:[120,172],&quot;knee_b&quot;:[118,138],&quot;foot_b&quot;:[114,172]}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" aria-label="Row Pull" data-archetype="row_pull" data-bones="{&quot;lumbar&quot;:22.0,&quot;thoracic&quot;:22.0,&quot;neck&quot;:19.0,&quot;uarm&quot;:25.0,&quot;farm&quot;:24.0,&quot;thigh&quot;:36.0,&quot;shin&quot;:36.0,&quot;back_dx&quot;:-5.0,&quot;back_dy&quot;:-2.0}" data-pose-a="{&quot;hip_x&quot;:94,&quot;hip_y&quot;:106,&quot;lumbar&quot;:-30,&quot;thoracic&quot;:-28,&quot;neck&quot;:-24,&quot;uarm_f&quot;:88,&quot;farm_f&quot;:86,&quot;uarm_b&quot;:86,&quot;farm_b&quot;:84,&quot;thigh_f&quot;:56.11,&quot;shin_f&quot;:77.28,&quot;thigh_b&quot;:54.69,&quot;shin_b&quot;:81.71}" data-pose-b="{&quot;hip_x&quot;:94,&quot;hip_y&quot;:106,&quot;lumbar&quot;:-32,&quot;thoracic&quot;:-30,&quot;neck&quot;:-26,&quot;uarm_f&quot;:196,&quot;farm_f&quot;:70,&quot;uarm_b&quot;:186,&quot;farm_b&quot;:72,&quot;thigh_f&quot;:56.11,&quot;shin_f&quot;:77.28,&quot;thigh_b&quot;:54.69,&quot;shin_b&quot;:81.71}" data-equipment="dumbbell">
   <defs>
     <radialGradient id="glow-row_pull" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />
@@ -6,33 +6,36 @@
       <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
     </radialGradient>
   </defs>
-  <circle class="js-aura" cx="120" cy="102" r="82" fill="url(#glow-row_pull)" />
-  <circle class="js-ring" cx="120" cy="102" r="64" fill="none" stroke="#34d399" stroke-opacity="0.14" stroke-width="1.2" stroke-dasharray="3 6" />
+  <circle class="js-aura" cx="121.7" cy="123.5" r="87.20" fill="url(#glow-row_pull)" />
+  <circle class="js-ring" cx="121.7" cy="123.5" r="67.40" fill="none" stroke="#34d399" stroke-opacity="0.14" stroke-width="1.2" stroke-dasharray="3 6" />
   <line x1="16" y1="175" x2="224" y2="175" stroke="#334155" stroke-width="3" stroke-linecap="round" />
-  <ellipse class="js-shadow" cx="116.7" cy="176" rx="28" ry="3.5" fill="#10b981" fill-opacity="0.22" />
+  <ellipse class="js-shadow" cx="121.45" cy="176" rx="39.45" ry="3.5" fill="#10b981" fill-opacity="0.22" />
   
   <g stroke="#64748b" stroke-width="8" stroke-linecap="round">
-    <line class="js-thigh-b" x1="96" y1="106" x2="118" y2="138" />
-    <line class="js-shin-b" x1="118" y1="138" x2="114" y2="172" />
-    <line class="js-uarm-b" x1="134" y1="80" x2="129" y2="108" />
-    <line class="js-farm-b" x1="129" y1="108" x2="131" y2="136" />
+    <line class="js-thigh-b" x1="89.00" y1="104.00" x2="109.81" y2="133.38" />
+    <line class="js-shin-b" x1="109.81" y1="133.38" x2="115.00" y2="169.00" />
+    
+    <line class="js-uarm-b" x1="126.79" y1="81.47" x2="101.85" y2="83.22" />
+    <line class="js-farm-b" x1="101.85" y1="83.22" x2="108.79" y2="106.19" />
   </g>
-  <circle class="js-weight-b" cx="131" cy="136" r="7.5" fill="#059669" fill-opacity="0.65" />
+  <circle class="js-weight-b" cx="108.79" cy="106.19" r="7" fill="#059669" fill-opacity="0.68" />
   <g stroke="#e2e8f0" stroke-width="9.5" stroke-linecap="round">
-    <line class="js-thigh-f" x1="96" y1="106" x2="124" y2="138" />
-    <line class="js-shin-f" x1="124" y1="138" x2="120" y2="172" />
+    <line class="js-thigh-f" x1="94.00" y1="106.00" x2="114.07" y2="135.88" />
+    <line class="js-shin-f" x1="114.07" y1="135.88" x2="122.00" y2="171.00" />
+    
   </g>
-  <line class="js-torso" x1="134" y1="80" x2="96" y2="106" stroke="#f8fafc" stroke-width="11" stroke-linecap="round" />
+  <line class="js-neck" x1="131.79" y1="83.47" x2="148.89" y2="75.20" stroke="#cbd5e1" stroke-width="6.5" stroke-linecap="round" />
+  <path class="js-torso" d="M 94.00 106.00 Q 112.70 94.41 131.79 83.47" fill="none" stroke="#f8fafc" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
   <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">
-    <line class="js-uarm-f" x1="134" y1="80" x2="134" y2="110" />
-    <line class="js-farm-f" x1="134" y1="110" x2="136" y2="138" />
+    <line class="js-uarm-f" x1="131.79" y1="83.47" x2="106.89" y2="81.21" />
+    <line class="js-farm-f" x1="106.89" y1="81.21" x2="114.47" y2="103.98" />
   </g>
   <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">
-    <circle class="js-j-shoulder" cx="134" cy="80" r="3" />
-    <circle class="js-j-hip" cx="96" cy="106" r="3" />
-    <circle class="js-j-knee" cx="124" cy="138" r="2.8" />
-    <circle class="js-j-elbow" cx="134" cy="110" r="2.8" />
+    <circle class="js-j-shoulder" cx="131.79" cy="83.47" r="3" />
+    <circle class="js-j-hip" cx="94.00" cy="106.00" r="3" />
+    <circle class="js-j-knee" cx="114.07" cy="135.88" r="2.8" />
+    <circle class="js-j-elbow" cx="106.89" cy="81.21" r="2.8" />
   </g>
-  <circle class="js-head" cx="151" cy="69" r="12" fill="#34d399" stroke="#ecfdf5" stroke-width="1.6" />
-  <circle class="js-weight" cx="136" cy="138" r="8.5" fill="#10b981" stroke="#d1fae5" stroke-width="1.8" />
+  <circle class="js-head" cx="148.89" cy="75.20" r="11.5" fill="#34d399" stroke="#ecfdf5" stroke-width="1.6" />
+  <circle class="js-weight" cx="114.47" cy="103.98" r="8.2" fill="#10b981" stroke="#d1fae5" stroke-width="1.8" /><circle class="js-weight-cap" cx="114.47" cy="103.98" r="3" fill="#064e3b" />
 </svg>
