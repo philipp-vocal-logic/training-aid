@@ -172,10 +172,44 @@
     const durationInput = document.getElementById("duration-input");
 
     const sessionStartMs = Date.now();
-    setInterval(() => {
+    const durationInterval = setInterval(() => {
+      if (state === "FINISHED") {
+        clearInterval(durationInterval);
+        return;
+      }
       const mins = Math.floor((Date.now() - sessionStartMs) / 60000);
       if (mins >= 1) durationInput.value = mins;
     }, 10000);
+
+    const TURNAROUND_BY_MODE = {
+      standard: 0.43,
+      explosive: 0.31,
+      alternating: 0.50,
+    };
+
+    const reducedMotionQuery = window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+
+    function isReducedMotion() {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.prefersReducedMotion === "function"
+      ) {
+        return window.TrainingMotion.prefersReducedMotion();
+      }
+      return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
+    }
+
+    function evalTempo(frac, mode) {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.tempoCurve === "function"
+      ) {
+        return window.TrainingMotion.tempoCurve(frac, mode);
+      }
+      return 0.5 - 0.5 * Math.cos(frac * Math.PI * 2);
+    }
 
     let rig = window.TrainingMotion.bindSvg(svgHolder.querySelector("svg"));
 
@@ -184,10 +218,13 @@
     let exIdx = 0;
     let setNum = 1;
     let phaseElapsed = 0;
+    let idleElapsed = 0;
     let lastFrameTs = null;
+    let rafId = null;
     let lastCountdownInt = null;
     let lastCompletedRep = 0;
     let midRepFiredForRep = -1;
+    let lastDiscretePoseKey = null;
 
     function currentEx() { return PLAYLIST[exIdx]; }
 
@@ -195,12 +232,60 @@
       return `${done}/${ex.reps}${ex.is_hold ? "s" : ""}`;
     }
 
+    function setCueText(text) {
+      if (phaseCueEl.textContent !== text) {
+        phaseCueEl.textContent = text;
+      }
+    }
+
+    function applyNeutralBreath(phaseSec) {
+      if (!rig) return;
+      if (isReducedMotion()) {
+        if (lastDiscretePoseKey !== "neutral") {
+          lastDiscretePoseKey = "neutral";
+          rig.applyPose(0);
+        }
+        return;
+      }
+      lastDiscretePoseKey = null;
+      if (typeof rig.applyRestBreath === "function") {
+        rig.applyRestBreath(phaseSec);
+      } else {
+        rig.applyPose(0);
+      }
+    }
+
+    function shouldRunLoop() {
+      if (paused || state === "FINISHED" || document.hidden) return false;
+      if (state === "IDLE" && isReducedMotion()) return false;
+      return true;
+    }
+
+    function stopLoop() {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastFrameTs = null;
+    }
+
+    function ensureLoop() {
+      if (!shouldRunLoop()) {
+        stopLoop();
+        return;
+      }
+      if (rafId === null) {
+        lastFrameTs = null;
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+
     function setState(nextState) {
       state = nextState;
       viewportEl.dataset.state = nextState;
     }
 
-    function loadExerciseView() {
+    function loadStagePreview() {
       const ex = currentEx();
       stepProgressEl.textContent = `${exIdx + 1}/${PLAYLIST.length} · S${setNum}/${ex.sets}`;
       titleEl.textContent = ex.name;
@@ -212,46 +297,60 @@
       }
       svgHolder.innerHTML = ex.svg_markup;
       rig = window.TrainingMotion.bindSvg(svgHolder.querySelector("svg"));
-      rig.applyPose(0);
-      repReadoutEl.textContent = formatReadout(0, ex);
-      progressFillEl.style.width = "0%";
+      lastDiscretePoseKey = null;
+      applyNeutralBreath(0);
     }
 
     function popCounter() {
+      if (isReducedMotion()) return;
       repReadoutEl.classList.add("pop");
       setTimeout(() => repReadoutEl.classList.remove("pop"), 140);
     }
 
     function beginCountdown() {
+      const ex = currentEx();
       setState("COUNTDOWN");
       paused = false;
       phaseElapsed = 0;
-      lastCountdownInt = null;
-      loadExerciseView();
+      lastCountdownInt = 3;
+      loadStagePreview();
+      repReadoutEl.textContent = formatReadout(0, ex);
+      progressFillEl.style.width = "0%";
+      setCueText("3");
+      Sound.countdown();
       primaryBtn.textContent = "⏸";
       skipBtn.style.display = "inline-flex";
+      ensureLoop();
     }
 
     function beginActiveSet() {
       const ex = currentEx();
       setState("ACTIVE");
+      paused = false;
       phaseElapsed = 0;
       lastCompletedRep = 0;
       midRepFiredForRep = -1;
+      lastDiscretePoseKey = null;
       repReadoutEl.textContent = formatReadout(0, ex);
       progressFillEl.style.width = "0%";
+      primaryBtn.textContent = "⏸";
       skipBtn.style.display = "inline-flex";
       Sound.startSignal();
-      phaseCueEl.textContent = ex.cue_work;
+      setCueText(ex.cue_work);
+      if (isReducedMotion() && rig) {
+        lastDiscretePoseKey = ex.is_hold ? "hold" : "0:1:0";
+        rig.applyPose(1, { swapSides: false });
+      }
+      ensureLoop();
     }
 
     function finishCurrentSet() {
-      const ex = currentEx();
-      rig.applyPose(0);
-      repReadoutEl.textContent = formatReadout(ex.reps, ex);
+      const completedEx = currentEx();
+      repReadoutEl.textContent = formatReadout(completedEx.reps, completedEx);
       progressFillEl.style.width = "100%";
+      popCounter();
 
-      if (setNum < ex.sets) {
+      if (setNum < completedEx.sets) {
         setNum += 1;
       } else if (exIdx + 1 < PLAYLIST.length) {
         exIdx += 1;
@@ -265,57 +364,101 @@
       setState("REST");
       phaseElapsed = 0;
       lastCountdownInt = null;
-      loadExerciseView();
+      loadStagePreview();
+      setCueText(`Rest · ${currentEx().name}`);
       primaryBtn.textContent = "⏸";
+      ensureLoop();
     }
 
     function completeEntireWorkout() {
       setState("FINISHED");
+      stopLoop();
+      clearInterval(durationInterval);
       Sound.workoutComplete();
       stageEl.style.display = "none";
       finishForm.style.display = "flex";
     }
 
     function tick(ts) {
-      if (lastFrameTs === null) lastFrameTs = ts;
-      const dt = Math.min(0.1, (ts - lastFrameTs) / 1000);
+      rafId = null;
+      if (!shouldRunLoop()) {
+        lastFrameTs = null;
+        return;
+      }
+
+      const dt = lastFrameTs === null ? 0 : Math.min(0.1, (ts - lastFrameTs) / 1000);
       lastFrameTs = ts;
 
       if (state === "IDLE") {
-        rig.applyPose(0.22 * (0.5 - 0.5 * Math.cos(ts / 550)));
-      } else if (!paused && (state === "COUNTDOWN" || state === "ACTIVE" || state === "REST")) {
+        idleElapsed += dt;
+        applyNeutralBreath(idleElapsed);
+      } else if (state === "COUNTDOWN") {
         phaseElapsed += dt;
+        applyNeutralBreath(phaseElapsed);
 
-        if (state === "COUNTDOWN") {
-          const rem = Math.ceil(3.0 - phaseElapsed);
-          if (rem >= 1 && rem !== lastCountdownInt) {
+        const rem = Math.ceil(3.0 - phaseElapsed);
+        if (rem >= 1) {
+          setCueText(String(rem));
+          if (rem !== lastCountdownInt) {
             lastCountdownInt = rem;
             Sound.countdown();
-            phaseCueEl.textContent = String(rem);
           }
-          if (phaseElapsed >= 3.0) {
-            beginActiveSet();
-          }
-        } else if (state === "ACTIVE") {
-          const ex = currentEx();
-          const totalSec = ex.reps * ex.rep_seconds;
+        }
+        if (phaseElapsed >= 3.0) {
+          beginActiveSet();
+        }
+      } else if (state === "ACTIVE") {
+        phaseElapsed += dt;
+        const ex = currentEx();
+        const totalSec = ex.reps * ex.rep_seconds;
+
+        if (phaseElapsed >= totalSec) {
+          finishCurrentSet();
+        } else {
           const repFloat = phaseElapsed / ex.rep_seconds;
           const completed = Math.min(ex.reps, Math.floor(repFloat));
-          const frac = repFloat - Math.floor(repFloat);
+          const repIndex = Math.floor(repFloat);
+          const frac = repFloat - repIndex;
 
           progressFillEl.style.width = `${Math.min(100, (phaseElapsed / totalSec) * 100).toFixed(1)}%`;
 
           if (ex.is_hold) {
-            const tHold = 0.5 - 0.5 * Math.cos(phaseElapsed * Math.PI);
-            rig.applyPose(tHold);
-            phaseCueEl.textContent = (Math.floor(phaseElapsed / 2) % 2 === 0) ? ex.cue_work : ex.cue_return;
+            if (isReducedMotion()) {
+              if (lastDiscretePoseKey !== "hold") {
+                lastDiscretePoseKey = "hold";
+                rig.applyPose(1);
+              }
+            } else if (ex.archetype === "plank") {
+              rig.applyPose(0.5 - 0.5 * Math.cos(phaseElapsed * Math.PI));
+            } else {
+              const settle = Math.min(1, phaseElapsed / 0.45);
+              const holdBreath = 0.92 + 0.08 * (0.5 - 0.5 * Math.cos(phaseElapsed * Math.PI));
+              rig.applyPose(settle * holdBreath);
+            }
+            setCueText(Math.floor(phaseElapsed / 2) % 2 === 0 ? ex.cue_work : ex.cue_return);
           } else {
-            const t = 0.5 - 0.5 * Math.cos(frac * Math.PI * 2);
-            rig.applyPose(t);
-            phaseCueEl.textContent = frac < 0.5 ? ex.cue_work : ex.cue_return;
+            const mode = ex.tempo_mode || "standard";
+            const turnaround = TURNAROUND_BY_MODE[mode] ?? 0.43;
+            const isWorkPhase = frac < turnaround;
+            const poseOpts = {
+              swapSides: Boolean(ex.is_alternating && (repIndex % 2 === 1)),
+            };
 
-            const repIndex = Math.floor(repFloat);
-            if (frac >= 0.5 && midRepFiredForRep < repIndex && repIndex < ex.reps) {
+            if (isReducedMotion()) {
+              const discreteT = isWorkPhase ? 1 : 0;
+              const poseKey = `${repIndex}:${discreteT}:${poseOpts.swapSides ? 1 : 0}`;
+              if (poseKey !== lastDiscretePoseKey) {
+                lastDiscretePoseKey = poseKey;
+                rig.applyPose(discreteT, poseOpts);
+              }
+            } else {
+              const t = evalTempo(frac, mode);
+              rig.applyPose(t, poseOpts);
+            }
+
+            setCueText(isWorkPhase ? ex.cue_work : ex.cue_return);
+
+            if (!isWorkPhase && midRepFiredForRep < repIndex && repIndex < ex.reps) {
               midRepFiredForRep = repIndex;
               Sound.midRep();
             }
@@ -333,32 +476,36 @@
               }
             }
           }
+        }
+      } else if (state === "REST") {
+        phaseElapsed += dt;
+        const rem = Math.max(0, Math.ceil(REST_SECONDS - phaseElapsed));
+        if (phaseElapsed >= 0.6) {
+          const restReadout = `${rem}s`;
+          if (repReadoutEl.textContent !== restReadout) {
+            repReadoutEl.textContent = restReadout;
+          }
+        }
+        progressFillEl.style.width = `${Math.max(0, ((REST_SECONDS - phaseElapsed) / REST_SECONDS) * 100).toFixed(1)}%`;
+        setCueText(rem <= 3 && rem > 0 ? String(rem) : `Rest · ${currentEx().name}`);
+        applyNeutralBreath(phaseElapsed);
 
-          if (phaseElapsed >= totalSec) {
-            finishCurrentSet();
-          }
-        } else if (state === "REST") {
-          const rem = Math.max(0, Math.ceil(REST_SECONDS - phaseElapsed));
-          repReadoutEl.textContent = `${rem}s`;
-          progressFillEl.style.width = `${Math.max(0, ((REST_SECONDS - phaseElapsed) / REST_SECONDS) * 100).toFixed(1)}%`;
-          phaseCueEl.textContent = rem <= 3 && rem > 0 ? String(rem) : `Rest · ${currentEx().name}`;
-          rig.applyPose(0.28 * (0.5 - 0.5 * Math.cos(phaseElapsed * 2.2)));
-
-          if (rem <= 3 && rem >= 1 && rem !== lastCountdownInt) {
-            lastCountdownInt = rem;
-            Sound.countdown();
-          }
-          if (phaseElapsed >= REST_SECONDS) {
-            repReadoutEl.textContent = formatReadout(0, currentEx());
-            beginActiveSet();
-          }
+        if (rem <= 3 && rem >= 1 && rem !== lastCountdownInt) {
+          lastCountdownInt = rem;
+          Sound.countdown();
+        }
+        if (phaseElapsed >= REST_SECONDS) {
+          beginActiveSet();
         }
       }
 
-      requestAnimationFrame(tick);
+      if (shouldRunLoop() && rafId === null) {
+        rafId = requestAnimationFrame(tick);
+      }
     }
 
-    requestAnimationFrame(tick);
+    applyNeutralBreath(0);
+    ensureLoop();
 
     function togglePlayPause() {
       ensureAudio();
@@ -369,7 +516,12 @@
       if (state === "FINISHED") return;
       paused = !paused;
       primaryBtn.textContent = paused ? "▶" : "⏸";
-      if (paused) phaseCueEl.textContent = "Paused";
+      if (paused) {
+        stopLoop();
+        setCueText("Paused");
+      } else {
+        ensureLoop();
+      }
     }
 
     function skipCurrentPhase() {
@@ -378,7 +530,6 @@
       paused = false;
       primaryBtn.textContent = "⏸";
       if (state === "REST" || state === "COUNTDOWN") {
-        repReadoutEl.textContent = formatReadout(0, currentEx());
         beginActiveSet();
       } else if (state === "ACTIVE") {
         finishCurrentSet();
@@ -406,9 +557,29 @@
     earlyBtn.addEventListener("click", () => {
       paused = true;
       setState("FINISHED");
+      stopLoop();
+      clearInterval(durationInterval);
       stageEl.style.display = "none";
       finishForm.style.display = "flex";
     });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        ensureLoop();
+      }
+    });
+
+    if (reducedMotionQuery && typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", () => {
+        lastDiscretePoseKey = null;
+        if (state !== "ACTIVE" && state !== "FINISHED") {
+          applyNeutralBreath(0);
+        }
+        ensureLoop();
+      });
+    }
 
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" && state !== "FINISHED") {

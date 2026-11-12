@@ -60,6 +60,7 @@
     <article
       class="routine-card {% if is_next %}is-next{% endif %}"
       data-archetype="{{ card.lead_archetype }}"
+      data-svg-key="{{ card.lead_svg_key | default(card.lead_archetype) }}"
       data-routine-name="{{ card.routine.name }}"
       data-start-url="/workouts/{{ card.routine.id }}"
       data-has-ex="{{ '1' if card.exercises else '0' }}"
@@ -82,7 +83,11 @@
       {% if card.exercises %}
       <ul class="ex-list">
         {% for row in card.exercises %}
-        <li class="ex-row" data-archetype="{{ row.archetype }}">
+        <li
+          class="ex-row"
+          data-archetype="{{ row.archetype }}"
+          data-svg-key="{{ row.svg_key | default(row.archetype) }}"
+        >
           <div class="ex-row-left">
             <img src="{{ row.svg_url }}" alt="" class="svg-thumb" />
             <span class="ex-row-name">{{ row.exercise.name }}</span>
@@ -105,20 +110,74 @@
     const wrap = document.getElementById("overview-svg-wrap");
     const titleEl = document.getElementById("stage-routine-title");
     const startBtn = document.getElementById("stage-start-btn");
-    let currentArch = wrap.querySelector("svg")?.dataset.archetype || "squat";
-    let rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
+    const reducedMotionQuery = window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
 
-    function swapStageSvg(arch) {
-      if (!arch || !SVGS[arch] || arch === currentArch) return;
-      currentArch = arch;
-      wrap.innerHTML = SVGS[arch];
+    function isReducedMotion() {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.prefersReducedMotion === "function"
+      ) {
+        return window.TrainingMotion.prefersReducedMotion();
+      }
+      return Boolean(reducedMotionQuery && reducedMotionQuery.matches);
+    }
+
+    function evalTempo(frac, mode) {
+      if (
+        window.TrainingMotion &&
+        typeof window.TrainingMotion.tempoCurve === "function"
+      ) {
+        return window.TrainingMotion.tempoCurve(frac, mode);
+      }
+      return 0.5 - 0.5 * Math.cos(frac * Math.PI * 2);
+    }
+
+    function resolveSvgKey(keyOrArch, fallbackArch) {
+      if (keyOrArch && SVGS[keyOrArch]) return keyOrArch;
+      if (fallbackArch && SVGS[fallbackArch]) return fallbackArch;
+      if (keyOrArch && keyOrArch.includes(":")) {
+        const bare = keyOrArch.split(":")[0];
+        if (SVGS[bare]) return bare;
+      }
+      return null;
+    }
+
+    const initialCard =
+      document.querySelector(".routine-card.is-next") ||
+      document.querySelector(".routine-card");
+    const initialArch = wrap.querySelector("svg")?.dataset.archetype || "squat";
+    let currentKey =
+      resolveSvgKey(initialCard?.dataset.svgKey, initialArch) || initialArch;
+    let rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
+    let phase = 0;
+    let currentT = 0;
+    let lastTs = null;
+    let rafId = null;
+
+    function activeTempoMode() {
+      const bareArch = currentKey.split(":")[0];
+      return bareArch === "mountain_climber" || bareArch === "bicycle_crunch"
+        ? "alternating"
+        : "standard";
+    }
+
+    function swapStageSvg(keyOrArch, fallbackArch) {
+      const resolved = resolveSvgKey(keyOrArch, fallbackArch);
+      if (!resolved || resolved === currentKey) return;
+      currentKey = resolved;
+      wrap.innerHTML = SVGS[resolved];
       rig = window.TrainingMotion.bindSvg(wrap.querySelector("svg"));
+      rig.applyPose(isReducedMotion() ? 0.85 : currentT);
     }
 
     document.querySelectorAll(".ex-row").forEach((row) => {
-      row.addEventListener("mouseenter", () => swapStageSvg(row.dataset.archetype));
+      const swapFromRow = () =>
+        swapStageSvg(row.dataset.svgKey || row.dataset.archetype, row.dataset.archetype);
+      row.addEventListener("mouseenter", swapFromRow);
       row.addEventListener("click", () => {
-        swapStageSvg(row.dataset.archetype);
+        swapFromRow();
         const card = row.closest(".routine-card");
         if (card && titleEl) {
           titleEl.textContent = card.dataset.routineName;
@@ -129,14 +188,56 @@
       });
     });
 
-    let t0 = null;
-    function tick(ts) {
-      if (!t0) t0 = ts;
-      const sec = (ts - t0) / 1000;
-      rig.applyPose(0.5 - 0.5 * Math.cos(sec * 2.1));
-      requestAnimationFrame(tick);
+    function stopLoop() {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastTs = null;
     }
-    requestAnimationFrame(tick);
+
+    function ensureLoop() {
+      if (document.hidden || isReducedMotion()) {
+        stopLoop();
+        if (isReducedMotion() && rig) {
+          currentT = 0.85;
+          rig.applyPose(0.85);
+        }
+        return;
+      }
+      if (rafId === null) {
+        lastTs = null;
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+
+    function tick(ts) {
+      rafId = null;
+      if (document.hidden || isReducedMotion()) {
+        lastTs = null;
+        return;
+      }
+      const dt = lastTs === null ? 0 : Math.min(0.1, (ts - lastTs) / 1000);
+      lastTs = ts;
+      phase = (phase + dt * 0.38) % 1;
+      currentT = evalTempo(phase, activeTempoMode());
+      rig.applyPose(currentT);
+      rafId = requestAnimationFrame(tick);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        ensureLoop();
+      }
+    });
+
+    if (reducedMotionQuery && typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", ensureLoop);
+    }
+
+    ensureLoop();
   })();
 </script>
 {% endblock %}
