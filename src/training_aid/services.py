@@ -1,8 +1,12 @@
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+# Copyright (c) 2026 Philipp Kaaden
+"""Workout scaling, exercise seeding, plan generation, and streak metrics."""
+
 import json
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+
 from sqlmodel import Session, func, select
 
 from training_aid.coaching import is_hold_exercise
@@ -195,6 +199,8 @@ INTENSITY_LABELS = {
 
 @dataclass
 class ScaledTarget:
+    """Scaled set, rep, and load prescription for an exercise at a given intensity."""
+
     sets: int
     reps: int
     weight_kg: float | None
@@ -203,10 +209,12 @@ class ScaledTarget:
 
 
 def format_weight(weight: float) -> str:
+    """Format a kilogram weight without trailing `.0` when integral."""
     return f"{int(weight)} kg" if weight.is_integer() else f"{weight:.1f} kg"
 
 
 def round_half_kg(val: float) -> float:
+    """Round a weight to the nearest 0.5 kg with a 0.5 kg floor."""
     return max(0.5, round(val * 2) / 2)
 
 
@@ -215,7 +223,7 @@ def compute_scaled_target(
     intensity_level: int,
     exercise: Exercise | None = None,
 ) -> ScaledTarget:
-    """Scale target weight (if weighted) or target reps (if bodyweight) by 10% per step."""
+    """Scale target load (if weighted) or reps (if unweighted) by 10% per step."""
     clamped = max(-5, intensity_level)
     intensity_pct = 100 + clamped * 10
     multiplier = intensity_pct / 100.0
@@ -225,11 +233,15 @@ def compute_scaled_target(
         if clamped > 0:
             target_weight = max(rounded_weight, item.base_weight_kg + 0.5 * clamped)
         elif clamped < 0:
-            target_weight = max(0.5, min(rounded_weight, item.base_weight_kg + 0.5 * clamped))
+            target_weight = max(
+                0.5, min(rounded_weight, item.base_weight_kg + 0.5 * clamped)
+            )
         else:
             target_weight = item.base_weight_kg
 
-        formatted = f"{item.sets} × {item.base_reps} @ {format_weight(target_weight)}"
+        formatted = (
+            f"{item.sets} \u00d7 {item.base_reps} @ {format_weight(target_weight)}"
+        )
         return ScaledTarget(
             sets=item.sets,
             reps=item.base_reps,
@@ -247,7 +259,7 @@ def compute_scaled_target(
         target_reps = item.base_reps
 
     unit = "sec" if is_hold_exercise(exercise or item.exercise_id) else "reps"
-    formatted = f"{item.sets} × {target_reps} {unit}"
+    formatted = f"{item.sets} \u00d7 {target_reps} {unit}"
     return ScaledTarget(
         sets=item.sets,
         reps=target_reps,
@@ -258,6 +270,7 @@ def compute_scaled_target(
 
 
 def apply_intensity_feedback(current_level: int, choice: str) -> int:
+    """Adjust routine intensity level by +1/-1/0 from athlete post-workout feedback."""
     normalized = choice.strip().lower()
     if normalized == "more":
         return current_level + 1
@@ -266,7 +279,10 @@ def apply_intensity_feedback(current_level: int, choice: str) -> int:
     return current_level
 
 
-def seed_exercises(session: Session, exercises_path: Path = DEFAULT_EXERCISES_JSON) -> int:
+def seed_exercises(
+    session: Session, exercises_path: Path = DEFAULT_EXERCISES_JSON
+) -> int:
+    """Populate the Exercise table from JSON if it is currently empty."""
     existing_count = session.exec(select(func.count()).select_from(Exercise)).one()
     if existing_count > 0:
         return existing_count
@@ -324,7 +340,15 @@ def _scale_initial_prescription(
 def default_prescription_for_exercise(
     user: User, exercise: Exercise
 ) -> tuple[int, int, float | None]:
-    weighted_equip = {"barbell", "dumbbell", "kettlebells", "cable", "machine", "e-z curl bar"}
+    """Compute default sets, reps, and load when adding an exercise to a routine."""
+    weighted_equip = {
+        "barbell",
+        "dumbbell",
+        "kettlebells",
+        "cable",
+        "machine",
+        "e-z curl bar",
+    }
     base_weight: float | None = None
     if exercise.equipment in weighted_equip and user.equipment != "body_only":
         base_weight = 20.0 if exercise.equipment == "barbell" else 10.0
@@ -338,8 +362,11 @@ def generate_tailored_plan(
     starting_intensity: str,
     days_per_week: int,
 ) -> TrainingPlan:
+    """Create and activate a multi-day training plan tailored to user preferences."""
     eq_key = equipment if equipment in EQUIPMENT_PROGRAMS else "body_only"
-    int_key = starting_intensity if starting_intensity in INTENSITY_LABELS else "moderate"
+    int_key = (
+        starting_intensity if starting_intensity in INTENSITY_LABELS else "moderate"
+    )
     days = max(2, min(4, days_per_week))
 
     program = EQUIPMENT_PROGRAMS[eq_key]
@@ -396,6 +423,7 @@ def generate_tailored_plan(
 def get_next_routine(
     routines: list[WorkoutRoutine], logs: list[WorkoutLog]
 ) -> WorkoutRoutine | None:
+    """Return the next routine in rotation following the most recent logged workout."""
     if not routines:
         return None
     routine_ids = [r.id for r in routines if r.id is not None]
@@ -408,14 +436,15 @@ def get_next_routine(
 
 def _normalize_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def compute_week_streak(logs: list[WorkoutLog], now: datetime | None = None) -> int:
+    """Count consecutive ISO calendar weeks with at least one completed workout."""
     if not logs:
         return 0
-    ref = _normalize_utc(now or datetime.now(timezone.utc))
+    ref = _normalize_utc(now or datetime.now(UTC))
     active_weeks = {
         (
             _normalize_utc(log.completed_at).isocalendar().year,
@@ -447,7 +476,8 @@ def compute_week_streak(logs: list[WorkoutLog], now: datetime | None = None) -> 
 def build_motivation_and_stats(
     user: User, logs: list[WorkoutLog], routines: list[WorkoutRoutine]
 ) -> dict[str, Any]:
-    now = datetime.now(timezone.utc)
+    """Build weekly progress counters, streak metrics, and motivation summary."""
+    now = datetime.now(UTC)
     start_of_week = (now - timedelta(days=now.weekday())).replace(
         hour=0, minute=0, second=0, microsecond=0
     )

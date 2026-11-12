@@ -1,8 +1,12 @@
+# Copyright (c) 2026 Philipp Kaaden
+"""FastAPI routes and template views for Training Aid."""
+
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -49,7 +53,8 @@ SETUP_EQUIPMENT_PROPS: dict[str, str] = {
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Initialize static SVGs, database schema, and catalog seed on startup."""
     pregenerate_all_svgs()
     create_db_and_tables(engine)
     with Session(engine) as session:
@@ -68,6 +73,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 
 def resolve_user(request: Request, session: Session) -> User | None:
+    """Resolve the active athlete from request cookies or fallback to first user."""
     cookie_uid = request.cookies.get("user_id")
     if cookie_uid and cookie_uid.isdigit():
         user = session.get(User, int(cookie_uid))
@@ -79,6 +85,7 @@ def resolve_user(request: Request, session: Session) -> User | None:
 def build_routine_cards(
     session: Session, routines: list[WorkoutRoutine]
 ) -> list[dict[str, Any]]:
+    """Assemble routine card view payloads with scaled prescriptions and SVG keys."""
     cards: list[dict[str, Any]] = []
     for routine in routines:
         items = list(
@@ -123,6 +130,7 @@ def build_routine_cards(
 def search_exercises_for_user(
     session: Session, user: User, q: str = "", limit: int = 16
 ) -> list[dict[str, Any]]:
+    """Search exercises filtered by query text or user equipment tier."""
     stmt = select(Exercise)
     if q.strip():
         stmt = stmt.where(col(Exercise.name).ilike(f"%{q.strip()}%"))
@@ -152,7 +160,8 @@ def search_exercises_for_user(
 
 
 @app.get("/setup", response_class=HTMLResponse)
-def setup_page(request: Request, session: SessionDep):
+def setup_page(request: Request, session: SessionDep) -> Response:
+    """Render the split-screen onboarding and plan setup view."""
     current_user = resolve_user(request, session)
     all_users = list(session.exec(select(User).order_by(col(User.id))).all())
     equipment_svgs = {
@@ -172,14 +181,15 @@ def setup_page(request: Request, session: SessionDep):
 
 
 @app.post("/setup")
-def submit_setup(
+def submit_setup(  # noqa: PLR0913, PLR0917
     request: Request,
     session: SessionDep,
     name: Annotated[str, Form()],
     equipment: Annotated[str, Form()] = "body_only",
     starting_intensity: Annotated[str, Form()] = "moderate",
     days_per_week: Annotated[int, Form()] = 3,
-):
+) -> RedirectResponse:
+    """Create or update an athlete profile and generate their tailored plan."""
     clean_name = name.strip() or "Athlete"
     current_user = resolve_user(request, session)
 
@@ -206,7 +216,10 @@ def submit_setup(
 
 
 @app.post("/users/switch")
-def switch_user(session: SessionDep, user_id: Annotated[int, Form()]):
+def switch_user(
+    session: SessionDep, user_id: Annotated[int, Form()]
+) -> RedirectResponse:
+    """Switch the active athlete cookie to the selected user ID."""
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -225,7 +238,8 @@ def overview(
     request: Request,
     session: SessionDep,
     completed: Annotated[int | None, Query()] = None,
-):
+) -> Response:
+    """Render the active plan overview and next workout hero stage."""
     user = resolve_user(request, session)
     if user is None or user.active_plan_id is None:
         return RedirectResponse(url="/setup", status_code=303)
@@ -252,7 +266,11 @@ def overview(
     routine_cards = build_routine_cards(session, routines)
     next_routine = get_next_routine(routines, logs)
     next_card = next(
-        (c for c in routine_cards if next_routine and c["routine"].id == next_routine.id),
+        (
+            c
+            for c in routine_cards
+            if next_routine and c["routine"].id == next_routine.id
+        ),
         routine_cards[0] if routine_cards else None,
     )
     stats = build_motivation_and_stats(user, logs, routines)
@@ -309,7 +327,8 @@ def overview(
 
 
 @app.get("/workouts/{routine_id}", response_class=HTMLResponse)
-def start_workout(routine_id: int, request: Request, session: SessionDep):
+def start_workout(routine_id: int, request: Request, session: SessionDep) -> Response:
+    """Render the full-screen guided workout player for a routine."""
     user = resolve_user(request, session)
     if user is None:
         return RedirectResponse(url="/setup", status_code=303)
@@ -355,14 +374,15 @@ def start_workout(routine_id: int, request: Request, session: SessionDep):
 
 
 @app.post("/workouts/{routine_id}/complete")
-def complete_workout(
+def complete_workout(  # noqa: PLR0913, PLR0917
     routine_id: int,
     request: Request,
     session: SessionDep,
     next_intensity_choice: Annotated[str, Form()] = "keep",
     duration_minutes: Annotated[int, Form()] = 25,
-    completed_ids: Annotated[list[int], Form()] = [],
-):
+    completed_ids: Annotated[list[int] | None, Form()] = None,
+) -> RedirectResponse:
+    """Record a completed workout session and apply intensity adaptation."""
     user = resolve_user(request, session)
     if user is None:
         return RedirectResponse(url="/setup", status_code=303)
@@ -383,7 +403,7 @@ def complete_workout(
         if next_intensity_choice in {"less", "keep", "more"}
         else "keep"
     )
-    completed_count = min(total_exercises, len(completed_ids))
+    completed_count = min(total_exercises, len(completed_ids or []))
 
     log = WorkoutLog(
         user_id=user.id,  # type: ignore[arg-type]
@@ -412,7 +432,10 @@ def complete_workout(
 
 
 @app.post("/plans/{plan_id}/add-day")
-def add_workout_day(plan_id: int, request: Request, session: SessionDep):
+def add_workout_day(
+    plan_id: int, request: Request, session: SessionDep
+) -> RedirectResponse:
+    """Append a new workout day to a training plan and open its editor."""
     user = resolve_user(request, session)
     plan = session.get(TrainingPlan, plan_id)
     if user is None or plan is None or plan.user_id != user.id:
@@ -436,7 +459,8 @@ def add_workout_day(plan_id: int, request: Request, session: SessionDep):
 
 
 @app.get("/routines/{routine_id}/edit", response_class=HTMLResponse)
-def edit_routine(routine_id: int, request: Request, session: SessionDep):
+def edit_routine(routine_id: int, request: Request, session: SessionDep) -> Response:
+    """Render the routine exercise customizer and catalog picker."""
     user = resolve_user(request, session)
     if user is None:
         return RedirectResponse(url="/setup", status_code=303)
@@ -469,7 +493,8 @@ def search_routine_exercises(
     request: Request,
     session: SessionDep,
     q: str = "",
-):
+) -> Response:
+    """Render the live exercise search partial for a routine."""
     user = resolve_user(request, session)
     routine = session.get(WorkoutRoutine, routine_id)
     plan = session.get(TrainingPlan, routine.plan_id) if routine else None
@@ -490,7 +515,8 @@ def add_exercise_simple(
     request: Request,
     session: SessionDep,
     exercise_id: Annotated[str, Form()],
-):
+) -> RedirectResponse:
+    """Append an exercise with default prescription to a workout routine."""
     user = resolve_user(request, session)
     routine = session.get(WorkoutRoutine, routine_id)
     plan = session.get(TrainingPlan, routine.plan_id) if routine else None
@@ -526,12 +552,21 @@ def add_exercise_simple(
 
 
 @app.post("/routine-exercises/{item_id}/delete")
-def remove_routine_exercise(item_id: int, request: Request, session: SessionDep):
+def remove_routine_exercise(
+    item_id: int, request: Request, session: SessionDep
+) -> RedirectResponse:
+    """Remove a routine exercise entry from its workout routine."""
     user = resolve_user(request, session)
     item = session.get(RoutineExercise, item_id)
     routine = session.get(WorkoutRoutine, item.routine_id) if item else None
     plan = session.get(TrainingPlan, routine.plan_id) if routine else None
-    if user is None or item is None or routine is None or plan is None or plan.user_id != user.id:
+    if (
+        user is None
+        or item is None
+        or routine is None
+        or plan is None
+        or plan.user_id != user.id
+    ):
         raise HTTPException(status_code=404, detail="Not found")
 
     session.delete(item)
@@ -545,7 +580,8 @@ def remove_routine_exercise(item_id: int, request: Request, session: SessionDep)
 
 
 @app.get("/progress", response_class=HTMLResponse)
-def progress_view(request: Request, session: SessionDep):
+def progress_view(request: Request, session: SessionDep) -> Response:
+    """Render the workout history, streak metrics, and intensity chart view."""
     user = resolve_user(request, session)
     if user is None:
         return RedirectResponse(url="/setup", status_code=303)

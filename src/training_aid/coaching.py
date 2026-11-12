@@ -1,8 +1,12 @@
-from functools import lru_cache
+# Copyright (c) 2026 Philipp Kaaden
+"""Movement archetype taxonomy, tempo cues, and SVG guidance builders."""
+
 import inspect
 import json
-from pathlib import Path
 import re
+from collections.abc import Callable
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from training_aid import svg_assets
@@ -13,6 +17,8 @@ DEFAULT_EXERCISES_JSON = Path(__file__).resolve().parents[2] / "data" / "exercis
 
 _ROW_WORD_RE = re.compile(r"\b(?:rows?|rowing)\b")
 _CHIN_WORD_RE = re.compile(r"\bchins?\b")
+
+type _ArchetypePredicate = Callable[[str, str, str], bool]
 
 HOLD_KEYWORDS: tuple[str, ...] = (
     "plank",
@@ -215,6 +221,7 @@ def _stretching_exercise_ids() -> frozenset[str]:
 
 
 def is_hold_exercise(exercise_or_id: Exercise | str) -> bool:
+    """Return True if an exercise or exercise ID is an isometric hold or stretch."""
     if isinstance(exercise_or_id, Exercise):
         if (exercise_or_id.category or "").lower() == "stretching":
             return True
@@ -229,45 +236,58 @@ def is_hold_exercise(exercise_or_id: Exercise | str) -> bool:
 
 
 def _load_svg(archetype: str, equipment: str | None = None) -> str:
-    effective_arch = (
-        archetype if archetype in svg_assets.ARCHETYPE_SPECS else "squat"
-    )
+    effective_arch = archetype if archetype in svg_assets.ARCHETYPE_SPECS else "squat"
     params = inspect.signature(load_svg_markup).parameters
     if "equipment" in params:
         return load_svg_markup(effective_arch, equipment=equipment)
     return load_svg_markup(effective_arch)
 
 
-def classify_archetype(exercise: Exercise) -> str:
-    n = _normalized_text(exercise.id, exercise.name)
-    pm = (exercise.primary_muscle or "").lower()
-    cat = (exercise.category or "").lower()
+def _matches_chin_pull(n: str, _pm: str, _cat: str) -> bool:
+    return bool(_CHIN_WORD_RE.search(n)) and "crunch" not in n and "chest" not in n
 
-    if "plank" in n:
-        return "plank"
-    if "mountain climber" in n:
-        return "mountain_climber"
-    if any(
-        k in n
-        for k in (
+
+def _matches_triceps_kickback(n: str, pm: str, _cat: str) -> bool:
+    return "kickback" in n and "glute" not in n and pm != "glutes"
+
+
+def _matches_row_variant(n: str, pm: str, _cat: str) -> bool:
+    return bool(_ROW_WORD_RE.search(n)) or ("flye" in n and pm != "chest")
+
+
+def _matches_bicep_curl(n: str, pm: str, _cat: str) -> bool:
+    return "curl" in n and pm != "abdominals"
+
+
+def _matches_cardio(_n: str, _pm: str, cat: str) -> bool:
+    return cat == "cardio"
+
+
+_ARCHETYPE_RULES: tuple[
+    tuple[str, tuple[str, ...], _ArchetypePredicate | None], ...
+] = (
+    ("plank", ("plank",), None),
+    ("mountain_climber", ("mountain climber",), None),
+    (
+        "bicycle_crunch",
+        (
             "air bike",
             "bicycle crunch",
             "cross-body crunch",
             "cocoons",
             "elbow to knee",
-        )
-    ):
-        return "bicycle_crunch"
-    if any(
-        k in n
-        for k in ("glute bridge", "hip thrust", "hip bridge", "butt lift (bridge)")
-    ):
-        return "glute_bridge"
-
+        ),
+        None,
+    ),
+    (
+        "glute_bridge",
+        ("glute bridge", "hip thrust", "hip bridge", "butt lift (bridge)"),
+        None,
+    ),
     # Vertical pull BEFORE generic row / pull / crunch
-    if any(
-        k in n
-        for k in (
+    (
+        "vertical_pull",
+        (
             "pulldown",
             "pull-up",
             "pullup",
@@ -281,46 +301,41 @@ def classify_archetype(exercise: Exercise) -> str:
             "rope climb",
             "dead hang",
             "one handed hang",
-        )
-    ) or (_CHIN_WORD_RE.search(n) and "crunch" not in n and "chest" not in n):
-        return "vertical_pull"
-
+        ),
+        _matches_chin_pull,
+    ),
     # Knee isolation BEFORE generic curl / extension
-    if any(
-        k in n
-        for k in (
+    (
+        "leg_extension_curl",
+        (
             "leg extension",
             "leg curl",
             "hamstring curl",
             "ball leg curl",
             "glute ham raise",
             "glute-ham raise",
-        )
-    ):
-        return "leg_extension_curl"
-
+        ),
+        None,
+    ),
     # Spinal / hip extensions -> hinge (NEVER curl!)
-    if any(k in n for k in ("hyperextension", "back extension", "reverse hyper")):
-        return "hinge"
-
+    ("hinge", ("hyperextension", "back extension", "reverse hyper"), None),
     # Calf isolation BEFORE press / squat
-    if any(
-        k in n
-        for k in (
+    (
+        "calf_raise",
+        (
             "calf raise",
             "calf press",
             "standing calf",
             "seated calf",
             "donkey calf",
             "ankle",
-        )
-    ):
-        return "calf_raise"
-
+        ),
+        None,
+    ),
     # Triceps isolation BEFORE bench / overhead press / generic extension
-    if any(
-        k in n
-        for k in (
+    (
+        "triceps_extension",
+        (
             "skull crusher",
             "skullcrusher",
             "triceps extension",
@@ -332,28 +347,22 @@ def classify_archetype(exercise: Exercise) -> str:
             "triceps press",
             "jm press",
             "overhead triceps",
-        )
-    ) or ("kickback" in n and "glute" not in n and pm != "glutes"):
-        return "triceps_extension"
-
-    if "pushup" in n or "push-up" in n or "push up" in n:
-        return "pushup"
-    if "lunge" in n or "split squat" in n:
-        return "lunge"
-    if "squat" in n:
-        return "squat"
-    if "dip" in n:
-        return "dip"
-    if any(
-        k in n
-        for k in ("deadlift", "good morning", "swing", "rack pull", "pull through")
-    ):
-        return "hinge"
-    if "crunch" in n or "sit-up" in n or "sit up" in n:
-        return "crunch_core"
-    if any(
-        k in n
-        for k in (
+        ),
+        _matches_triceps_kickback,
+    ),
+    ("pushup", ("pushup", "push-up", "push up"), None),
+    ("lunge", ("lunge", "split squat"), None),
+    ("squat", ("squat",), None),
+    ("dip", ("dip",), None),
+    (
+        "hinge",
+        ("deadlift", "good morning", "swing", "rack pull", "pull through"),
+        None,
+    ),
+    ("crunch_core", ("crunch", "sit-up", "sit up"), None),
+    (
+        "overhead_press",
+        (
             "shoulder press",
             "overhead press",
             "military press",
@@ -361,68 +370,81 @@ def classify_archetype(exercise: Exercise) -> str:
             "kettlebell press",
             "push press",
             "jerk",
-        )
-    ):
-        return "overhead_press"
-    if "bench press" in n or "chest press" in n or "floor press" in n:
-        return "bench_press"
-    if (
-        _ROW_WORD_RE.search(n)
-        or any(
-            k in n
-            for k in (
-                "pull apart",
-                "face pull",
-                "incline bench pull",
-                "back fly",
-                "reverse fly",
-                "rear delt fly",
-            )
-        )
-        or ("flye" in n and pm != "chest")
-    ):
-        return "row_pull"
-    if "curl" in n and pm != "abdominals":
-        return "curl"
-
+        ),
+        None,
+    ),
+    ("bench_press", ("bench press", "chest press", "floor press"), None),
+    (
+        "row_pull",
+        (
+            "pull apart",
+            "face pull",
+            "incline bench pull",
+            "back fly",
+            "reverse fly",
+            "rear delt fly",
+        ),
+        _matches_row_variant,
+    ),
+    ("curl", (), _matches_bicep_curl),
     # Cardio locomotion -> mountain_climber rather than squat
-    if cat == "cardio" or any(
-        k in n
-        for k in (
+    (
+        "mountain_climber",
+        (
             "bicycling",
             "running",
             "jogging",
             "rope jumping",
             "jump rope",
             "skating",
-        )
-    ):
-        return "mountain_climber"
-    if "rope" in n and cat == "cardio":
-        return "mountain_climber"
+        ),
+        _matches_cardio,
+    ),
+)
 
-    if pm == "calves":
-        return "calf_raise"
-    if pm == "triceps":
-        return "triceps_extension"
-    if pm in {"quadriceps", "glutes", "adductors", "abductors"}:
-        return "squat"
-    if pm in {"hamstrings", "lower back"}:
-        return "hinge"
-    if pm == "abdominals":
-        return "crunch_core"
+_MUSCLE_ARCHETYPE_MAP: dict[str, str] = {
+    "calves": "calf_raise",
+    "triceps": "triceps_extension",
+    "quadriceps": "squat",
+    "glutes": "squat",
+    "adductors": "squat",
+    "abductors": "squat",
+    "hamstrings": "hinge",
+    "lower back": "hinge",
+    "abdominals": "crunch_core",
+    "shoulders": "overhead_press",
+    "neck": "overhead_press",
+    "traps": "overhead_press",
+    "lats": "row_pull",
+    "middle back": "row_pull",
+    "biceps": "curl",
+    "forearms": "curl",
+}
+
+
+def _fallback_muscle_archetype(pm: str, equipment: str | None) -> str:
     if pm == "chest":
-        return "pushup" if exercise.equipment == "body only" else "bench_press"
-    if pm in {"shoulders", "neck", "traps"}:
-        return "overhead_press"
-    if pm in {"lats", "middle back"}:
-        return "row_pull"
-    if pm in {"biceps", "forearms"}:
-        return "curl"
-    return "squat"
+        return "pushup" if equipment == "body only" else "bench_press"
+    return _MUSCLE_ARCHETYPE_MAP.get(pm, "squat")
+
+
+def classify_archetype(exercise: Exercise) -> str:
+    """Classify an exercise into one of the 18 movement archetypes."""
+    n = _normalized_text(exercise.id, exercise.name)
+    pm = (exercise.primary_muscle or "").lower()
+    cat = (exercise.category or "").lower()
+
+    for archetype, keywords, predicate in _ARCHETYPE_RULES:
+        if any(k in n for k in keywords) or (
+            predicate is not None and predicate(n, pm, cat)
+        ):
+            return archetype
+
+    return _fallback_muscle_archetype(pm, exercise.equipment)
 
 
 def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
+    """Build SVG markup, tempo pacing, and movement cues for an exercise."""
     archetype = classify_archetype(exercise)
     meta = ARCHETYPE_COACHING[archetype]
     n = _normalized_text(exercise.id, exercise.name)

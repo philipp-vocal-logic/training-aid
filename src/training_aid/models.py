@@ -1,13 +1,20 @@
-from datetime import datetime, timezone
+# Copyright (c) 2026 Philipp Kaaden
+"""SQLModel persistence models for athletes, exercises, plans, and logs."""
+
 import json
+from datetime import UTC, datetime
+
 from sqlmodel import Field, SQLModel
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    """Return the current timezone-aware UTC timestamp."""
+    return datetime.now(UTC)
 
 
 class User(SQLModel, table=True):
+    """Athlete profile and training preferences."""
+
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     equipment: str = Field(default="body_only")
@@ -18,6 +25,8 @@ class User(SQLModel, table=True):
 
 
 class Exercise(SQLModel, table=True):
+    """Catalog exercise entry seeded from free-exercise-db."""
+
     id: str = Field(primary_key=True)
     name: str = Field(index=True)
     category: str = Field(default="strength", index=True)
@@ -30,6 +39,7 @@ class Exercise(SQLModel, table=True):
 
     @property
     def instructions(self) -> list[str]:
+        """Parse and return step-by-step exercise instructions."""
         try:
             return json.loads(self.instructions_json)
         except json.JSONDecodeError:
@@ -37,6 +47,8 @@ class Exercise(SQLModel, table=True):
 
 
 class TrainingPlan(SQLModel, table=True):
+    """Multi-day weekly workout plan assigned to an athlete."""
+
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True)
     name: str
@@ -46,6 +58,8 @@ class TrainingPlan(SQLModel, table=True):
 
 
 class WorkoutRoutine(SQLModel, table=True):
+    """Single workout day within a training plan."""
+
     id: int | None = Field(default=None, primary_key=True)
     plan_id: int = Field(foreign_key="trainingplan.id", index=True)
     name: str
@@ -54,10 +68,13 @@ class WorkoutRoutine(SQLModel, table=True):
 
     @property
     def intensity_percent(self) -> int:
+        """Return effective routine intensity percentage clamped to at least 50%."""
         return max(50, 100 + self.intensity_level * 10)
 
 
 class RoutineExercise(SQLModel, table=True):
+    """Ordered exercise prescription belonging to a workout routine."""
+
     id: int | None = Field(default=None, primary_key=True)
     routine_id: int = Field(foreign_key="workoutroutine.id", index=True)
     exercise_id: str = Field(foreign_key="exercise.id")
@@ -68,6 +85,8 @@ class RoutineExercise(SQLModel, table=True):
 
 
 class WorkoutLog(SQLModel, table=True):
+    """Completed workout session record and intensity feedback choice."""
+
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True)
     plan_id: int | None = Field(default=None, index=True)
@@ -82,4 +101,5 @@ class WorkoutLog(SQLModel, table=True):
 
     @property
     def intensity_percent(self) -> int:
+        """Return effective session intensity percentage clamped to at least 50%."""
         return max(50, 100 + self.intensity_at_session * 10)
