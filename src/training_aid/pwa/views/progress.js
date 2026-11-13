@@ -1,10 +1,11 @@
-/* Screen 5: Stats & Inline SVG Progression Chart (#progress) */
+/* Screen 5: Stats, Weekly Adherence, Inline SVG Chart & Completed Exercise History (#progress) */
 (function () {
   "use strict";
 
   const root =
     typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this;
   const getDom = () => root.TrainingDom || (typeof require === "function" ? require("../dom.js") : null);
+  const getDomain = () => root.TrainingDomain || (typeof require === "function" ? require("../domain.js") : null);
 
   function buildProgressChartSvg(series) {
     const { svgNode } = getDom();
@@ -122,9 +123,17 @@
     return svg;
   }
 
+  function formatLoggedExerciseLine(ex, formatWeight) {
+    const unit = ex.unit === "sec" ? "s" : "";
+    const base = `${ex.sets}\u00d7${ex.reps}${unit}`;
+    return ex.weight_kg ? `${ex.name} (${base} @ ${formatWeight(ex.weight_kg)})` : `${ex.name} (${base})`;
+  }
+
   function renderProgressView(ctx) {
     const dom = getDom();
-    const { el, setTrustedSvg, resolveSvgMarkup, bindPreviewLoop, formatLogDate } = dom;
+    const domain = getDomain();
+    const formatWeight = (domain && domain.formatWeight) || ((w) => `${w} kg`);
+    const { el, setTrustedSvg, resolveSvgMarkup, bindPreviewLoop, formatLogDateTime } = dom;
     const scope = (ctx && ctx.scope) || dom.createViewScope();
     const { store, catalog } = ctx;
     const syncTopbar = ctx.syncTopbar || (() => {});
@@ -139,8 +148,12 @@
 
     const kpiStrip = el("section", { className: "kpi-strip" }, [
       el("div", { className: "kpi-cell" }, [
+        el("span", { className: "kpi-num", textContent: `${stats.workouts_this_week || 0}/${stats.weekly_goal || 3}` }),
+        el("span", { className: "kpi-label", textContent: "This Week" }),
+      ]),
+      el("div", { className: "kpi-cell" }, [
         el("span", { className: "kpi-num", textContent: String(stats.total_workouts || 0) }),
-        el("span", { className: "kpi-label", textContent: "Done" }),
+        el("span", { className: "kpi-label", textContent: "Completed" }),
       ]),
       el("div", { className: "kpi-cell" }, [
         el("span", { className: "kpi-num", textContent: `${stats.week_streak || 0}w` }),
@@ -148,7 +161,7 @@
       ]),
       el("div", { className: "kpi-cell" }, [
         el("span", { className: "kpi-num", textContent: `${stats.avg_plan_intensity || 100}%` }),
-        el("span", { className: "kpi-label", textContent: "Load" }),
+        el("span", { className: "kpi-label", textContent: "Plan Load" }),
       ]),
     ]);
 
@@ -174,24 +187,48 @@
     const logRail = logs.length > 0
       ? el(
           "aside",
-          { className: "log-rail", "aria-label": "History" },
+          { className: "log-rail", "aria-label": "Completed workout history" },
           logs.map((log) => {
             const choice = log.next_intensity_choice;
-            const badgeText = choice === "more" ? "+10%" : choice === "less" ? "\u221210%" : "=";
-            const dateStr = formatLogDate(log.completed_at);
+            const badgeText = log.is_adhoc
+              ? "Quick"
+              : log.was_substituted
+                ? "Adapted"
+                : choice === "more"
+                  ? "+10%"
+                  : choice === "less"
+                    ? "\u221210%"
+                    : "=";
+            const dateTimeStr = formatLogDateTime(log.completed_at);
             const pct = typeof log.intensity_percent === "number"
               ? log.intensity_percent
               : Math.max(50, 100 + (Number(log.intensity_at_session) || 0) * 10);
+            const exItems = Array.isArray(log.exercises) ? log.exercises : [];
 
-            return el("div", { className: "log-item" }, [
-              el("div", { style: { minWidth: "0" } }, [
-                el("div", {
-                  style: { fontWeight: "700", fontSize: "0.86rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-                  textContent: log.routine_name,
-                }),
-                el("div", { className: "muted", style: { fontSize: "0.76rem" }, textContent: `${dateStr ? `${dateStr} \u00b7 ` : ""}${pct}%` }),
+            return el("div", { className: "log-item log-item-detailed" }, [
+              el("div", { className: "log-item-head" }, [
+                el("div", { style: { minWidth: "0" } }, [
+                  el("div", {
+                    style: { fontWeight: "700", fontSize: "0.88rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+                    textContent: log.routine_name,
+                  }),
+                  el("div", {
+                    className: "muted",
+                    style: { fontSize: "0.75rem" },
+                    textContent: `${dateTimeStr ? `${dateTimeStr} \u00b7 ` : ""}${log.duration_minutes || 25}m \u00b7 ${pct}%`,
+                  }),
+                ]),
+                el("span", { className: "pill" + (choice === "more" ? " pill-brand" : ""), textContent: badgeText }),
               ]),
-              el("span", { className: "pill" + (choice === "more" ? " pill-brand" : ""), textContent: badgeText }),
+              exItems.length > 0
+                ? el(
+                    "ul",
+                    { className: "log-ex-list" },
+                    exItems.map((ex) =>
+                      el("li", { className: "log-ex-row", textContent: formatLoggedExerciseLine(ex, formatWeight) })
+                    )
+                  )
+                : null,
             ]);
           })
         )

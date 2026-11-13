@@ -64,8 +64,22 @@ _COMP_1 = ("id", "name", "category", "equipment", "primary_muscle")
 _COMP_2 = ("eq_mode", "svg_key", "thumb_url")
 EXPECTED_COMPILED_EXERCISE_KEYS = EXPECTED_METADATA_KEYS | frozenset(_COMP_1 + _COMP_2)
 _SCAN_1 = ("index.html", "manifest.webmanifest", "icon.svg", "sw.js", "app.js")
-_SCAN_2 = ("domain.js", "codec.js", "store.js", "qr.js", "dom.js", "static/style.css")
-_SCAN_3 = ("views/setup.js", "views/plan.js", "views/edit.js", "views/workout.js")
+_SCAN_2 = (
+    "domain.js",
+    "recommender.js",
+    "codec.js",
+    "store.js",
+    "qr.js",
+    "dom.js",
+    "static/style.css",
+)
+_SCAN_3 = (
+    "views/setup.js",
+    "views/plan.js",
+    "views/quick.js",
+    "views/edit.js",
+    "views/workout.js",
+)
 _SCAN_4 = ("views/progress.js", "static/motion.js", "static/sound-presets.js")
 _SCAN_5 = ("static/sound-pattern.js", "static/sound-synth.js", "static/sound.js")
 PRIVACY_SCAN_FILES = _SCAN_1 + _SCAN_2 + _SCAN_3 + _SCAN_4 + _SCAN_5
@@ -525,6 +539,7 @@ def verify_pwa_bundle_with_node(dist_dir: Path) -> list[str]:
         return ["Node.js binary not found for static PWA E2E suite"]
     t_dir, env = REPO_ROOT / "tests", {**os.environ, "TA_DIST_DIR": str(dist_dir)}
     suites = (
+        str(t_dir / "pwa_recommender.test.cjs"),
         str(t_dir / "pwa_store_qr.test.cjs"),
         str(t_dir / "pwa_ui_audio.test.cjs"),
         str(t_dir / "pwa_sound_layers.test.cjs"),

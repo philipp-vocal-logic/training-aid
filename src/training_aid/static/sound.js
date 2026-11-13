@@ -247,6 +247,23 @@
       }
     }
 
+    function retimePhase(nextOpts, nextElapsed) {
+      stopScheduledNodes();
+      if (nextOpts) phaseOpts = { ...phaseOpts, ...nextOpts };
+      if (typeof nextElapsed === "number" && Number.isFinite(nextElapsed) && nextElapsed >= 0) {
+        phaseElapsed = nextElapsed;
+      } else if (!paused && currentTheme !== "off" && audioAnchorTime !== null && audioCtx?.state === "running") {
+        phaseElapsed = Math.max(phaseElapsed, audioCtx.currentTime - audioAnchorTime);
+      }
+      scheduledUntilSec = phaseElapsed - 0.0001;
+      if (!paused && currentTheme !== "off" && audioCtx?.state === "running") {
+        audioAnchorTime = audioCtx.currentTime - phaseElapsed;
+        if (phaseName === "ACTIVE" || phaseName === "REST") scheduleLookahead();
+      } else {
+        audioAnchorTime = null;
+      }
+    }
+
     function advancePhase(dtFallbackSec) {
       const dt = Math.max(0, Number(dtFallbackSec) || 0);
       if (paused) return phaseElapsed;
@@ -311,6 +328,7 @@
       isMuted,
       ensureAudio,
       beginPhase,
+      retimePhase,
       advancePhase,
       pause,
       resume,

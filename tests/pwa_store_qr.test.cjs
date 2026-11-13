@@ -23,13 +23,6 @@ function makeMemoryStorage(initial = {}) {
   };
 }
 
-function applyBackupImport(store, jsonText, keepExistingLogs) {
-  const res = store.importBackupJson(jsonText, { mergeLogs: keepExistingLogs, keepExistingLogs });
-  return res && typeof res.apply === "function"
-    ? res.apply({ keepExistingLogs, mergeLogs: keepExistingLogs })
-    : res;
-}
-
 before(() => {
   if (!distDir || !fs.existsSync(path.join(distDir, "data", "catalog.json"))) {
     ownedTempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ta-store-qr-"));
@@ -50,256 +43,163 @@ after(() => {
   if (ownedTempDir) fs.rmSync(ownedTempDir, { recursive: true, force: true });
 });
 
-test("domain & store exports, onboarding presets, and hold durations >= 24s", () => {
-  assert.equal(storeMod.STORAGE_KEY, "training_aid_state_v1");
-  assert.deepEqual([...domainMod.VALID_EQUIPMENT], ["body_only", "dumbbells", "kettlebell_bands", "full_gym"]);
+test("schema v2 clean reset, multiselect equipment onboarding, and hold durations >= 24s", () => {
+  assert.equal(storeMod.STORAGE_KEY, "training_aid_state_v2");
+  assert.equal(storeMod.SCHEMA_VERSION, 2);
+  assert.equal(codecMod.SCHEMA_VERSION, 2);
   assert.deepEqual([...domainMod.VALID_INTENSITY], ["light", "moderate", "intense"]);
+  assert.deepEqual([...domainMod.VALID_SPEED_MODES], ["slow", "normal", "fast"]);
   assert.deepEqual([...domainMod.VALID_SOUND_THEMES], ["off", "minimal", "techno", "trance", "studio"]);
-  assert.equal(codecMod.MAX_DECOMPRESSED_BYTES, 65536);
 
-  const bwStore = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-  assert.equal(bwStore.hasActivePlan(), false);
-  assert.equal(bwStore.getState(), null);
-
-  const bwState = bwStore.setupPlan({
-    name: "Philipp",
-    equipment: "body_only",
-    starting_intensity: "light",
-    days_per_week: 2,
+  // Old v1 or malformed state is ignored cleanly without migration shims
+  const dirtyStorage = makeMemoryStorage({
+    training_aid_state_v1: JSON.stringify({ schema_version: 1, profile: { name: "Old" } }),
+    training_aid_state_v2: JSON.stringify({ schema_version: 1, profile: { name: "WrongVer" } }),
   });
-  assert.equal(bwStore.hasActivePlan(), true);
-  assert.equal(bwState.profile.equipment, "body_only");
-  assert.equal(bwState.profile.starting_intensity, "light");
-  assert.equal(bwState.profile.weekly_goal, 2);
-  assert.equal(bwState.plan.name, "Body Only Plan (2x/Week)");
-  assert.equal(bwState.plan.routines.length, 2);
-  for (const ex of bwState.plan.routines[0].exercises) {
-    assert.equal(ex.sets, 2);
-    assert.equal(ex.base_weight_kg, null);
-  }
+  const store = storeMod.createStore({ storage: dirtyStorage, catalog });
+  assert.equal(store.hasActivePlan(), false);
+  assert.equal(store.getState(), null);
+
+  const built = store.setupPlan({
+    name: "Philipp",
+    equipment_list: ["bands", "dumbbell"],
+    starting_intensity: "light",
+    days_per_week: 4,
+    rest_seconds: 45,
+    speed_mode: "slow",
+  });
+  assert.equal(store.hasActivePlan(), true);
+  assert.deepEqual(built.profile.equipment_list, ["dumbbell", "bands"]);
+  assert.equal(built.profile.weekly_goal, 4);
+  assert.equal(built.profile.rest_seconds, 45);
+  assert.equal(built.profile.speed_mode, "slow");
+  assert.equal(built.plan.routines.length, 4);
+
+  // Saved storage overwrote v2 cleanly
+  const reloaded = storeMod.createStore({ storage: dirtyStorage, catalog });
+  assert.equal(reloaded.hasActivePlan(), true);
+  assert.deepEqual(reloaded.getState().profile.equipment_list, ["dumbbell", "bands"]);
+  assert.deepEqual(reloaded.getWorkoutTiming(), { rest_seconds: 45, speed_mode: "slow" });
 
   const byId = new Map(catalog.exercises.map((ex) => [ex.id, ex]));
   const plank = byId.get("Plank");
   for (const [intensity, expSec] of Object.entries({ light: 24, moderate: 30, intense: 36 })) {
     const presc = storeMod.defaultPrescriptionForExercise(
-      { equipment: "full_gym", starting_intensity: intensity },
-      plank,
+      { equipment_list: domainMod.VALID_EQUIPMENT_IDS, starting_intensity: intensity },
+      plank
     );
     assert.equal(presc.reps, expSec);
     assert.ok(presc.reps >= 24);
-    assert.equal(presc.weight_kg, null);
-    const scaled = storeMod.computeScaledTarget(
-      { id: "rx1", exercise_id: plank.id, sets: presc.sets, base_reps: presc.reps, base_weight_kg: presc.weight_kg },
-      0,
-      plank,
-    );
-    assert.equal(scaled.formatted, `${presc.sets} \u00d7 ${expSec} sec`);
   }
-
-  const weightedPlank = storeMod.computeScaledTarget(
-    { id: "rx2", exercise_id: plank.id, sets: 3, base_reps: 30, base_weight_kg: 10 },
-    0,
-    plank,
-  );
-  assert.ok(weightedPlank.formatted.includes("sec") && weightedPlank.formatted.includes("10 kg"));
 });
 
-test("workout +10%/-10%/keep progression scaling and ISO week streaks", () => {
-  const gymStore = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-  gymStore.setupPlan({ name: "Sam", equipment: "full_gym", starting_intensity: "moderate", days_per_week: 3 });
+test("non-destructive daily equipment filter, ad-hoc sessions, unlimited daily workouts & exercise logs", () => {
+  let fakeNow = new Date("2026-11-13T09:00:00Z");
+  const gymStore = storeMod.createStore({
+    storage: makeMemoryStorage(),
+    catalog,
+    nowFn: () => new Date(fakeNow.getTime()),
+  });
+  gymStore.setupPlan({
+    name: "Sam",
+    equipment_list: domainMod.VALID_EQUIPMENT_IDS,
+    starting_intensity: "moderate",
+    days_per_week: 3,
+    rest_seconds: 60,
+    speed_mode: "normal",
+  });
 
-  const r1Playlist = gymStore.buildPlaylist("r1");
-  assert.equal(r1Playlist.length, 4);
-  assert.equal(r1Playlist[0].sets, 3);
-  assert.ok(Boolean(r1Playlist[0].how_to));
+  const recMorning = gymStore.getRecommendedToday();
+  assert.equal(recMorning.trained_today, false);
+  assert.equal(recMorning.card.routine.id, "r1");
+  assert.equal(recMorning.card.was_substituted, false);
 
-  gymStore.completeWorkout("r1", {
+  // Non-destructive filter to pure bodyweight for today
+  gymStore.setSessionEquipment([]);
+  assert.equal(gymStore.hasSessionEquipmentOverride(), true);
+  const adaptedRec = gymStore.getRecommendedToday();
+  assert.equal(adaptedRec.card.was_substituted, true);
+  assert.equal(gymStore.getState().profile.equipment_list.length, domainMod.VALID_EQUIPMENT_IDS.length);
+  assert.equal(gymStore.getRoutine("r1").exercises[0].exercise_id, "Barbell_Full_Squat");
+
+  // Completing substituted r1 logs actual bodyweight exercises, advances split to r2, keeps r1 base load at 0
+  const subLog = gymStore.completeWorkout("r1", {
     next_intensity_choice: "more",
-    duration_minutes: 28,
-    completed_ids: ["rx1", "rx2", "rx3", "rx4"],
+    duration_minutes: 22,
+    completed_at: "2026-11-13T09:30:00Z",
   });
-  assert.equal(gymStore.getNextRoutineCard().routine.id, "r2");
-  const r1Adapted = gymStore.buildRoutineCards(["r1"])[0];
-  assert.equal(r1Adapted.intensity_percent, 110);
-  assert.equal(r1Adapted.exercises[0].scaled.formatted, "3 \u00d7 8 @ 44 kg");
+  assert.equal(subLog.was_substituted, true);
+  assert.equal(gymStore.getRoutine("r1").intensity_level, 0);
+  assert.ok(subLog.exercises.length === 4 && subLog.exercises[0].exercise_id !== "Barbell_Full_Squat");
 
-  gymStore.completeWorkout("r2", { next_intensity_choice: "less", duration_minutes: 24 });
-  const r2Adapted = gymStore.buildRoutineCards(["r2"])[0];
-  assert.equal(r2Adapted.intensity_percent, 90);
-  assert.equal(r2Adapted.exercises[0].scaled.formatted, "3 \u00d7 8 @ 36 kg");
+  // Next calendar day auto-resets session equipment back to profile gym equipment
+  fakeNow = new Date("2026-11-14T10:00:00Z");
+  assert.equal(gymStore.hasSessionEquipmentOverride(), false);
+  assert.equal(gymStore.getRecommendedToday().card.routine.id, "r2");
+  assert.equal(gymStore.getRecommendedToday().card.was_substituted, false);
 
-  gymStore.completeWorkout("r3", { next_intensity_choice: "keep", duration_minutes: 25 });
-  assert.equal(gymStore.buildRoutineCards(["r3"])[0].intensity_percent, 100);
-
-  const pushupItem = { id: "rx1", exercise_id: "Pushups", sets: 3, base_reps: 10, base_weight_kg: null };
-  assert.equal(storeMod.computeScaledTarget(pushupItem, 0).formatted, "3 \u00d7 10 reps");
-  assert.equal(storeMod.computeScaledTarget(pushupItem, 1).formatted, "3 \u00d7 11 reps");
-  assert.equal(storeMod.computeScaledTarget(pushupItem, -1).formatted, "3 \u00d7 9 reps");
-  assert.equal(storeMod.applyIntensityFeedback(-5, "less"), -5);
-  assert.equal(storeMod.applyIntensityFeedback(0, "keep"), 0);
-
-  const streakLogs = [
-    { completed_at: "2026-11-12T12:00:00Z" },
-    { completed_at: "2026-11-05T12:00:00Z" },
-    { completed_at: "2026-10-29T12:00:00Z" },
-  ];
-  const s3 = storeMod.computeWeekStreak(streakLogs, "2026-11-13T12:00:00Z") === 3
-    ? 3
-    : storeMod.computeWeekStreak(streakLogs, 3, "2026-11-13T12:00:00Z");
-  assert.equal(s3, 3);
-
-  const crossYearLogs = [
-    { completed_at: "2026-01-02T10:00:00Z" },
-    { completed_at: "2025-12-24T10:00:00Z" },
-  ];
-  const s2 = storeMod.computeWeekStreak(crossYearLogs, "2026-01-03T10:00:00Z") === 2
-    ? 2
-    : storeMod.computeWeekStreak(crossYearLogs, 2, "2026-01-03T10:00:00Z");
-  assert.equal(s2, 2);
-});
-
-test("#import=z. roundtrips, 64KB zip-bomb cap, non-z. rejection, JSON Merge vs Replace, and XSS safety", async () => {
-  const srcStore = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-  srcStore.setupPlan({ name: "Sam", equipment: "full_gym", starting_intensity: "moderate", days_per_week: 3 });
-  srcStore.completeWorkout("r1", { next_intensity_choice: "more", completed_at: "2026-11-10T10:00:00Z" });
-  srcStore.completeWorkout("r2", { next_intensity_choice: "less", completed_at: "2026-11-11T10:00:00Z" });
-
-  const frag = await srcStore.encodeShareFragment();
-  assert.ok(frag.startsWith("#import=z.") && frag.length < 700);
-
-  const phoneStore = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-  phoneStore.setupPlan({ name: "PhoneUser", equipment: "body_only", starting_intensity: "light", days_per_week: 2 });
-  phoneStore.completeWorkout("r1", { next_intensity_choice: "keep", completed_at: "2026-11-12T10:00:00Z" });
-  const preview = await phoneStore.decodeShareFragment(frag);
-  assert.equal(preview.routineCount, 3);
-  assert.equal(preview.exerciseCount, 12);
-  if (typeof preview.apply === "function") preview.apply({ keepExistingLogs: true });
-  assert.equal(phoneStore.getLogsDesc().length, 1);
-  assert.equal(phoneStore.getNextRoutineCard().routine.id, "r2");
-
-  const freshPhone = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-  const freshPreview = await freshPhone.decodeShareFragment(frag);
-  if (typeof freshPreview.apply === "function") freshPreview.apply();
-  assert.equal(freshPhone.getNextRoutineCard().routine.id, "r3");
-
-  const bombPlain = new TextEncoder().encode(JSON.stringify({ v: 1, pad: "A".repeat(80000) }));
-  const cs = new CompressionStream("deflate-raw");
-  const writer = cs.writable.getWriter();
-  writer.write(bombPlain);
-  writer.close();
-  const chunks = [];
-  const reader = cs.readable.getReader();
-  while (true) {
-    const step = await reader.read();
-    if (step.done) break;
-    chunks.push(Buffer.from(step.value));
-  }
-  const bombToken = "#import=z." + Buffer.concat(chunks).toString("base64url");
-  await assert.rejects(() => phoneStore.decodeShareFragment(bombToken));
-  await assert.rejects(() => phoneStore.decodeShareFragment("#import=z.!!!bad_b64!!!"));
-  await assert.rejects(() => phoneStore.decodeShareFragment("#import=j.eyJ2IjoxfQ"));
-
-  const backupJson = srcStore.exportBackupJson({ includeLogs: true });
-  applyBackupImport(phoneStore, backupJson, true);
-  assert.equal(phoneStore.getLogsDesc().length, 3);
-  applyBackupImport(phoneStore, backupJson, false);
-  assert.equal(phoneStore.getLogsDesc().length, 2);
-  assert.equal(phoneStore.getState().profile.name, "Sam");
-
-  const untrustedJson = JSON.stringify({
-    schema_version: 1,
-    profile: {
-      name: "  <img src=x onerror=alert(1)>  ",
-      equipment: "invalid_tier",
-      starting_intensity: "extreme",
-      weekly_goal: 99,
-      sound_theme: "dubstep",
-    },
-    plan: {
-      name: "Untrusted Plan",
-      description: "Desc",
-      days_per_week: 99,
-      routines: [{
-        id: "r1",
-        name: "Day 1",
-        intensity_level: -99,
-        exercises: [
-          { id: "x1", exercise_id: "Unknown_Fake_Ex", sets: 3, base_reps: 10 },
-          { id: "x2", exercise_id: "Pushups", sets: 999, base_reps: -5, base_weight_kg: 99999 },
-        ],
-      }],
-    },
-    logs: [],
+  // On-the-fly workout counts toward weekly goal & history without advancing split cursor (stays r2)
+  gymStore.generateAdHocSession({ count: 3 });
+  gymStore.addRandomExerciseToAdHoc();
+  assert.equal(gymStore.getAdHocSession().exercises.length, 4);
+  const adhocLog = gymStore.completeWorkout("adhoc", {
+    duration_minutes: 18,
+    completed_at: "2026-11-14T10:30:00Z",
   });
-  applyBackupImport(phoneStore, untrustedJson, true);
-  const sanitized = phoneStore.getState();
-  assert.equal(sanitized.profile.name, "<img src=x onerror=alert(1)>");
-  assert.equal(sanitized.profile.equipment, "body_only");
-  assert.equal(sanitized.plan.routines[0].intensity_level, -5);
-  assert.equal(sanitized.plan.routines[0].exercises.length, 1);
-  assert.ok(sanitized.plan.routines[0].exercises[0].sets <= 20);
-  assert.equal(sanitized.plan.routines[0].exercises[0].base_reps, 1);
-  assert.equal(sanitized.plan.routines[0].exercises[0].base_weight_kg, 500);
+  assert.equal(adhocLog.is_adhoc, true);
+  assert.equal(adhocLog.exercises.length, 4);
+  assert.equal(gymStore.getRecommendedToday().trained_today, true);
+  assert.equal(gymStore.getRecommendedToday().workouts_today, 1);
+  assert.equal(gymStore.getRecommendedToday().card.routine.id, "r2");
+
+  // User can do another workout on the same day (unlimited daily workouts)
+  const r2Log = gymStore.completeWorkout("r2", {
+    next_intensity_choice: "more",
+    duration_minutes: 30,
+    completed_at: "2026-11-14T17:15:00Z",
+  });
+  assert.equal(r2Log.was_substituted, false);
+  assert.equal(gymStore.getRoutine("r2").intensity_level, 1);
+  assert.equal(gymStore.getRecommendedToday().workouts_today, 2);
+  assert.equal(gymStore.getStats().workouts_this_week, 3);
 });
 
-test("unified sound_theme in training_aid_state_v1 and one-time legacy migration", () => {
-  const storage = makeMemoryStorage({ training_aid_sound_theme: "trance" });
-  const st = storeMod.createStore({ storage, catalog });
-  assert.equal(st.getSoundTheme(), "trance");
+test("routine prescription editing, random swap, speed/rest updates, and QR SVG XSS guard", () => {
+  const st = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
+  st.setupPlan({
+    name: "Alex",
+    equipment_list: ["dumbbell", "bench"],
+    starting_intensity: "moderate",
+    days_per_week: 3,
+  });
 
-  st.setSoundTheme("techno");
-  assert.equal(st.getSoundTheme(), "techno");
-  assert.ok(!storage.writes.includes("training_aid_sound_theme"));
+  const r1 = st.getRoutine("r1");
+  const firstItem = r1.exercises[0];
+  const edited = st.updateRoutineExercise("r1", firstItem.id, {
+    sets: 5,
+    base_reps: 12,
+    base_weight_kg: 17.5,
+  });
+  assert.equal(edited.sets, 5);
+  assert.equal(edited.base_reps, 12);
+  assert.equal(edited.base_weight_kg, 17.5);
 
-  st.setupPlan({ name: "AudioUser", equipment: "body_only", starting_intensity: "moderate", days_per_week: 2 });
-  st.setSoundTheme("studio");
-  assert.equal(st.getSoundTheme(), "studio");
-  assert.equal(JSON.parse(storage.getItem(storeMod.STORAGE_KEY)).profile.sound_theme, "studio");
-  assert.ok(!storage.writes.includes("training_aid_sound_theme"));
-});
+  const swapped = st.swapRoutineExercise("r1", firstItem.id);
+  assert.ok(swapped && swapped.exercise_id !== firstItem.exercise_id);
 
-test("browse tiers, 876-exercise search & playlist coverage, and TrainingQR SVG", () => {
-  const tierAllowed = {
-    body_only: new Set(["body only", "foam roll", "exercise ball", "other"]),
-    dumbbells: new Set(["dumbbell", "medicine ball", "body only", "foam roll", "exercise ball", "other"]),
-    kettlebell_bands: new Set(["kettlebells", "bands", "body only", "foam roll", "exercise ball", "other"]),
-    full_gym: null,
-  };
-  for (const [tier, allowed] of Object.entries(tierAllowed)) {
-    const st = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-    st.setupPlan({ name: `Browse-${tier}`, equipment: tier, starting_intensity: "moderate", days_per_week: 2 });
-    const gotIds = new Set(st.searchCatalog("", 1000).map((r) => r.id));
-    const expIds = new Set(
-      catalog.exercises.filter((ex) => !allowed || allowed.has(ex.equipment.toLowerCase())).map((ex) => ex.id),
-    );
-    assert.equal(gotIds.size, expIds.size);
-    for (const id of expIds) assert.ok(gotIds.has(id));
+  const addedRand = st.addRandomExerciseToRoutine("r1");
+  assert.ok(addedRand && st.getRoutine("r1").exercises.length === r1.exercises.length + 1);
+
+  st.setWorkoutTiming({ speed_mode: "fast", rest_seconds: 90 });
+  const pl = st.buildPlaylist("r1");
+  for (const item of pl) {
+    if (item.is_hold) assert.equal(item.rep_seconds, 1.0);
+    else assert.ok(item.rep_seconds < item.base_rep_seconds);
   }
 
-  const fullStore = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
-  fullStore.setupPlan({ name: "CatalogAudit", equipment: "full_gym", starting_intensity: "moderate", days_per_week: 2 });
-  const rt = fullStore.addWorkoutDay();
-  for (const ex of catalog.exercises) {
-    const found = fullStore.searchCatalog(ex.name, 100).find((h) => h.id === ex.id);
-    assert.ok(found && String(found.thumb_url).startsWith("./svgs/thumbs/"));
-    assert.equal("instructions" in found, false);
-  }
-  for (const ex of catalog.exercises.slice(0, 40)) fullStore.addExerciseToRoutine(rt.id, ex.id);
-  const playlist = fullStore.buildPlaylist(rt.id);
-  assert.equal(playlist.length, 40);
-  for (const pl of playlist) {
-    assert.ok(String(pl.how_to).trim().length > 0);
-    assert.ok(String(pl.svg_markup).startsWith("<svg") && !pl.svg_markup.includes('data-bar-mode="shoulder"'));
-    if (pl.is_hold) assert.ok(pl.reps >= 20);
-  }
-
-  const qrMat = qrMod.encodeMatrix("https://trainer.local/#import=z.test");
-  assert.equal(qrMat.size, qrMat.version * 4 + 17);
-  assert.equal(qrMat.modules[0][0], true);
-  const qrSvg = qrMod.renderSvg("https://trainer.local/#import=z.test", {
+  const qrSvg = qrMod.renderSvg("https://trainer.local/#plan", {
     margin: 2,
     fg: '#090d16" onload="alert(1)',
   });
-  assert.ok(qrSvg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"') && qrSvg.includes('<path d="M'));
-  assert.ok(!qrSvg.includes('onload="alert(1)"'));
+  assert.ok(qrSvg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"') && !qrSvg.includes('onload="alert(1)"'));
 });

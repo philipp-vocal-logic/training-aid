@@ -1,63 +1,56 @@
 (function (root, factory) {
   const domain = (root && root.TrainingDomain) || (typeof require === "function" ? require("./domain.js") : null);
   const codec = (root && root.TrainingCodec) || (typeof require === "function" ? require("./codec.js") : null);
-  const api = factory(root, domain, codec);
+  const recommender = (root && root.TrainingRecommender) || (typeof require === "function" ? require("./recommender.js") : null);
+  const api = factory(root, domain, codec, recommender);
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.TrainingStore = api;
-})(typeof window !== "undefined" ? window : globalThis, function (root, domain, codec) {
+})(typeof window !== "undefined" ? window : globalThis, function (root, domain, codec, recommender) {
   "use strict";
 
-  const STORAGE_KEY = "training_aid_state_v1", LEGACY_SOUND_KEY = "training_aid_sound_theme";
-  const MAX_BACKUP_STRING_LENGTH = 5 * 1024 * 1024, DAY_MS = 86400000;
+  const STORAGE_KEY = "training_aid_state_v2";
   const {
-    VALID_EQUIPMENT, VALID_INTENSITY, VALID_SOUND_THEMES, sanitizeString, clampInt, parseUtcDate,
-    roundHalfKg, formatWeight, scaleInitialPrescription, defaultPrescriptionForExercise,
-    computeScaledTarget, applyIntensityFeedback, computeWeekStreak,
+    VALID_INTENSITY, VALID_SOUND_THEMES, DEFAULT_REST_SECONDS,
+    sanitizeString, clampInt, normalizeEquipmentList, normalizeSpeedMode, clampRestSeconds,
+    parseUtcDate, localDateKey, formatEquipmentSummary, sanitizePrescriptionPatch,
+    defaultPrescriptionForExercise, computeScaledTarget, applyIntensityFeedback,
+    computeWeekStreak, sortLogsDesc, computePlanStats, buildProgressSeries,
   } = domain;
+  const { SCHEMA_VERSION, MAX_EXERCISES_PER_ROUTINE, validateAndNormalizeState } = codec;
   const {
-    MAX_DECOMPRESSED_BYTES, deduplicateAndSortLogs, validateAndNormalizeImport,
-    encodeShareFragment: codecEncodeShare, decodeShareFragment: codecDecodeShare,
-  } = codec;
+    normalizeCatalogExercise, searchCompatibleCatalog, adaptRoutineForEquipment,
+    pickRandomExercise, generateBalancedSession, buildProgramRoutines,
+    projectRoutineCard, projectPlaylist,
+  } = recommender;
 
-  const BODYWEIGHT_AUX_EQUIPMENT = Object.freeze(["body only", "foam roll", "exercise ball", "other"]);
   const DEFAULT_INTENSITY_LABELS = Object.freeze({ light: "Easy Start", moderate: "Moderate", intense: "Intense" });
   let idCounter = 0;
 
   function requestPersistentStorage() {
     return Promise.resolve()
-      .then(() => {
-        const nav = root?.navigator || (typeof navigator !== "undefined" ? navigator : null);
-        return typeof nav?.storage?.persist === "function" ? nav.storage.persist() : false;
-      })
-      .then((granted) => Boolean(granted))
+      .then(() => (root?.navigator || (typeof navigator !== "undefined" ? navigator : null))?.storage?.persist?.() || false)
+      .then(Boolean)
       .catch(() => false);
   }
 
-  function normalizeCatalogExercise(rawEx) {
-    const archetype = rawEx.archetype || "squat", eqMode = rawEx.eq_mode || "body_only", hold = Boolean(rawEx.is_hold);
-    return {
-      id: String(rawEx.id), name: String(rawEx.name || rawEx.id),
-      category: rawEx.category || "strength", equipment: rawEx.equipment || "body only",
-      primary_muscle: rawEx.primary_muscle || "other", archetype, eq_mode: eqMode,
-      svg_key: rawEx.svg_key || `${archetype}:${eqMode}`,
-      thumb_url: rawEx.thumb_url || `./svgs/thumbs/${archetype}__${eqMode}.svg`,
-      rep_seconds: rawEx.rep_seconds > 0 ? Number(rawEx.rep_seconds) : hold ? 1.0 : 2.8,
-      is_hold: hold, unit: rawEx.unit || (hold ? "sec" : "reps"),
-      how_to: rawEx.how_to || "Move with steady control",
-      cue_work: rawEx.cue_work || (hold ? "Hold" : "\u2193 Work"),
-      cue_return: rawEx.cue_return || (hold ? "Breathe" : "\u2191 Return"),
-      tempo_mode: rawEx.tempo_mode || (hold ? "hold" : "standard"),
-      is_alternating: Boolean(rawEx.is_alternating),
-    };
+  function nextId(prefix, existingSet, startCount) {
+    let n = startCount + 1;
+    while (existingSet.has(prefix + n)) n += 1;
+    return prefix + n;
   }
 
   function createStore(options) {
-    const opts = options || {}, catalog = opts.catalog || { exercises: [], programs: {}, svgs: {} };
+    const opts = options || {};
+    const catalog = opts.catalog || { exercises: [], programs: {}, svgs: {} };
+    const nowFn = typeof opts.nowFn === "function" ? opts.nowFn : () => new Date();
     let storage = null;
     if (opts.storage !== undefined) storage = opts.storage;
-    else { try { storage = root?.localStorage || null; } catch { storage = null; } }
+    else {
+      try { storage = root?.localStorage || null; } catch { storage = null; }
+    }
 
-    const exerciseList = [], exerciseMap = new Map();
+    const exerciseList = [];
+    const exerciseMap = new Map();
     for (const rawEx of Array.isArray(catalog.exercises) ? catalog.exercises : []) {
       if (!rawEx || !rawEx.id) continue;
       const normEx = normalizeCatalogExercise(rawEx);
@@ -65,40 +58,49 @@
       exerciseMap.set(normEx.id, normEx);
     }
 
-    const readStorage = (key) => {
+    const readStorage = (k) => {
       if (typeof storage?.getItem !== "function") return null;
-      try { return storage.getItem(key); } catch { return null; }
+      try { return storage.getItem(k); } catch { return null; }
     };
-    const writeStorage = (key, val) => {
+    const writeStorage = (k, v) => {
       if (typeof storage?.setItem !== "function") return;
-      try { storage.setItem(key, val); } catch { /* ignore quota */ }
+      try { storage.setItem(k, v); } catch { /* ignore quota */ }
     };
 
-    let fallbackSoundTheme = "minimal", state = null;
+    let fallbackSoundTheme = "minimal";
+    let fallbackRestSeconds = DEFAULT_REST_SECONDS;
+    let fallbackSpeedMode = "normal";
+    let state = null;
+    let sessionEquipmentOverride = null;
+    let sessionEquipmentDayKey = "";
+    let adHocSession = null;
+
     function persistState(nextState) {
       state = nextState;
       if (state?.profile) {
-        const validTheme = VALID_SOUND_THEMES.includes(state.profile.sound_theme)
-          ? state.profile.sound_theme : fallbackSoundTheme;
-        state.profile.sound_theme = validTheme;
-        fallbackSoundTheme = validTheme;
+        state.profile.sound_theme = VALID_SOUND_THEMES.includes(state.profile.sound_theme)
+          ? state.profile.sound_theme
+          : fallbackSoundTheme;
+        state.profile.rest_seconds = clampRestSeconds(state.profile.rest_seconds, fallbackRestSeconds);
+        state.profile.speed_mode = normalizeSpeedMode(state.profile.speed_mode, fallbackSpeedMode);
+        fallbackSoundTheme = state.profile.sound_theme;
+        fallbackRestSeconds = state.profile.rest_seconds;
+        fallbackSpeedMode = state.profile.speed_mode;
       }
       if (state) writeStorage(STORAGE_KEY, JSON.stringify(state));
     }
 
     (() => {
-      const legacyRaw = readStorage(LEGACY_SOUND_KEY);
-      const legacyTheme = VALID_SOUND_THEMES.includes(legacyRaw) ? legacyRaw : null;
-      if (legacyTheme) fallbackSoundTheme = legacyTheme;
-      const rawStateJson = readStorage(STORAGE_KEY);
-      if (!rawStateJson) return;
+      const rawJson = readStorage(STORAGE_KEY);
+      if (!rawJson) return;
       try {
-        const parsed = JSON.parse(rawStateJson);
-        const hadExplicit = VALID_SOUND_THEMES.includes(parsed?.profile?.sound_theme);
-        state = validateAndNormalizeImport(parsed, { exerciseMap, fallbackSoundTheme });
+        state = validateAndNormalizeState(JSON.parse(rawJson), { exerciseMap });
         fallbackSoundTheme = state.profile.sound_theme;
-        if (!hadExplicit && legacyTheme) writeStorage(STORAGE_KEY, JSON.stringify(state));
-      } catch { state = null; }
+        fallbackRestSeconds = state.profile.rest_seconds;
+        fallbackSpeedMode = state.profile.speed_mode;
+      } catch {
+        state = null;
+      }
     })();
 
     const hasActivePlan = () => Boolean(state?.plan && Array.isArray(state.plan.routines));
@@ -108,66 +110,88 @@
       if (state?.profile && VALID_SOUND_THEMES.includes(state.profile.sound_theme)) {
         return (fallbackSoundTheme = state.profile.sound_theme);
       }
-      return VALID_SOUND_THEMES.includes(fallbackSoundTheme) ? fallbackSoundTheme : "minimal";
+      return fallbackSoundTheme;
     }
 
     function setSoundTheme(themeId) {
       if (!VALID_SOUND_THEMES.includes(themeId)) return getSoundTheme();
       fallbackSoundTheme = themeId;
-      if (state?.profile) {
-        state.profile.sound_theme = themeId;
-        writeStorage(STORAGE_KEY, JSON.stringify(state));
-      }
+      if (state?.profile) persistState(state);
       return fallbackSoundTheme;
     }
 
-    function nextId(prefix, existingSet, startCount) {
-      let n = startCount + 1;
-      while (existingSet.has(prefix + n)) n += 1;
-      return prefix + n;
+    function getWorkoutTiming() {
+      return {
+        rest_seconds: state?.profile ? clampRestSeconds(state.profile.rest_seconds) : fallbackRestSeconds,
+        speed_mode: state?.profile ? normalizeSpeedMode(state.profile.speed_mode) : fallbackSpeedMode,
+      };
+    }
+
+    function setWorkoutTiming(patch) {
+      const p = patch || {};
+      if (p.rest_seconds !== undefined) fallbackRestSeconds = clampRestSeconds(p.rest_seconds, fallbackRestSeconds);
+      if (p.speed_mode !== undefined) fallbackSpeedMode = normalizeSpeedMode(p.speed_mode, fallbackSpeedMode);
+      if (state?.profile) {
+        state.profile.rest_seconds = fallbackRestSeconds;
+        state.profile.speed_mode = fallbackSpeedMode;
+        persistState(state);
+      }
+      return getWorkoutTiming();
+    }
+
+    function getSessionEquipment(nowDate) {
+      const todayKey = localDateKey(nowDate || nowFn());
+      if (sessionEquipmentOverride !== null && sessionEquipmentDayKey === todayKey) {
+        return sessionEquipmentOverride.slice();
+      }
+      sessionEquipmentOverride = null;
+      sessionEquipmentDayKey = "";
+      return hasActivePlan() ? state.profile.equipment_list.slice() : [];
+    }
+
+    function hasSessionEquipmentOverride(nowDate) {
+      return hasActivePlan() && getSessionEquipment(nowDate).join(",") !== state.profile.equipment_list.join(",");
+    }
+
+    function setSessionEquipment(list, nowDate) {
+      sessionEquipmentOverride = normalizeEquipmentList(list);
+      sessionEquipmentDayKey = localDateKey(nowDate || nowFn());
+      return sessionEquipmentOverride.slice();
+    }
+
+    function resetSessionEquipment() {
+      sessionEquipmentOverride = null;
+      sessionEquipmentDayKey = "";
+      return getSessionEquipment();
     }
 
     function setupPlan(setupOpts) {
-      const cfg = setupOpts || {}, cleanName = sanitizeString(cfg.name, 50, "Athlete");
-      const eqKey = VALID_EQUIPMENT.includes(cfg.equipment) ? cfg.equipment : "body_only";
+      const cfg = setupOpts || {};
+      const eqList = normalizeEquipmentList(cfg.equipment_list ?? cfg.equipment);
       const intKey = VALID_INTENSITY.includes(cfg.starting_intensity) ? cfg.starting_intensity : "moderate";
-      const days = clampInt(cfg.days_per_week, 2, 5, 3);
-      const soundTheme = VALID_SOUND_THEMES.includes(cfg.sound_theme) ? cfg.sound_theme : getSoundTheme();
+      const days = clampInt(cfg.days_per_week, 1, 7, 3);
+      const profile = {
+        name: sanitizeString(cfg.name, 50, "Athlete"),
+        equipment_list: eqList,
+        starting_intensity: intKey,
+        weekly_goal: days,
+        sound_theme: VALID_SOUND_THEMES.includes(cfg.sound_theme) ? cfg.sound_theme : getSoundTheme(),
+        rest_seconds: clampRestSeconds(cfg.rest_seconds, fallbackRestSeconds),
+        speed_mode: normalizeSpeedMode(cfg.speed_mode, fallbackSpeedMode),
+      };
 
-      const programs = catalog?.programs || {}, eqPrograms = programs.equipment_programs || {};
-      const intLabels = programs.intensity_labels || DEFAULT_INTENSITY_LABELS;
-      const program = eqPrograms[eqKey] || eqPrograms.body_only || { label: "Body Only", routines: [] };
-      const programLabel = program.label || "Body Only";
+      const intLabels = catalog?.programs?.intensity_labels || DEFAULT_INTENSITY_LABELS;
+      const eqSummary = formatEquipmentSummary(eqList);
       const intensityLabel = intLabels[intKey] || DEFAULT_INTENSITY_LABELS[intKey] || "Moderate";
+      const builtRoutines = buildProgramRoutines(catalog, profile, exerciseList, exerciseMap);
 
-      const rawRoutines = Array.isArray(program.routines) ? program.routines.slice(0, days) : [], builtRoutines = [];
-      let rxSeq = 1;
-      for (let dIdx = 0; dIdx < rawRoutines.length; dIdx++) {
-        const rtDef = rawRoutines[dIdx];
-        const rtName = Array.isArray(rtDef)
-          ? String(rtDef[0] || "Day " + (dIdx + 1)) : String(rtDef?.name || "Day " + (dIdx + 1));
-        const specs = Array.isArray(rtDef) ? rtDef[1] || [] : rtDef?.exercises || [], items = [];
-        for (const spec of specs) {
-          const exId = Array.isArray(spec) ? String(spec[0]) : String(spec.exercise_id);
-          const modReps = Array.isArray(spec) ? spec[1] : spec.base_reps;
-          const modWeight = Array.isArray(spec) ? spec[2] : spec.base_weight_kg;
-          const exObj = exerciseMap.get(exId);
-          if (exerciseMap.size > 0 && !exObj) continue;
-          const sc = scaleInitialPrescription(modReps, modWeight, intKey, Boolean(exObj && exObj.is_hold));
-          items.push({ id: "rx" + rxSeq++, exercise_id: exId, sets: sc.sets, base_reps: sc.reps, base_weight_kg: sc.weight_kg });
-        }
-        builtRoutines.push({
-          id: "r" + (dIdx + 1), name: sanitizeString(rtName, 60, "Day " + (dIdx + 1)), intensity_level: 0, exercises: items,
-        });
-      }
-
+      sessionEquipmentOverride = null;
+      sessionEquipmentDayKey = "";
+      adHocSession = null;
       persistState({
-        schema_version: 1,
-        profile: { name: cleanName, equipment: eqKey, starting_intensity: intKey, weekly_goal: days, sound_theme: soundTheme },
-        plan: {
-          name: `${programLabel} Plan (${days}x/Week)`, description: `${intensityLabel} start \u2022 ${programLabel}`,
-          days_per_week: days, last_routine_id: null, routines: builtRoutines,
-        },
+        schema_version: SCHEMA_VERSION,
+        profile,
+        plan: { name: `${eqSummary} Plan (${days}\u00d7/Week)`, description: `${intensityLabel} \u2022 ${eqSummary}`, days_per_week: days, last_routine_id: null, routines: builtRoutines },
         logs: Array.isArray(state?.logs) ? structuredClone(state.logs) : [],
       });
       requestPersistentStorage();
@@ -176,10 +200,9 @@
 
     function addWorkoutDay() {
       if (!hasActivePlan()) return null;
-      const routines = state.plan.routines, existing = new Set(routines.map((rt) => String(rt.id)));
-      const newRoutine = {
-        id: nextId("r", existing, routines.length), name: "Day " + (routines.length + 1), intensity_level: 0, exercises: [],
-      };
+      const routines = state.plan.routines;
+      const existing = new Set(routines.map((rt) => String(rt.id)));
+      const newRoutine = { id: nextId("r", existing, routines.length), name: "Day " + (routines.length + 1), intensity_level: 0, exercises: [] };
       routines.push(newRoutine);
       persistState(state);
       return structuredClone(newRoutine);
@@ -192,282 +215,282 @@
       return found ? structuredClone(found) : null;
     };
 
-    function addExerciseToRoutine(routineId, exerciseId) {
-      const routine = findRoutine(routineId), targetExId = String(exerciseId || "").trim();
-      if (!routine || !targetExId) return null;
+    function appendToItems(items, exerciseId, idPrefix, existingIds, idStart, shouldPersist) {
+      const targetExId = String(exerciseId || "").trim();
+      if (!Array.isArray(items) || !targetExId || items.length >= MAX_EXERCISES_PER_ROUTINE) return null;
       let exObj = exerciseMap.get(targetExId);
       if (exerciseMap.size > 0 && !exObj) return null;
       if (!exObj) exObj = normalizeCatalogExercise({ id: targetExId, name: targetExId });
-
-      const existing = new Set();
-      let count = 0;
-      for (const rt of state.plan.routines) {
-        for (const ex of rt.exercises || []) { existing.add(String(ex.id)); count += 1; }
-      }
-      const presc = defaultPrescriptionForExercise(state.profile, exObj);
-      const item = {
-        id: nextId("rx", existing, count), exercise_id: exObj.id,
-        sets: presc.sets, base_reps: presc.reps, base_weight_kg: presc.weight_kg,
-      };
-      routine.exercises.push(item);
-      persistState(state);
+      const presc = defaultPrescriptionForExercise(state?.profile, exObj);
+      const item = { id: nextId(idPrefix, existingIds, idStart), exercise_id: exObj.id, sets: presc.sets, base_reps: presc.reps, base_weight_kg: presc.weight_kg };
+      items.push(item);
+      if (shouldPersist) persistState(state);
       return structuredClone(item);
     }
 
-    function removeExerciseFromRoutine(routineId, itemId) {
-      const routine = findRoutine(routineId);
-      if (!routine) return false;
-      const idx = routine.exercises.findIndex((ex) => String(ex.id) === String(itemId));
+    function updateInItems(items, itemId, patch, shouldPersist) {
+      if (!Array.isArray(items)) return null;
+      const idx = items.findIndex((it) => String(it.id) === String(itemId));
+      if (idx === -1) return null;
+      const exObj = exerciseMap.get(items[idx].exercise_id);
+      items[idx] = sanitizePrescriptionPatch(items[idx], patch, Boolean(exObj && exObj.is_hold));
+      if (shouldPersist) persistState(state);
+      return structuredClone(items[idx]);
+    }
+
+    function swapInItems(items, itemId, rngOpts, shouldPersist) {
+      if (!Array.isArray(items)) return null;
+      const idx = items.findIndex((it) => String(it.id) === String(itemId));
+      if (idx === -1) return null;
+      const cur = items[idx];
+      const usedIds = new Set(items.map((it) => it.exercise_id));
+      const picked = pickRandomExercise(exerciseList, getSessionEquipment(), {
+        targetExercise: exerciseMap.get(cur.exercise_id),
+        excludeIds: usedIds,
+        rng: rngOpts?.rng,
+      });
+      if (!picked) return null;
+      const presc = defaultPrescriptionForExercise(state?.profile, picked);
+      items[idx] = { id: cur.id, exercise_id: picked.id, sets: cur.sets, base_reps: presc.reps, base_weight_kg: presc.weight_kg };
+      if (shouldPersist) persistState(state);
+      return structuredClone(items[idx]);
+    }
+
+    function removeFromItems(items, itemId, shouldPersist) {
+      if (!Array.isArray(items)) return false;
+      const idx = items.findIndex((it) => String(it.id) === String(itemId));
       if (idx === -1) return false;
-      routine.exercises.splice(idx, 1);
-      persistState(state);
+      items.splice(idx, 1);
+      if (shouldPersist) persistState(state);
       return true;
     }
 
-    function completeWorkout(routineId, completeOpts) {
-      const routine = findRoutine(routineId);
-      if (!routine) return null;
-      const cfg = completeOpts || {}, rawChoice = String(cfg.next_intensity_choice ?? "keep").trim().toLowerCase();
-      const choice =
-        rawChoice === "more" || rawChoice === "harder" || rawChoice === "+10%"
-          ? "more" : rawChoice === "less" || rawChoice === "easier" || rawChoice === "-10%" ? "less" : "keep";
-      const dur = clampInt(cfg.duration_minutes ?? 25, 1, 300, 25), totalExercises = routine.exercises.length;
-      const rawCount = Array.isArray(cfg.completed_ids)
-        ? cfg.completed_ids.length : typeof cfg.completed_exercises === "number" ? Math.trunc(cfg.completed_exercises) : 0;
-      const sessionIntensity = routine.intensity_level;
-      const completedDt = (cfg.completed_at ? parseUtcDate(cfg.completed_at) : null) || new Date();
-      idCounter += 1;
-      const logEntry = {
-        id: `log_${Date.now().toString(36)}_${idCounter.toString(36)}`,
-        routine_id: routine.id, routine_name: routine.name,
-        completed_at: completedDt.toISOString(), duration_minutes: dur,
-        completed_exercises: Math.max(0, Math.min(totalExercises, rawCount)), total_exercises: totalExercises,
-        intensity_at_session: sessionIntensity, next_intensity_choice: choice,
-      };
-      state.logs.unshift(logEntry);
-      routine.intensity_level = applyIntensityFeedback(routine.intensity_level, choice);
-      state.plan.last_routine_id = routine.id;
-      persistState(state);
-      return Object.assign(structuredClone(logEntry), { intensity_percent: Math.max(50, 100 + sessionIntensity * 10) });
+    function allRoutineItemIds() {
+      const existing = new Set();
+      let count = 0;
+      for (const rt of state?.plan?.routines || []) {
+        for (const ex of rt.exercises || []) { existing.add(String(ex.id)); count += 1; }
+      }
+      return { existing, count };
     }
 
-    function buildRoutineCards(routinesSubset) {
+    function addExerciseToRoutine(routineId, exerciseId) {
+      const routine = findRoutine(routineId);
+      if (!routine) return null;
+      const { existing, count } = allRoutineItemIds();
+      return appendToItems(routine.exercises, exerciseId, "rx", existing, count, true);
+    }
+
+    function addRandomExerciseToRoutine(routineId, rngOpts) {
+      const routine = findRoutine(routineId);
+      if (!routine) return null;
+      const picked = pickRandomExercise(exerciseList, getSessionEquipment(), {
+        excludeIds: new Set(routine.exercises.map((it) => it.exercise_id)),
+        rng: rngOpts?.rng,
+      });
+      return picked ? addExerciseToRoutine(routineId, picked.id) : null;
+    }
+
+    const updateRoutineExercise = (routineId, itemId, patch) => updateInItems(findRoutine(routineId)?.exercises, itemId, patch, true);
+    const swapRoutineExercise = (routineId, itemId, rngOpts) => swapInItems(findRoutine(routineId)?.exercises, itemId, rngOpts, true);
+    const removeExerciseFromRoutine = (routineId, itemId) => removeFromItems(findRoutine(routineId)?.exercises, itemId, true);
+
+    /* Ephemeral On-the-Fly Session (#quick -> #workout/adhoc) */
+    const hasAdHocSession = () => Boolean(adHocSession && Array.isArray(adHocSession.exercises) && adHocSession.exercises.length > 0);
+    const getAdHocSession = () => (adHocSession ? structuredClone(adHocSession) : null);
+
+    function generateAdHocSession(genOpts) {
+      const eq = getSessionEquipment();
+      adHocSession = {
+        id: "adhoc",
+        name: `On-the-Fly \u00b7 ${formatEquipmentSummary(eq)}`,
+        intensity_level: 0,
+        is_adhoc: true,
+        exercises: generateBalancedSession(exerciseList, eq, state?.profile || { starting_intensity: "moderate" }, genOpts),
+      };
+      return structuredClone(adHocSession);
+    }
+
+    function ensureAdHocSession(genOpts) {
+      if (!adHocSession) return generateAdHocSession(genOpts);
+      adHocSession.name = `On-the-Fly \u00b7 ${formatEquipmentSummary(getSessionEquipment())}`;
+      return structuredClone(adHocSession);
+    }
+
+    function addExerciseToAdHoc(exerciseId) {
+      if (!adHocSession) ensureAdHocSession({ count: 0 });
+      const existing = new Set(adHocSession.exercises.map((it) => String(it.id)));
+      return appendToItems(adHocSession.exercises, exerciseId, "adhoc_", existing, adHocSession.exercises.length, false);
+    }
+
+    function addRandomExerciseToAdHoc(rngOpts) {
+      if (!adHocSession) ensureAdHocSession({ count: 0 });
+      const picked = pickRandomExercise(exerciseList, getSessionEquipment(), {
+        excludeIds: new Set(adHocSession.exercises.map((it) => it.exercise_id)),
+        rng: rngOpts?.rng,
+      });
+      return picked ? addExerciseToAdHoc(picked.id) : null;
+    }
+
+    const updateAdHocExercise = (itemId, patch) => updateInItems(adHocSession?.exercises, itemId, patch, false);
+    const swapAdHocExercise = (itemId, rngOpts) => swapInItems(adHocSession?.exercises, itemId, rngOpts, false);
+    const removeAdHocExercise = (itemId) => removeFromItems(adHocSession?.exercises, itemId, false);
+
+    function adaptAdHocForCurrentEquipment() {
+      if (!adHocSession) return null;
+      const eq = getSessionEquipment();
+      const adapted = adaptRoutineForEquipment(adHocSession, eq, state?.profile || { starting_intensity: "moderate" }, exerciseList, exerciseMap);
+      adHocSession = {
+        ...adHocSession,
+        name: `On-the-Fly \u00b7 ${formatEquipmentSummary(eq)}`,
+        exercises: adapted.exercises.map((it) => ({
+          id: it.id, exercise_id: it.exercise_id, sets: it.sets, base_reps: it.base_reps, base_weight_kg: it.base_weight_kg,
+        })),
+      };
+      return structuredClone(adHocSession);
+    }
+
+    function buildRoutineCards(routinesSubset, cardOpts) {
+      const adaptSession = Boolean(cardOpts?.adaptForSession);
+      const availEq = adaptSession ? getSessionEquipment(cardOpts?.nowDate) : null;
       let sourceRoutines = hasActivePlan() ? state.plan.routines : [];
       if (Array.isArray(routinesSubset)) {
         sourceRoutines = [];
         for (const cand of routinesSubset) {
-          if (typeof cand === "string") {
+          if (cand === "adhoc" && adHocSession) sourceRoutines.push(adHocSession);
+          else if (typeof cand === "string") {
             const resolved = findRoutine(cand);
             if (resolved) sourceRoutines.push(resolved);
           } else if (cand && typeof cand === "object") sourceRoutines.push(cand);
         }
       }
-      return sourceRoutines.map((rt) => {
-        const intensityPct = Math.max(50, 100 + Math.trunc(Number(rt.intensity_level) || 0) * 10), rows = [];
-        for (const item of Array.isArray(rt.exercises) ? rt.exercises : []) {
-          let ex = exerciseMap.get(item.exercise_id);
-          if (exerciseMap.size > 0 && !ex) continue;
-          if (!ex) ex = normalizeCatalogExercise({ id: item.exercise_id, name: item.exercise_id });
-          rows.push({
-            item: structuredClone(item), exercise: structuredClone(ex),
-            archetype: ex.archetype, svg_key: ex.svg_key, thumb_url: ex.thumb_url,
-            scaled: computeScaledTarget(item, rt.intensity_level || 0, ex),
-          });
-        }
-        const rtCopy = structuredClone(rt);
-        rtCopy.intensity_percent = intensityPct;
-        return {
-          routine: rtCopy, intensity_percent: intensityPct, exercises: rows,
-          lead_archetype: rows.length > 0 ? rows[0].archetype : "squat",
-          lead_svg_key: rows.length > 0 ? rows[0].svg_key : "squat:body_only",
-        };
-      });
+      return sourceRoutines.map((rawRt) =>
+        projectRoutineCard(rawRt, exerciseList, exerciseMap, state?.profile, availEq, adaptSession)
+      );
     }
 
-    function getLogsDesc() {
-      if (!Array.isArray(state?.logs) || state.logs.length === 0) return [];
-      return state.logs
-        .map((log, idx) => ({ log, idx, ts: Date.parse(log.completed_at) || 0 }))
-        .sort((a, b) => (b.ts !== a.ts ? b.ts - a.ts : a.idx - b.idx))
-        .map(({ log }) =>
-          Object.assign(structuredClone(log), {
-            intensity_percent: Math.max(50, 100 + Math.trunc(Number(log.intensity_at_session) || 0) * 10),
-          })
-        );
-    }
+    const getLogsDesc = () => sortLogsDesc(state?.logs);
+    const getStats = (nowDate) => computePlanStats(state, getLogsDesc(), nowDate || nowFn());
+    const getProgressSeries = () => buildProgressSeries(getLogsDesc());
 
-    function getNextRoutineCard() {
-      const cards = buildRoutineCards();
+    function getNextRoutineCard(cardOpts) {
+      const cards = buildRoutineCards(undefined, cardOpts);
       if (cards.length === 0) return null;
       const idToIndex = new Map(cards.map((c, idx) => [String(c.routine.id), idx]));
       for (const lg of getLogsDesc()) {
-        if (lg.routine_id !== null && idToIndex.has(String(lg.routine_id))) {
+        if (!lg.is_adhoc && lg.routine_id !== null && idToIndex.has(String(lg.routine_id))) {
           return cards[(idToIndex.get(String(lg.routine_id)) + 1) % cards.length];
         }
       }
       const lastId = state?.plan?.last_routine_id;
-      if (lastId !== null && lastId !== undefined && idToIndex.has(String(lastId))) {
-        return cards[(idToIndex.get(String(lastId)) + 1) % cards.length];
-      }
-      return cards[0];
+      return lastId !== null && lastId !== undefined && idToIndex.has(String(lastId))
+        ? cards[(idToIndex.get(String(lastId)) + 1) % cards.length]
+        : cards[0];
     }
 
-    function buildPlaylist(routineId) {
-      const routine = findRoutine(routineId);
-      if (!routine) return [];
-      const cards = buildRoutineCards([routine]);
-      const rows = cards.length > 0 ? cards[0].exercises : [], svgs = catalog?.svgs || {};
-      return rows.map(({ item, exercise: ex, scaled, archetype, svg_key, thumb_url }) => ({
-        item_id: item.id, exercise_id: ex.id, name: ex.name,
-        sets: scaled.sets, reps: scaled.reps, weight_kg: scaled.weight_kg,
-        weight_label: scaled.weight_kg !== null ? formatWeight(scaled.weight_kg) : null,
-        formatted: scaled.formatted, archetype, eq_mode: ex.eq_mode, svg_key, thumb_url,
-        svg_markup: svgs[svg_key] || svgs[`${archetype}:body_only`] || svgs["squat:body_only"] || "",
-        rep_seconds: ex.rep_seconds, is_hold: ex.is_hold, unit: ex.unit, how_to: ex.how_to,
-        cue_work: ex.cue_work, cue_return: ex.cue_return,
-        tempo_mode: ex.tempo_mode, is_alternating: ex.is_alternating,
-      }));
-    }
-
-    function getStats(nowDate) {
-      const now = parseUtcDate(nowDate) || new Date(), mondayOffset = (now.getUTCDay() + 6) % 7;
-      const startOfWeekMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - mondayOffset * DAY_MS;
-      const logsDesc = getLogsDesc();
-      let workoutsThisWeek = 0;
-      for (const lg of logsDesc) {
-        const dt = parseUtcDate(lg.completed_at);
-        if (dt && dt.getTime() >= startOfWeekMs) workoutsThisWeek += 1;
-      }
-      const routines = hasActivePlan() ? state.plan.routines : [];
-      let avgPlanIntensity = 100;
-      if (routines.length > 0) {
-        const sumPct = routines.reduce(
-          (acc, rt) => acc + Math.max(50, 100 + Math.trunc(Number(rt.intensity_level) || 0) * 10), 0
-        );
-        avgPlanIntensity = Math.round(sumPct / routines.length);
-      } else if (logsDesc.length > 0) avgPlanIntensity = logsDesc[0].intensity_percent;
-
-      const profName = state?.profile?.name || "Athlete";
-      const weeklyGoal = Math.max(1, Math.trunc(Number(state?.profile?.weekly_goal) || 3)), totalWorkouts = logsDesc.length;
-      const message =
-        totalWorkouts === 0 ? `${profName} \u00b7 0/${weeklyGoal}` :
-        workoutsThisWeek >= weeklyGoal ? `${profName} \u00b7 ${workoutsThisWeek}/${weeklyGoal} \u2713` :
-        `${profName} \u00b7 ${workoutsThisWeek}/${weeklyGoal}`;
+    function getRecommendedToday(nowDate) {
+      const ref = nowDate || nowFn();
+      const todayKey = localDateKey(ref);
+      const workoutsToday = getLogsDesc().filter((lg) => localDateKey(lg.completed_at) === todayKey).length;
       return {
-        workouts_this_week: workoutsThisWeek, weekly_goal: weeklyGoal, total_workouts: totalWorkouts,
-        week_streak: computeWeekStreak(logsDesc, weeklyGoal, now), avg_plan_intensity: avgPlanIntensity, message,
+        card: getNextRoutineCard({ adaptForSession: true, nowDate: ref }),
+        workouts_today: workoutsToday,
+        trained_today: workoutsToday > 0,
+        stats: getStats(ref),
+        equipment: getSessionEquipment(ref),
+        is_equipment_overridden: hasSessionEquipmentOverride(ref),
       };
     }
 
-    function getProgressSeries() {
-      const logsDesc = getLogsDesc();
-      if (logsDesc.length === 0) return { labels: [], values: [] };
-      const chrono = logsDesc.slice().reverse();
-      return { labels: ["0", ...chrono.map((_, i) => "#" + (i + 1))], values: [100, ...chrono.map((lg) => lg.intensity_percent)] };
-    }
-
-    function searchCatalog(query, limit) {
-      const maxItems = limit !== undefined && limit !== null ? Math.max(1, Math.trunc(Number(limit)) || 16) : 16;
-      const cleanQ = String(query ?? "").trim();
-      if (cleanQ) {
-        const lowerQ = cleanQ.toLowerCase(), matches = [];
-        for (const ex of exerciseList) {
-          const nLow = ex.name.toLowerCase(), idLow = ex.id.toLowerCase();
-          if (nLow.includes(lowerQ) || idLow.includes(lowerQ)) {
-            matches.push({ ex, exactName: nLow === lowerQ ? 0 : 1, exactId: idLow === lowerQ ? 0 : 1 });
-          }
-        }
-        matches.sort((a, b) =>
-          a.exactName !== b.exactName ? a.exactName - b.exactName :
-          a.exactId !== b.exactId ? a.exactId - b.exactId :
-          a.ex.name < b.ex.name ? -1 : a.ex.name > b.ex.name ? 1 : 0
-        );
-        return matches.slice(0, maxItems).map((m) => structuredClone(m.ex));
+    function buildPlaylist(routineId, playlistOpts) {
+      const isAdHoc = String(routineId) === "adhoc";
+      let cards = [];
+      if (isAdHoc) {
+        if (!hasAdHocSession()) return [];
+        cards = buildRoutineCards([adHocSession], { adaptForSession: false });
+      } else {
+        const routine = findRoutine(routineId);
+        if (!routine) return [];
+        cards = buildRoutineCards([routine], { adaptForSession: playlistOpts?.adaptForSession !== false, nowDate: playlistOpts?.nowDate });
       }
-      const eqTier = state?.profile?.equipment || "body_only";
-      let allowedSet = null;
-      if (eqTier === "body_only") allowedSet = new Set(BODYWEIGHT_AUX_EQUIPMENT);
-      else if (eqTier === "dumbbells") allowedSet = new Set(["dumbbell", "medicine ball", ...BODYWEIGHT_AUX_EQUIPMENT]);
-      else if (eqTier === "kettlebell_bands") allowedSet = new Set(["kettlebells", "bands", ...BODYWEIGHT_AUX_EQUIPMENT]);
-      return exerciseList
-        .filter((cand) => !allowedSet || allowedSet.has(String(cand.equipment || "").toLowerCase()))
-        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-        .slice(0, maxItems)
-        .map((ex) => structuredClone(ex));
+      return cards.length > 0 ? projectPlaylist(cards[0], catalog?.svgs, getWorkoutTiming().speed_mode, isAdHoc) : [];
     }
 
-    function exportBackupJson(exportOpts) {
-      if (!hasActivePlan()) throw new Error("No active plan available to export.");
-      return JSON.stringify({
-        schema_version: 1, exported_at: new Date().toISOString(),
-        profile: structuredClone(state.profile), plan: structuredClone(state.plan),
-        logs: exportOpts?.includeLogs !== false ? structuredClone(state.logs) : [],
-      }, null, 2);
-    }
+    function completeWorkout(routineId, completeOpts) {
+      if (!hasActivePlan()) return null;
+      const isAdHoc = String(routineId) === "adhoc";
+      const routine = isAdHoc ? adHocSession : findRoutine(routineId);
+      if (!routine) return null;
 
-    function applyNormalizedState(normalized, baseLogs, keepExisting) {
-      const nextState = structuredClone(normalized);
-      if (keepExisting && Array.isArray(baseLogs) && baseLogs.length > 0) {
-        nextState.logs = deduplicateAndSortLogs(nextState.logs.concat(baseLogs));
-      }
-      persistState(nextState);
-      requestPersistentStorage();
-      return structuredClone(state);
-    }
+      const cfg = completeOpts || {};
+      const playlist = Array.isArray(cfg.playlist) && cfg.playlist.length > 0
+        ? cfg.playlist
+        : buildPlaylist(routineId, { adaptForSession: !isAdHoc });
+      if (playlist.length === 0) return null;
 
-    function importBackupJson(jsonText, importOpts) {
-      let parsed;
-      if (typeof jsonText === "string") {
-        if (jsonText.length > MAX_BACKUP_STRING_LENGTH) throw new Error("Backup file exceeds maximum allowed size.");
-        parsed = JSON.parse(jsonText);
-      } else if (jsonText && typeof jsonText === "object" && !Array.isArray(jsonText)) parsed = jsonText;
-      else throw new Error("Invalid backup: expected JSON object string.");
+      const wasSubstituted = !isAdHoc && playlist.some((p) => p.is_substituted || p.was_routine_substituted);
+      const rawChoice = String(cfg.next_intensity_choice ?? "keep").trim().toLowerCase();
+      const parsedChoice =
+        rawChoice === "more" || rawChoice === "harder" || rawChoice === "+10%" ? "more" :
+        rawChoice === "less" || rawChoice === "easier" || rawChoice === "-10%" ? "less" : "keep";
+      const effectiveChoice = isAdHoc || wasSubstituted ? "keep" : parsedChoice;
+      const sessionIntensity = isAdHoc || wasSubstituted ? 0 : routine.intensity_level || 0;
+      const completedDt = (cfg.completed_at ? parseUtcDate(cfg.completed_at) : null) || nowFn();
+      const timing = getWorkoutTiming();
 
-      const priorLogs = Array.isArray(state?.logs) ? structuredClone(state.logs) : [];
-      const normalized = validateAndNormalizeImport(parsed, { exerciseMap, fallbackSoundTheme: getSoundTheme() });
-      applyNormalizedState(normalized, priorLogs, Boolean(importOpts?.mergeLogs || importOpts?.keepExistingLogs));
-
-      let exerciseCount = 0;
-      for (const rt of normalized.plan.routines) exerciseCount += rt.exercises.length;
-      return Object.assign(structuredClone(state), {
-        state: structuredClone(state), routineCount: normalized.plan.routines.length, exerciseCount,
-        apply(applyOpts) {
-          const keep = applyOpts !== undefined ? applyOpts.keepExistingLogs !== false && applyOpts.mergeLogs !== false : true;
-          return applyNormalizedState(normalized, priorLogs, keep);
-        },
-      });
-    }
-
-    async function encodeShareFragment(options) {
-      if (!hasActivePlan()) throw new Error("No active plan available to share.");
-      return codecEncodeShare(state, options);
-    }
-
-    async function decodeShareFragment(hashOrToken) {
-      const res = await codecDecodeShare(hashOrToken, { exerciseMap, fallbackSoundTheme: getSoundTheme() });
-      return {
-        state: structuredClone(res.state), routineCount: res.routineCount, exerciseCount: res.exerciseCount,
-        apply(applyOpts) {
-          const keep = !applyOpts || (applyOpts.keepExistingLogs !== false && applyOpts.mergeLogs !== false);
-          return applyNormalizedState(res.state, state?.logs, keep);
-        },
+      idCounter += 1;
+      const logEntry = {
+        id: `log_${Date.now().toString(36)}_${idCounter.toString(36)}`,
+        routine_id: isAdHoc ? null : routine.id,
+        routine_name: sanitizeString(routine.name, 60, isAdHoc ? "On-the-Fly Workout" : "Workout"),
+        completed_at: completedDt.toISOString(),
+        duration_minutes: clampInt(cfg.duration_minutes ?? 25, 1, 300, 25),
+        intensity_at_session: sessionIntensity,
+        next_intensity_choice: effectiveChoice,
+        is_adhoc: isAdHoc,
+        was_substituted: wasSubstituted,
+        speed_mode: normalizeSpeedMode(cfg.speed_mode ?? timing.speed_mode),
+        rest_seconds: clampRestSeconds(cfg.rest_seconds ?? timing.rest_seconds),
+        exercises: playlist.map((pl) => ({
+          exercise_id: String(pl.exercise_id),
+          name: sanitizeString(pl.name, 120, pl.exercise_id),
+          sets: clampInt(pl.sets, 1, 20, 3),
+          reps: clampInt(pl.reps, 1, 600, 10),
+          unit: pl.unit === "sec" || pl.is_hold ? "sec" : "reps",
+          weight_kg: pl.weight_kg !== null && pl.weight_kg !== undefined && Number(pl.weight_kg) > 0 ? Number(pl.weight_kg) : null,
+        })),
       };
+
+      state.logs.unshift(logEntry);
+      if (isAdHoc) adHocSession = null;
+      else {
+        state.plan.last_routine_id = routine.id;
+        if (!wasSubstituted) routine.intensity_level = applyIntensityFeedback(routine.intensity_level, effectiveChoice);
+      }
+      persistState(state);
+      return Object.assign(structuredClone(logEntry), { intensity_percent: Math.max(50, 100 + sessionIntensity * 10) });
+    }
+
+    function searchCatalog(query, limit, searchOpts) {
+      const equipFilter = searchOpts?.equipment !== undefined ? searchOpts.equipment : getSessionEquipment();
+      return searchCompatibleCatalog(exerciseList, query, limit, equipFilter, Boolean(searchOpts?.compatibleOnly));
     }
 
     return {
-      getState, hasActivePlan, setupPlan, setSoundTheme, getSoundTheme,
-      addWorkoutDay, getRoutine, addExerciseToRoutine, removeExerciseFromRoutine,
-      completeWorkout, buildRoutineCards, getNextRoutineCard, buildPlaylist,
-      getStats, getLogsDesc, getProgressSeries, searchCatalog,
-      exportBackupJson, importBackupJson, encodeShareFragment, decodeShareFragment,
+      hasActivePlan, getState, getSoundTheme, setSoundTheme, getWorkoutTiming, setWorkoutTiming,
+      getSessionEquipment, hasSessionEquipmentOverride, setSessionEquipment, resetSessionEquipment,
+      setupPlan, addWorkoutDay, getRoutine,
+      addExerciseToRoutine, addRandomExerciseToRoutine, updateRoutineExercise, swapRoutineExercise, removeExerciseFromRoutine,
+      hasAdHocSession, generateAdHocSession, ensureAdHocSession, getAdHocSession,
+      addExerciseToAdHoc, addRandomExerciseToAdHoc, updateAdHocExercise, swapAdHocExercise, removeAdHocExercise, adaptAdHocForCurrentEquipment,
+      buildRoutineCards, getLogsDesc, getNextRoutineCard, getRecommendedToday, buildPlaylist, completeWorkout,
+      getStats, getProgressSeries, searchCatalog,
+      getExercise: (id) => { const found = exerciseMap.get(String(id || "")); return found ? structuredClone(found) : null; },
     };
   }
 
   return Object.freeze({
-    STORAGE_KEY, VALID_SOUND_THEMES, VALID_EQUIPMENT, VALID_INTENSITY, MAX_DECOMPRESSED_BYTES,
-    requestPersistentStorage, formatWeight, roundHalfKg, scaleInitialPrescription,
-    defaultPrescriptionForExercise, computeScaledTarget, applyIntensityFeedback,
-    computeWeekStreak, validateAndNormalizeImport,
-    encodeShareFragment: codecEncodeShare, decodeShareFragment: codecDecodeShare, createStore,
+    STORAGE_KEY, SCHEMA_VERSION, createStore,
+    defaultPrescriptionForExercise, computeScaledTarget, applyIntensityFeedback, computeWeekStreak,
   });
 });

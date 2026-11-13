@@ -489,7 +489,27 @@ select {
 .tile-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.55rem;
+  gap: 0.5rem;
+}
+
+.tile-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.tile-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.45rem;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .tile-option {
@@ -500,15 +520,21 @@ select {
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-card);
-  padding: 0.65rem 0.6rem;
+  padding: 0.58rem 0.55rem;
   cursor: pointer;
   text-align: center;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
-.tile-option input[type="radio"] {
+.tile-option-compact {
+  padding: 0.48rem 0.45rem;
+  font-size: 0.8rem;
+}
+
+.tile-option input[type="radio"],
+.tile-option input[type="checkbox"] {
   display: none;
 }
 
@@ -808,7 +834,7 @@ select {
 
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-bottom: 1px solid var(--border);
   background: rgba(15, 23, 42, 0.55);
 }
@@ -885,6 +911,35 @@ select {
   border: 1px solid var(--border);
 }
 
+.log-item-detailed {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.log-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.log-ex-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.log-ex-row {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------------------------
    Full-Screen Routine Editor (/routines/{id}/edit)
 ------------------------------------------------------------------ */
@@ -948,131 +1003,111 @@ select {
   box-shadow: none;
 }
 
-.portability-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-card);
-  padding: 0.9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.portability-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.portability-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.portability-divider {
-  border: 0;
-  border-top: 1px solid var(--border);
-  margin: 0.1rem 0;
-}
-
-.portability-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-}
-
 .btn-compact {
   padding: 0.42rem 0.8rem;
   font-size: 0.82rem;
 }
 
-.file-btn-label {
-  position: relative;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.btn-xs {
+  padding: 0.24rem 0.6rem;
+  font-size: 0.74rem;
 }
 
-.file-input-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+.btn-icon-sm {
+  padding: 0.28rem 0.58rem;
+  font-size: 0.82rem;
 }
 
-.checkbox-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.48rem;
-  font-size: 0.83rem;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-row input[type="checkbox"] {
-  accent-color: var(--brand-bright);
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  cursor: pointer;
-}
-
-.share-panel {
+.filter-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.75rem 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding-top: 0.35rem;
+  gap: 0.55rem;
 }
 
-.qr-frame {
-  width: 176px;
-  max-width: 100%;
-  align-self: center;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+.equip-chip-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.equip-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.26rem 0.65rem;
+  border-radius: 999px;
   border: 1px solid var(--border);
-  background: #f8fafc;
-  padding: 0.35rem;
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
-.qr-frame svg {
-  width: 100%;
-  height: auto;
-  display: block;
+.equip-chip:hover {
+  border-color: var(--brand-bright);
+  color: var(--text);
 }
 
-.share-url-row {
+.equip-chip.is-active {
+  background: var(--brand-soft);
+  border-color: var(--border-strong);
+  color: var(--brand-bright);
+}
+
+.equip-chip.is-baseline {
+  cursor: default;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text);
+}
+
+.pacing-strip {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
-.share-url-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.42rem 0.65rem;
+.pacing-select {
+  height: 32px;
+  font-size: 0.75rem;
+  padding: 0 1.65rem 0 0.65rem;
+}
+
+.rx-inline-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.22rem;
+}
+
+.rx-num-input {
+  width: 3.2rem;
+  background: rgba(9, 13, 22, 0.75);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.18rem 0.35rem;
   font-size: 0.78rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.share-hint {
-  font-size: 0.77rem;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-.share-tab-link {
-  color: var(--brand-bright);
   font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.rx-weight-input {
+  width: 3.8rem;
+}
+
+.rx-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
 }
 
 .progress-svg-chart {
@@ -1199,6 +1234,10 @@ select {
 }
 
 @media (max-width: 600px) {
+  .kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .workout-hud-top {
     padding: 0.7rem 0.75rem;
     gap: 0.45rem;

@@ -1,4 +1,4 @@
-/* Screen 2: Plan Overview (#plan) */
+/* Screen 2: Daily Recommended Session, Non-Destructive Equipment Filter & Weekly Plan (#plan) */
 (function () {
   "use strict";
 
@@ -17,7 +17,10 @@
 
   function renderPlanView(ctx) {
     const dom = getDom();
-    const { el, setTrustedSvg, resolveSvgMarkup, bindPreviewLoop } = dom;
+    const {
+      el, setTrustedSvg, resolveSvgMarkup, bindPreviewLoop,
+      renderEquipmentChipBar, renderPacingControls,
+    } = dom;
     const scope = (ctx && ctx.scope) || dom.createViewScope();
     const { store, catalog } = ctx;
     const navigateTo = ctx.navigateTo || ((h) => { if (typeof window !== "undefined") window.location.hash = h; });
@@ -27,23 +30,36 @@
     syncTopbar("plan", false);
 
     const state = store.getState();
-    const routineCards = store.buildRoutineCards();
-    const nextCard = store.getNextRoutineCard();
-    const stats = store.getStats();
+    const rec = store.getRecommendedToday();
+    const routineCards = store.buildRoutineCards(undefined, { adaptForSession: true });
+    const nextCard = rec.card;
+    const stats = rec.stats;
     const completedLog = typeof ctx.consumeCompletedLog === "function" ? ctx.consumeCompletedLog() : ctx.completedLog || null;
 
-    const stageTag = el("span", { className: "pill pill-brand", id: "stage-tag", textContent: "Next" });
+    const stageTagText = rec.trained_today
+      ? `Done Today (${rec.workouts_today}) \u2713 \u00b7 Next`
+      : "Recommended Today";
+    const stageTag = el("span", { className: "pill pill-brand", id: "stage-tag", textContent: stageTagText });
     const nextIntensityPct = nextCard ? getCardIntensityPercent(nextCard) : 100;
     const stageIntensityPill = el("span", {
       className: "pill", id: "stage-intensity",
-      hidden: !nextCard || (nextCard.routine.intensity_level || 0) === 0,
-      textContent: `${nextIntensityPct}%`,
+      hidden: !nextCard,
+      textContent: `Intensity ${nextIntensityPct}%`,
     });
+    const adaptedBadge = nextCard && nextCard.was_substituted
+      ? el("span", { className: "pill", textContent: `${nextCard.substituted_count} adapted for gear` })
+      : null;
 
     let completedBanner = null;
     if (completedLog) {
       const choice = completedLog.next_intensity_choice;
-      const deltaLabel = choice === "more" ? "+10%" : choice === "less" ? "\u221210%" : "Saved";
+      const deltaLabel = completedLog.is_adhoc
+        ? "On-the-Fly Saved"
+        : choice === "more"
+          ? "+10%"
+          : choice === "less"
+            ? "\u221210%"
+            : "Saved";
       completedBanner = el("span", { className: "pill pill-brand", role: "status", textContent: `\u2713 ${deltaLabel}` });
     }
 
@@ -70,9 +86,11 @@
       });
     }
 
-    const stageSection = el("section", { className: "graphic-stage", "aria-label": "Next workout preview" }, [
+    const stageSection = el("section", { className: "graphic-stage", "aria-label": "Recommended workout preview" }, [
       el("div", { className: "stage-hud-top" }, [
-        el("div", { style: { display: "flex", alignItems: "center", gap: "0.45rem" } }, [stageTag, stageIntensityPill]),
+        el("div", { style: { display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" } }, [
+          stageTag, stageIntensityPill, adaptedBadge,
+        ]),
         completedBanner,
       ]),
       svgWrap,
@@ -82,15 +100,17 @@
               el("div", { className: "muted", style: { marginBottom: "0.15rem" }, textContent: state.plan.name }),
               stageTitleEl,
             ]),
-            stageActionBtn,
+            el("div", { style: { display: "flex", gap: "0.5rem", alignItems: "center" } }, [
+              el("a", { href: "#quick", className: "btn-ghost", textContent: "\u26a1 On-the-Fly" }),
+              stageActionBtn,
+            ]),
           ])
         : null,
     ]);
 
     const weeklyGoal = Math.max(1, Number(stats.weekly_goal) || 3);
     const pct = Math.min(100, Math.round(((Number(stats.workouts_this_week) || 0) / weeklyGoal) * 100));
-    const addDayBtn = el("button", { type: "button", className: "btn-ghost", title: "Add day", textContent: "+ Day" });
-
+    const addDayBtn = el("button", { type: "button", className: "btn-ghost btn-compact", title: "Add workout day", textContent: "+ Day" });
     scope.on(addDayBtn, "click", () => {
       const created = store.addWorkoutDay();
       if (created && created.id) navigateTo(`#edit/${encodeURIComponent(created.id)}`);
@@ -101,7 +121,36 @@
       el("div", { className: "mini-bar", "aria-label": "Weekly goal" }, [
         el("div", { className: "mini-bar-fill", style: { width: `${pct}%` } }),
       ]),
+      el("a", { href: "#quick", className: "btn-ghost btn-compact", textContent: "\u26a1 Quick" }),
       addDayBtn,
+    ]);
+
+    let resetEqBtn = null;
+    if (rec.is_equipment_overridden) {
+      resetEqBtn = el("button", {
+        type: "button", className: "btn-ghost btn-xs",
+        title: "Restore saved plan equipment", textContent: "Reset Gear",
+      });
+      scope.on(resetEqBtn, "click", () => {
+        store.resetSessionEquipment();
+        navigateTo("#plan");
+      });
+    }
+
+    const equipPanel = el("section", { className: "filter-panel" }, [
+      el("div", { className: "field-label-row" }, [
+        el("span", { className: "field-label", textContent: "Equipment Available Today" }),
+        renderPacingControls(scope, store.getWorkoutTiming(), (patch) => store.setWorkoutTiming(patch)),
+      ]),
+      renderEquipmentChipBar(
+        scope,
+        rec.equipment,
+        (nextList) => {
+          store.setSessionEquipment(nextList);
+          navigateTo("#plan");
+        },
+        resetEqBtn
+      ),
     ]);
 
     const previewLoop = bindPreviewLoop(scope, svgWrap, (rig) => ({
@@ -129,13 +178,23 @@
       const exListNode = hasEx
         ? el("ul", { className: "ex-list" }, card.exercises.map((row) => {
             const thumbSrc = row.thumb_url || "./svgs/thumbs/squat__body_only.svg";
+            const nameGroup = [el("span", { className: "ex-row-name", textContent: row.exercise.name })];
+            if (row.is_substituted && row.replaced_name) {
+              nameGroup.push(
+                el("span", {
+                  className: "muted",
+                  style: { fontSize: "0.72rem", display: "block" },
+                  textContent: `\u21c4 replaces ${row.replaced_name}`,
+                })
+              );
+            }
             const li = el(
               "li",
               { className: "ex-row", dataset: { archetype: row.archetype, svgKey: row.svg_key || `${row.archetype}:body_only` } },
               [
                 el("div", { className: "ex-row-left" }, [
                   el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }),
-                  el("span", { className: "ex-row-name", textContent: row.exercise.name }),
+                  el("div", { style: { minWidth: "0" } }, nameGroup),
                 ]),
                 el("span", { className: "ex-row-target", textContent: row.scaled.formatted }),
               ]
@@ -144,13 +203,8 @@
             scope.on(li, "click", () => {
               swapStageSvg(row.svg_key, row.archetype);
               stageTitleEl.textContent = card.routine.name;
-              const lvl = card.routine.intensity_level || 0;
-              if (lvl !== 0) {
-                stageIntensityPill.textContent = `${cardPct}%`;
-                stageIntensityPill.hidden = false;
-              } else {
-                stageIntensityPill.hidden = true;
-              }
+              stageIntensityPill.textContent = `Intensity ${cardPct}%`;
+              stageIntensityPill.hidden = false;
               if (stageActionBtn) {
                 stageActionBtn.setAttribute("href", hasEx ? `#workout/${routineIdEnc}` : `#edit/${routineIdEnc}`);
                 stageActionBtn.textContent = hasEx ? "\u25b6 Start" : "+ Add";
@@ -175,9 +229,10 @@
         },
         [
           el("div", { className: "routine-card-head" }, [
-            el("div", { style: { display: "flex", alignItems: "center", gap: "0.45rem", minWidth: "0" } }, [
+            el("div", { style: { display: "flex", alignItems: "center", gap: "0.45rem", minWidth: "0", flexWrap: "wrap" } }, [
               el("span", { className: "routine-name", textContent: card.routine.name }),
-              (card.routine.intensity_level || 0) !== 0 ? el("span", { className: "pill", textContent: `${cardPct}%` }) : null,
+              el("span", { className: "pill", textContent: `${cardPct}%` }),
+              card.was_substituted ? el("span", { className: "pill pill-brand", textContent: "\u21c4 Adapted" }) : null,
             ]),
             el("div", { style: { display: "flex", gap: "0.35rem" } }, [
               el("a", {
@@ -200,7 +255,10 @@
     });
 
     document.getElementById("app-root").replaceChildren(
-      el("main", { className: "split-screen" }, [stageSection, el("section", { className: "side-pane" }, [weekStrip, ...cardNodes])])
+      el("main", { className: "split-screen" }, [
+        stageSection,
+        el("section", { className: "side-pane" }, [weekStrip, equipPanel, ...cardNodes]),
+      ])
     );
 
     return scope;

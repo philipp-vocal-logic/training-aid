@@ -1,4 +1,4 @@
-/* Thin SPA router, #import= ingestion, view lifecycle, and boot controller */
+/* Thin SPA router, view lifecycle, and boot controller */
 (function () {
   "use strict";
 
@@ -8,7 +8,7 @@
   function getViews() {
     const v = root.TrainingViews || {};
     if (typeof require === "function") {
-      for (const name of ["setup", "plan", "edit", "workout", "progress"]) {
+      for (const name of ["setup", "plan", "quick", "edit", "workout", "progress"]) {
         if (!v[name]) {
           try { v[name] = require(`./views/${name}.js`); } catch { /* ignore */ }
         }
@@ -23,20 +23,13 @@
   }
 
   function makeRoute(view, id, extra) {
-    return { view, name: view, route: view, id, param: id, routineId: id, token: null, invalid: false, ...extra };
+    return { view, name: view, route: view, id, param: id, routineId: id, invalid: false, ...extra };
   }
 
   function parseRoute(rawHash) {
-    const raw = String(rawHash || "");
-    const clean = raw.replace(/^#+/, "");
-    if (clean.startsWith("import=")) {
-      const token = clean.slice(7);
-      return makeRoute("import", token, {
-        routineId: null, token, rawHash: raw.startsWith("#") ? raw : "#" + clean, invalid: !token,
-      });
-    }
+    const clean = String(rawHash || "").replace(/^#+/, "");
     if (!clean || clean === "/" || clean === "plan") return makeRoute("plan", null);
-    if (clean === "setup" || clean === "progress") return makeRoute(clean, null);
+    if (clean === "setup" || clean === "progress" || clean === "quick") return makeRoute(clean, null);
     if (clean.startsWith("edit/")) {
       const editId = safeDecodeRouteParam(clean.slice(5));
       if (editId !== null) return makeRoute("edit", editId);
@@ -102,82 +95,31 @@
     }
   }
 
-  function handleIncomingShareImport(rawHash) {
-    mountView(store.hasActivePlan() ? "plan" : "setup");
-    const { el, openModal, closeModal, showToast } = dom;
-
-    function finishImportFlow() {
-      closeModal();
-      replaceHash(store.hasActivePlan() ? "#plan" : "#setup");
-      handleRoute();
-    }
-
-    Promise.resolve()
-      .then(() => store.decodeShareFragment(rawHash))
-      .then((preview) => {
-        const incState = (preview && preview.state) || {};
-        const athleteName = (incState.profile && incState.profile.name) || "Athlete";
-        const planName = (incState.plan && incState.plan.name) || "Shared Training Plan";
-        const rCount = Number(preview.routineCount) || 0;
-        const exCount = Number(preview.exerciseCount) || 0;
-
-        openModal((mScope) => {
-          const cancelBtn = el("button", { type: "button", id: "import-cancel-btn", className: "btn-ghost", textContent: "Cancel" });
-          const confirmBtn = el("button", { type: "button", id: "import-confirm-btn", className: "btn-primary", textContent: "Import Plan (Keep History)" });
-
-          mScope.on(cancelBtn, "click", finishImportFlow);
-          mScope.on(confirmBtn, "click", () => {
-            if (typeof preview.apply === "function") preview.apply({ keepExistingLogs: true });
-            else {
-              const res = store.importBackupJson(incState, { mergeLogs: true, keepExistingLogs: true });
-              if (res && typeof res.apply === "function") res.apply({ keepExistingLogs: true, mergeLogs: true });
-            }
-            sound.setTheme(store.getSoundTheme());
-            finishImportFlow();
-            showToast("Plan imported");
-          });
-
-          return el("div", { className: "modal-card", role: "dialog", "aria-modal": "true", "aria-label": "Import shared training plan" }, [
-            el("div", { className: "modal-stats" }, [
-              el("span", { className: "pill pill-brand", textContent: "Shared Plan" }),
-              el("span", { className: "pill", textContent: `${rCount} routines` }),
-              el("span", { className: "pill", textContent: `${exCount} exercises` }),
-            ]),
-            el("h2", { className: "modal-title", textContent: planName }),
-            el("div", { className: "muted", textContent: `Athlete: ${athleteName} · Your local workout history will be preserved.` }),
-            el("div", { className: "modal-actions" }, [cancelBtn, confirmBtn]),
-          ]);
-        }, finishImportFlow);
-      })
-      .catch(() => {
-        openModal((mScope) => {
-          const cancelBtn = el("button", { type: "button", id: "import-cancel-btn", className: "btn-ghost", textContent: "Cancel" });
-          mScope.on(cancelBtn, "click", finishImportFlow);
-          return el("div", { className: "modal-card is-error", role: "dialog", "aria-modal": "true", "aria-label": "Invalid share link" }, [
-            el("h2", { className: "modal-title", textContent: "Invalid Share Link" }),
-            el("div", { className: "muted", textContent: "This #import= link is malformed or corrupted and could not be imported." }),
-            el("div", { className: "modal-actions" }, [cancelBtn]),
-          ]);
-        }, finishImportFlow);
-      });
-  }
-
   function handleRoute() {
     if (!store || !catalog) return;
-    const rawHash = window.location.hash || "";
-    const parsed = parseRoute(rawHash);
+    const parsed = parseRoute(window.location.hash || "");
 
-    if (parsed.view === "import" && !parsed.invalid) {
-      handleIncomingShareImport(rawHash);
-      return;
-    }
     dom.closeModal();
     if (parsed.view === "setup") { mountView("setup"); return; }
     if (!store.hasActivePlan()) { replaceHash("#setup"); mountView("setup"); return; }
-    if (parsed.view === "plan" || parsed.view === "progress") { mountView(parsed.view); return; }
-    if ((parsed.view === "edit" || parsed.view === "workout") && store.getRoutine(parsed.id)) {
-      mountView(parsed.view, parsed.id);
+    if (parsed.view === "plan" || parsed.view === "progress" || parsed.view === "quick") {
+      mountView(parsed.view);
       return;
+    }
+    if (parsed.view === "edit" && store.getRoutine(parsed.id)) {
+      mountView("edit", parsed.id);
+      return;
+    }
+    if (parsed.view === "workout") {
+      if (parsed.id === "adhoc") {
+        if (!store.hasAdHocSession()) store.ensureAdHocSession();
+        mountView("workout", "adhoc");
+        return;
+      }
+      if (store.getRoutine(parsed.id)) {
+        mountView("workout", parsed.id);
+        return;
+      }
     }
     replaceHash("#plan");
     mountView("plan");
@@ -227,6 +169,7 @@
     resolveSvgMarkup: dom && dom.resolveSvgMarkup,
     createViewScope: dom && dom.createViewScope,
     formatLogDate: dom && dom.formatLogDate,
+    formatLogDateTime: dom && dom.formatLogDateTime,
     buildProgressChartSvg: viewsObj.progress && viewsObj.progress.buildProgressChartSvg,
   };
 

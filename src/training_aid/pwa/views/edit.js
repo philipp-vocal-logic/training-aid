@@ -1,4 +1,4 @@
-/* Screen 3: Routine Editor (#edit/<routineId>) */
+/* Screen 3: Routine Editor — Prescription (Sets, Reps, Weight) & Random Exercise Swap (#edit/<routineId>) */
 (function () {
   "use strict";
 
@@ -18,7 +18,7 @@
 
   function renderEditView(ctx) {
     const dom = getDom();
-    const { el } = dom;
+    const { el, renderEditableExerciseRow } = dom;
     const scope = (ctx && ctx.scope) || dom.createViewScope();
     const store = ctx.store;
     const routineId = ctx.routineId || ctx.id || ctx.param;
@@ -35,7 +35,7 @@
       type: "search",
       name: "q",
       className: "minimal-input",
-      placeholder: "Search...",
+      placeholder: "Search exercises...",
       "aria-label": "Search exercises",
     });
     const searchResultsWrap = el("div", { id: "search-results" });
@@ -57,9 +57,20 @@
       const rows = cards && cards[0] ? cards[0].exercises : [];
       const routineIdEnc = encodeURIComponent(latestRoutine.id);
 
+      const addRandomBtn = el("button", {
+        type: "button",
+        id: "edit-add-random-btn",
+        className: "btn-ghost btn-compact",
+        textContent: "+ Random",
+      });
+      scope.on(addRandomBtn, "click", () => {
+        store.addRandomExerciseToRoutine(latestRoutine.id);
+        refreshRoutineExercises();
+      });
+
       const headerRow = el(
         "div",
-        { style: { display: "flex", alignItems: "center", gap: "0.6rem" } },
+        { style: { display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" } },
         [
           el("a", {
             href: "#plan",
@@ -72,6 +83,7 @@
             style: { fontSize: "1.15rem", fontWeight: "800", margin: "0" },
             textContent: latestRoutine.name,
           }),
+          addRandomBtn,
           rows.length > 0
             ? el("a", {
                 href: `#workout/${routineIdEnc}`,
@@ -87,55 +99,34 @@
         ]
       );
 
-      let listContent;
-      if (rows.length > 0) {
-        listContent = el(
-          "ul",
-          { className: "ex-list" },
-          rows.map((row) => {
-            const thumbSrc =
-              row.thumb_url || "./svgs/thumbs/squat__body_only.svg";
-            const removeBtn = el("button", {
-              type: "button",
-              className: "btn-ghost",
-              style: { padding: "0.3rem 0.65rem" },
-              "aria-label": "Remove",
-              textContent: "\u2715",
-            });
-            scope.on(removeBtn, "click", () => {
-              store.removeExerciseFromRoutine(latestRoutine.id, row.item.id);
-              refreshRoutineExercises();
-            });
-            return el("li", { className: "catalog-card" }, [
-              el("div", { className: "ex-row-left" }, [
-                el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }),
-                el("div", { style: { minWidth: "0" } }, [
-                  el("div", {
-                    className: "ex-row-name",
-                    textContent: row.exercise.name,
-                  }),
-                  el("div", {
-                    className: "ex-row-target",
-                    textContent: row.scaled.formatted,
-                  }),
-                ]),
-              ]),
-              removeBtn,
-            ]);
-          })
-        );
-      } else {
-        listContent = el("div", {
-          className: "muted",
-          textContent: "+ Select exercises",
-        });
-      }
+      const listContent = rows.length > 0
+        ? el(
+            "ul",
+            { className: "ex-list" },
+            rows.map((row) =>
+              renderEditableExerciseRow(scope, row, {
+                onUpdate: (patch) => {
+                  store.updateRoutineExercise(latestRoutine.id, row.item.id, patch);
+                  refreshRoutineExercises();
+                },
+                onSwap: () => {
+                  store.swapRoutineExercise(latestRoutine.id, row.item.id);
+                  refreshRoutineExercises();
+                },
+                onRemove: () => {
+                  store.removeExerciseFromRoutine(latestRoutine.id, row.item.id);
+                  refreshRoutineExercises();
+                },
+              })
+            )
+          )
+        : el("div", { className: "muted", textContent: "+ Select or randomize exercises" });
 
       leftPane.replaceChildren(headerRow, listContent);
     }
 
     function refreshCatalogSearch() {
-      const results = store.searchCatalog(searchInput.value, 16) || [];
+      const results = store.searchCatalog(searchInput.value, 20, { compatibleOnly: true }) || [];
       if (results.length === 0) {
         searchResultsWrap.replaceChildren(
           el("div", { className: "muted", textContent: "\u2014" })

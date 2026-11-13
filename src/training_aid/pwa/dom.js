@@ -1,8 +1,9 @@
-/* Shared DOM/SVG builders, view lifecycle scope, preview loop, and UI helpers */
+/* Shared DOM/SVG builders, view lifecycle scope, preview loop, and reusable UI widgets */
 (function () {
   "use strict";
 
   const root = typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this;
+  const getDomain = () => root.TrainingDomain || (typeof require === "function" ? require("./domain.js") : null);
   const SVG_NS = "http://www.w3.org/2000/svg";
   const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const BOOL_PROPS = new Set(["checked", "disabled", "hidden", "required", "readOnly", "selected"]);
@@ -311,44 +312,155 @@
     svgNode("path", { d: "M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" }),
   ]);
 
-  const makeCheckIcon = () => svgNode("svg", { ...ICON_BASE, width: "18", height: "18", "stroke-width": "2.4" }, [
-    svgNode("polyline", { points: "20 6 9 17 4 12" }),
-  ]);
-
-  function canShareJsonFile() {
-    if (typeof navigator === "undefined" || typeof navigator.share !== "function" ||
-        typeof navigator.canShare !== "function" || typeof File !== "function") return false;
-    try {
-      return Boolean(navigator.canShare({ files: [new File(["{}"], "backup.json", { type: "application/json" })] }));
-    } catch { return false; }
-  }
-
-  function copyTextToClipboard(text) {
-    if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      return navigator.clipboard.writeText(String(text));
-    }
-    return Promise.reject(new Error("Clipboard API unavailable"));
-  }
-
   function formatLogDate(rawIso) {
     if (!rawIso) return "";
     const dt = rawIso instanceof Date ? rawIso : new Date(rawIso);
-    return Number.isNaN(dt.getTime()) ? "" : `${SHORT_MONTHS[dt.getUTCMonth()] || ""} ${String(dt.getUTCDate()).padStart(2, "0")}`;
+    if (Number.isNaN(dt.getTime())) return "";
+    return `${SHORT_MONTHS[dt.getMonth()] || ""} ${String(dt.getDate()).padStart(2, "0")}`;
   }
 
-  function buildShareUrl(fragment) {
-    let cleanFrag = String(fragment || "");
-    if (cleanFrag && !cleanFrag.startsWith("#")) cleanFrag = "#" + cleanFrag;
-    if (typeof window === "undefined" || !window.location) return cleanFrag;
-    const loc = window.location;
-    return loc.origin && loc.origin !== "null" ? loc.origin + loc.pathname + loc.search + cleanFrag : String(loc.href || "").split("#")[0] + cleanFrag;
+  function formatLogDateTime(rawIso) {
+    if (!rawIso) return "";
+    const dt = rawIso instanceof Date ? rawIso : new Date(rawIso);
+    if (Number.isNaN(dt.getTime())) return "";
+    const mon = SHORT_MONTHS[dt.getMonth()] || "";
+    const day = String(dt.getDate()).padStart(2, "0");
+    const yr = dt.getFullYear();
+    const hh = String(dt.getHours()).padStart(2, "0");
+    const mm = String(dt.getMinutes()).padStart(2, "0");
+    return `${mon} ${day}, ${yr} \u00b7 ${hh}:${mm}`;
+  }
+
+  function renderEquipmentChipBar(scope, selectedList, onChange, extraNode) {
+    const domain = getDomain();
+    const options = (domain && domain.EQUIPMENT_OPTIONS) || [];
+    const activeSet = new Set(Array.isArray(selectedList) ? selectedList : []);
+
+    const chips = options.map((opt) => {
+      const active = activeSet.has(opt.id);
+      const btn = el("button", {
+        type: "button",
+        className: "equip-chip" + (active ? " is-active" : ""),
+        dataset: { equipId: opt.id },
+        "aria-pressed": active ? "true" : "false",
+        textContent: opt.label,
+      });
+      scope.on(btn, "click", () => {
+        const next = new Set(activeSet);
+        if (next.has(opt.id)) next.delete(opt.id);
+        else next.add(opt.id);
+        onChange([...next]);
+      });
+      return btn;
+    });
+
+    return el("div", { className: "equip-chip-bar", role: "group", "aria-label": "Available equipment" }, [
+      el("span", { className: "equip-chip is-baseline", textContent: "Bodyweight \u2713" }),
+      ...chips,
+      extraNode || null,
+    ]);
+  }
+
+  function renderPacingControls(scope, timing, onTimingChange) {
+    const domain = getDomain();
+    const speedModes = (domain && domain.VALID_SPEED_MODES) || ["slow", "normal", "fast"];
+    const speedLabels = (domain && domain.SPEED_LABELS) || { slow: "Slow", normal: "Normal", fast: "Fast" };
+    const restPresets = (domain && domain.REST_PRESETS) || [15, 30, 45, 60, 90];
+
+    const speedSelect = el(
+      "select",
+      { className: "hud-select pacing-select", "aria-label": "Exercise speed" },
+      speedModes.map((m) =>
+        el("option", { value: m, selected: timing.speed_mode === m, textContent: `Speed: ${speedLabels[m] || m}` })
+      )
+    );
+    const curRest = Number(timing.rest_seconds) || 30;
+    const restValues = restPresets.includes(curRest) ? restPresets : [...restPresets, curRest].sort((a, b) => a - b);
+    const restSelect = el(
+      "select",
+      { className: "hud-select pacing-select", "aria-label": "Rest interval" },
+      restValues.map((sec) =>
+        el("option", { value: String(sec), selected: curRest === sec, textContent: `Rest: ${sec}s` })
+      )
+    );
+
+    scope.on(speedSelect, "change", () => onTimingChange({ speed_mode: speedSelect.value }));
+    scope.on(restSelect, "change", () => onTimingChange({ rest_seconds: Number(restSelect.value) }));
+
+    return el("div", { className: "pacing-strip" }, [speedSelect, restSelect]);
+  }
+
+  function renderEditableExerciseRow(scope, row, handlers) {
+    const domain = getDomain();
+    const isWeighted = Boolean(
+      (domain && domain.isWeightedCatalogEquipment(row.exercise.equipment) && !row.exercise.is_hold) ||
+        (row.item.base_weight_kg !== null && row.item.base_weight_kg !== undefined)
+    );
+    const thumbSrc = row.thumb_url || "./svgs/thumbs/squat__body_only.svg";
+
+    const setsInput = el("input", {
+      type: "number", min: "1", max: "20", value: String(row.item.sets),
+      className: "rx-num-input", "aria-label": `Sets for ${row.exercise.name}`,
+    });
+    const repsInput = el("input", {
+      type: "number", min: "1", max: "600", value: String(row.item.base_reps),
+      className: "rx-num-input", "aria-label": `${row.exercise.is_hold ? "Seconds" : "Reps"} for ${row.exercise.name}`,
+    });
+    const weightInput = isWeighted
+      ? el("input", {
+          type: "number", min: "0.5", max: "500", step: "0.5",
+          value: row.item.base_weight_kg ? String(row.item.base_weight_kg) : "10",
+          className: "rx-num-input rx-weight-input", "aria-label": `Weight kg for ${row.exercise.name}`,
+        })
+      : null;
+
+    const commitPatch = () => {
+      handlers.onUpdate({
+        sets: Number(setsInput.value),
+        base_reps: Number(repsInput.value),
+        base_weight_kg: weightInput ? Number(weightInput.value) : null,
+      });
+    };
+    scope.on(setsInput, "change", commitPatch);
+    scope.on(repsInput, "change", commitPatch);
+    if (weightInput) scope.on(weightInput, "change", commitPatch);
+
+    const swapBtn = el("button", {
+      type: "button", className: "btn-ghost btn-icon-sm",
+      title: "Swap with random exercise", "aria-label": "Random swap", textContent: "\u21bb",
+    });
+    const removeBtn = el("button", {
+      type: "button", className: "btn-ghost btn-icon-sm",
+      title: "Remove exercise", "aria-label": "Remove", textContent: "\u2715",
+    });
+    scope.on(swapBtn, "click", handlers.onSwap);
+    scope.on(removeBtn, "click", handlers.onRemove);
+
+    return el("li", { className: "catalog-card editable-ex-card" }, [
+      el("div", { className: "ex-row-left" }, [
+        el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }),
+        el("div", { style: { minWidth: "0" } }, [
+          el("div", { className: "ex-row-name", textContent: row.exercise.name }),
+          el("div", { className: "rx-inline-controls" }, [
+            setsInput,
+            el("span", { className: "muted", textContent: "\u00d7" }),
+            repsInput,
+            el("span", { className: "muted", textContent: row.exercise.is_hold ? "sec" : "reps" }),
+            ...(weightInput
+              ? [el("span", { className: "muted", textContent: "@" }), weightInput, el("span", { className: "muted", textContent: "kg" })]
+              : []),
+          ]),
+        ]),
+      ]),
+      el("div", { className: "rx-row-actions" }, [swapBtn, removeBtn]),
+    ]);
   }
 
   const exportedDom = {
     SVG_NS, el, svgNode, setTrustedSvg, resolveSvgMarkup, createViewScope,
     bindPreviewLoop, openModal, closeModal, showToast, makeVolumeOnIcon,
-    makeVolumeOffIcon, makeFullscreenIcon, makeCheckIcon, canShareJsonFile,
-    copyTextToClipboard, formatLogDate, buildShareUrl,
+    makeVolumeOffIcon, makeFullscreenIcon, formatLogDate, formatLogDateTime,
+    renderEquipmentChipBar, renderPacingControls, renderEditableExerciseRow,
   };
 
   root.TrainingDom = exportedDom;

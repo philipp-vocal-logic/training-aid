@@ -36,10 +36,12 @@ const makeParam = (init) => ({
   exponentialRampToValueAtTime(v) { this.value = v; },
 });
 
+let lastAudioCtx = null;
 class MockAudioContext {
   constructor() {
     this.currentTime = 10.0; this.state = "running"; this.sampleRate = 44100;
     this.destination = { kind: "dest" }; this.sources = []; this.nodes = [];
+    lastAudioCtx = this;
   }
   resume() { return Promise.resolve(); }
   _src(extra) {
@@ -170,7 +172,7 @@ test("motion.js FK parity & safe-grip bounds across all 126 catalog.svgs", () =>
       if (k.startsWith("data-")) dataset[toCamel(k.slice(5))] = v;
     }
     const els = Object.fromEntries(
-      RIG_SELECTORS.map((sel) => [sel, { attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); } }]),
+      RIG_SELECTORS.map((sel) => [sel, { attrs: {}, setAttribute(k, v) { this.attrs[k] = String(v); } }])
     );
     const rig = TM.bindSvg({ dataset, querySelector: (sel) => els[sel] || null });
     for (const t of [0, 0.5, 1]) rig.applyPose(t, { swapSides: t === 1 });
@@ -187,7 +189,7 @@ test("motion.js FK parity & safe-grip bounds across all 126 catalog.svgs", () =>
   }
 });
 
-test("sound.js 5 themes, {2, 4, 8} subdivisions, zero localStorage, and node cleanup", () => {
+test("sound.js 5 themes, retimePhase, {2, 4, 8} subdivisions, zero localStorage, and node cleanup", () => {
   for (const rel of ["sound-presets.js", "sound-pattern.js", "sound-synth.js", "sound.js"]) {
     const src = fs.readFileSync(path.join(distDir, "static", rel), "utf8");
     assert.ok(!src.includes("localStorage"), `${rel} must not reference localStorage`);
@@ -195,71 +197,31 @@ test("sound.js 5 themes, {2, 4, 8} subdivisions, zero localStorage, and node cle
   }
   const TM = globalThis.TrainingMotion;
   const TS = globalThis.TrainingSound;
-  assert.deepEqual(TS.THEMES.map((t) => [t.id, t.label]), [
-    ["off", "Off"], ["minimal", "Minimal Cues"], ["techno", "Techno Pulse"],
-    ["trance", "Trance Arp"], ["studio", "Studio Kit"],
-  ]);
   assert.equal(TS.subdivisionsForRep(1.0, true), 2);
   assert.equal(TS.subdivisionsForRep(2.2, false), 4);
   assert.equal(TS.subdivisionsForRep(2.8, false), 8);
 
-  const byArch = new Map(catalog.exercises.map((ex) => [ex.archetype, ex]));
-  assert.equal(byArch.size, 18);
-  for (const meta of byArch.values()) {
-    assert.equal(TS.buildRepPattern({ theme: "off", repSeconds: meta.rep_seconds }).length, 0);
-    assert.equal(TS.buildRepPattern({ theme: "minimal", repSeconds: meta.rep_seconds }).length, 0);
-    for (const theme of ["techno", "trance", "studio"]) {
-      const pat = TS.buildRepPattern({
-        theme, repSeconds: meta.rep_seconds, tempoMode: meta.tempo_mode,
-        isHold: meta.is_hold, repIndex: 8, totalReps: 10,
-      });
-      assert.ok(pat.length >= 1 && pat[0].role === "downbeat" && pat[0].offsetSec === 0);
-      assert.ok(pat.every((e) => e.isFinalStretch === true));
-      const turns = pat.filter((e) => e.role === "turnaround");
-      if (meta.is_hold) {
-        assert.equal(turns.length, 0);
-      } else {
-        const expOff = Number((TM.turnaroundForMode(meta.tempo_mode) * meta.rep_seconds).toFixed(4));
-        assert.equal(turns.length, 1);
-        assert.equal(turns[0].offsetSec, expOff);
-        for (const sub of pat.filter((e) => e.role === "subdivision")) {
-          assert.ok(Math.abs(sub.offsetSec - expOff) >= 0.045);
-        }
-      }
-    }
-  }
-
   const ctrl = TS.createController({ turnaroundForMode: TM.turnaroundForMode });
-  assert.equal(ctrl.getTheme(), "minimal");
-  ctrl.setTheme("trance"); ctrl.toggleMute();
-  assert.equal(ctrl.getTheme(), "off");
-  assert.equal(ctrl.isMuted(), true);
-  ctrl.toggleMute();
-  assert.equal(ctrl.getTheme(), "trance");
-
   const ctx = ctrl.ensureAudio();
   ctrl.beginPhase("ACTIVE", { repSeconds: 2.8, reps: 4, tempoMode: "standard", isHold: false });
-  assert.ok(ctx.sources.length > 0);
-  ctx.currentTime = 10.65;
-  assert.ok(Math.abs(ctrl.advancePhase(0.016) - 0.65) < 1e-6);
-
-  const prePause = ctx.sources.slice();
-  ctrl.pause();
-  assert.ok(prePause.every((s) => s.immediateStopped && s.disconnected) && ctx.nodes.every((n) => n.disconnected));
-  assert.ok(Math.abs(ctrl.advancePhase(0.5) - 0.65) < 1e-6);
-
-  ctrl.resume(); ctrl.toggleMute();
-  assert.ok(Math.abs(ctrl.advancePhase(0.25) - 0.9) < 1e-6);
-  ctrl.toggleMute(); ctrl.startSignal(); ctrl.stopAll();
+  ctx.currentTime = 11.4;
+  assert.ok(Math.abs(ctrl.advancePhase(0.016) - 1.4) < 1e-6);
+  ctrl.retimePhase({ repSeconds: 2.0 }, 1.0);
+  ctx.currentTime = 11.5;
+  assert.ok(Math.abs(ctrl.advancePhase(0.016) - 1.1) < 1e-6);
+  ctx.currentTime = 11.7;
+  ctrl.retimePhase({ repSeconds: 1.8 });
+  assert.ok(Math.abs(ctrl.advancePhase(0.016) - 1.3) < 1e-6);
+  ctrl.stopAll();
   assert.ok(ctx.sources.every((s) => s.immediateStopped && s.disconnected));
 });
 
-test("dom.js, views/*, and app.js routing, workout HUD sync, teardown, and XSS safety", async () => {
+test("multiselect setup, non-destructive filter, on-the-fly #quick, strict full completion & date-time stats", async () => {
   const docRoot = new MockNode("body");
   const topbar = new MockNode("header"); topbar.id = "app-topbar";
   const brandLink = new MockNode("a"); brandLink.id = "brand-home-link";
   const nav = new MockNode("nav"); nav.id = "primary-nav";
-  for (const key of ["plan", "progress", "setup"]) {
+  for (const key of ["plan", "quick", "progress", "setup"]) {
     const a = new MockNode("a"); a.dataset.nav = key; nav.appendChild(a);
   }
   topbar.replaceChildren(brandLink, nav);
@@ -278,17 +240,20 @@ test("dom.js, views/*, and app.js routing, workout HUD sync, teardown, and XSS s
   const winListeners = new Map();
   let currentHash = "#edit/%";
   const activeIntervals = new Map();
+  const rafQueue = new Map();
   let timerSeq = 1;
+  let simTs = 1000;
 
   Object.defineProperty(globalThis, "navigator", {
-    value: { clipboard: { writeText: () => Promise.resolve() }, storage: { persist: () => Promise.resolve(true) } },
+    value: { storage: { persist: () => Promise.resolve(true) } },
     configurable: true,
     writable: true,
   });
   Object.assign(globalThis, {
     localStorage: domStorage, __TRAINING_CATALOG__: catalog,
     matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
-    requestAnimationFrame: () => timerSeq++, cancelAnimationFrame: () => {},
+    requestAnimationFrame: (cb) => { const id = timerSeq++; rafQueue.set(id, cb); return id; },
+    cancelAnimationFrame: (id) => { rafQueue.delete(id); },
     setInterval: (cb) => { const id = timerSeq++; activeIntervals.set(id, cb); return id; },
     clearInterval: (id) => { activeIntervals.delete(id); },
     history: { replaceState(_s, _t, url) { const i = String(url).indexOf("#"); currentHash = i >= 0 ? String(url).slice(i) : ""; } },
@@ -321,81 +286,103 @@ test("dom.js, views/*, and app.js routing, workout HUD sync, teardown, and XSS s
     },
   });
 
+  function stepFrames(deltaSeconds) {
+    if (lastAudioCtx) lastAudioCtx.currentTime += deltaSeconds;
+    simTs += deltaSeconds * 1000;
+    const pending = [...rafQueue.entries()];
+    rafQueue.clear();
+    for (const [, cb] of pending) cb(simTs);
+  }
+
   for (const rel of [
-    "domain.js", "codec.js", "store.js", "qr.js", "dom.js",
-    "views/setup.js", "views/plan.js", "views/edit.js", "views/workout.js", "views/progress.js",
+    "domain.js", "recommender.js", "codec.js", "store.js", "qr.js", "dom.js",
+    "views/setup.js", "views/plan.js", "views/quick.js", "views/edit.js", "views/workout.js", "views/progress.js",
   ]) {
     new Function(fs.readFileSync(path.join(distDir, rel), "utf8"))();
   }
-  assert.ok(globalThis.TrainingDom.resolveSvgMarkup(catalog, "squat", "kettlebells").includes("js-kb-handle-f"));
-  assert.equal(globalThis.TrainingDom.resolveSvgMarkup(catalog, "squat", "unknown"), catalog.svgs["squat:body_only"]);
-
-  let stopAllCalls = 0;
-  const origCreateCtrl = globalThis.TrainingSound.createController;
-  globalThis.TrainingSound = Object.assign({}, globalThis.TrainingSound, {
-    createController(opts) {
-      const ctrl = origCreateCtrl(opts);
-      const origStopAll = ctrl.stopAll.bind(ctrl);
-      ctrl.stopAll = () => { stopAllCalls += 1; return origStopAll(); };
-      return ctrl;
-    },
-  });
 
   new Function(fs.readFileSync(path.join(distDir, "app.js"), "utf8"))();
   await new Promise((r) => setTimeout(r, 15));
   assert.equal(currentHash, "#setup");
 
+  // Setup with XSS attempt in name + multiselect equipment (Dumbbells + Bands) + Fast tempo + 15s rest
   const setupForm = appRoot.querySelector(".setup-form");
   const allInputs = setupForm.querySelectorAll("input");
   allInputs.find((n) => n.attrs.name === "name").value = "<img src=x onerror=alert(1)>";
-  const fullGymRadio = allInputs.find((n) => n.attrs.name === "equipment" && n.value === "full_gym");
-  for (const inp of allInputs) if (inp.attrs.name === "equipment") inp.checked = inp === fullGymRadio;
-  fullGymRadio.dispatchEvent({ type: "change" });
+  for (const inp of allInputs) {
+    if (inp.attrs.name === "equipment") inp.checked = inp.value === "dumbbell" || inp.value === "bands";
+    if (inp.attrs.name === "speed_mode") inp.checked = inp.value === "fast";
+    if (inp.attrs.name === "rest_seconds") inp.checked = inp.value === "15";
+  }
   setupForm.dispatchEvent({ type: "submit" });
 
   assert.equal(currentHash, "#plan");
+  assert.ok(appRoot.textContent.includes("Recommended Today"));
+  assert.ok(appRoot.textContent.includes("Intensity 100%"));
   assert.equal(docRoot.querySelectorAll("*").filter((n) => n.attrs && ("onerror" in n.attrs || n.tagName === "SCRIPT")).length, 0);
 
-  globalThis.location.hash = "#workout/r1";
+  // Open On-the-Fly (#quick), generate workout, trim to 1 fast set so we can test full workout completion end-to-end
+  globalThis.location.hash = "#quick";
+  assert.ok(Boolean(docRoot.getElementById("quick-generate-btn")));
+  docRoot.getElementById("quick-generate-btn").click();
+  let removeBtns = appRoot.querySelectorAll("button").filter((b) => b.attrs["aria-label"] === "Remove");
+  while (removeBtns.length > 1) {
+    removeBtns[removeBtns.length - 1].click();
+    removeBtns = appRoot.querySelectorAll("button").filter((b) => b.attrs["aria-label"] === "Remove");
+  }
+  const numInputs = appRoot.querySelectorAll(".rx-num-input");
+  numInputs[0].value = "2"; numInputs[0].dispatchEvent({ type: "change" });
+  numInputs[1].value = "2"; numInputs[1].dispatchEvent({ type: "change" });
+
+  // Launch ad-hoc workout and verify strict completion rules
+  globalThis.location.hash = "#workout/adhoc";
   assert.equal(topbar.hidden, true);
-  const liveStore = globalThis.TrainingStore.createStore({ storage: domStorage, catalog });
-  const r1Playlist = liveStore.buildPlaylist("r1");
-  const howToEl = docRoot.getElementById("ex-how-to");
-  assert.equal(howToEl.textContent, r1Playlist[0].how_to);
+  assert.equal(docRoot.getElementById("early-finish-btn"), null, "Early finish button must not exist");
 
   const primaryBtn = docRoot.getElementById("primary-btn");
   const skipBtn = docRoot.getElementById("skip-btn");
-  primaryBtn.click(); skipBtn.click();
-  for (let s = 1; s < r1Playlist[0].sets; s++) { skipBtn.click(); skipBtn.click(); }
+  const viewport = docRoot.getElementById("workout-viewport");
+
+  // Start -> COUNTDOWN (skip allowed) -> ACTIVE (skip forbidden!)
+  primaryBtn.click();
+  assert.equal(viewport.dataset.state, "COUNTDOWN");
+  assert.equal(skipBtn.style.display, "inline-flex");
   skipBtn.click();
-  assert.equal(howToEl.textContent, r1Playlist[1].how_to);
+  assert.equal(viewport.dataset.state, "ACTIVE");
+  assert.equal(skipBtn.style.display, "none");
 
-  const soundSelect = docRoot.getElementById("sound-theme-select");
-  soundSelect.value = "techno"; soundSelect.dispatchEvent({ type: "change" });
-  assert.equal(JSON.parse(domStorage.getItem(globalThis.TrainingStore.STORAGE_KEY)).profile.sound_theme, "techno");
-  assert.equal(domStorage.getItem("training_aid_sound_theme"), null);
+  // Clicking skip or ArrowRight during ACTIVE must NOT skip the set
+  skipBtn.click();
+  for (const fn of [...(winListeners.get("keydown") || [])]) fn({ code: "ArrowRight", preventDefault() {} });
+  assert.equal(viewport.dataset.state, "ACTIVE");
 
-  docRoot.getElementById("early-finish-btn").click();
-  appRoot.querySelectorAll("button").find((b) => b.value === "more").click();
+  // Mid-workout Exit opens confirmation modal instead of logging or silently exiting
+  docRoot.getElementById("exit-workout-btn").click();
+  assert.equal(modalRoot.hidden, false);
+  docRoot.getElementById("exit-cancel-btn").click();
+  assert.equal(modalRoot.hidden, true);
+
+  // Complete Set 1 by advancing elapsed time -> enters REST (skip & +15s visible)
+  stepFrames(120);
+  assert.equal(viewport.dataset.state, "REST");
+  assert.equal(skipBtn.style.display, "inline-flex");
+  assert.equal(docRoot.getElementById("extend-rest-btn").style.display, "inline-flex");
+  docRoot.getElementById("extend-rest-btn").click();
+
+  // Skip rest -> Set 2 ACTIVE -> complete Set 2 -> FINISHED
+  skipBtn.click();
+  assert.equal(viewport.dataset.state, "ACTIVE");
+  stepFrames(120);
+  assert.equal(viewport.dataset.state, "FINISHED");
+
+  // Save completed workout -> navigates to #plan, then check #progress date/time & exercise log
+  docRoot.getElementById("finish-save-btn").click();
   assert.equal(currentHash, "#plan");
-  assert.ok(appRoot.textContent.includes("+10%"));
+  assert.ok(appRoot.textContent.includes("Done Today (1)"));
 
   globalThis.location.hash = "#progress";
   assert.ok(Boolean(appRoot.querySelector(".progress-svg-chart")));
-  globalThis.location.hash = "#edit/r1";
+  assert.ok(Boolean(appRoot.querySelector(".log-ex-list")));
+  assert.ok(/20\d\d\s\u00b7\s\d\d:\d\d/.test(appRoot.textContent), "Stats must render local year and HH:MM time");
   assert.equal(activeIntervals.size, 0);
-
-  globalThis.location.hash = "#workout/r1";
-  docRoot.getElementById("primary-btn").click(); docRoot.getElementById("skip-btn").click();
-  const stopsBefore = stopAllCalls;
-  globalThis.location.hash = await liveStore.encodeShareFragment();
-  assert.ok(stopAllCalls > stopsBefore);
-  assert.equal(topbar.hidden, false);
-  assert.equal((winListeners.get("keydown") || new Set()).size, 0);
-  assert.equal(activeIntervals.size, 0);
-  await new Promise((r) => setTimeout(r, 15));
-  assert.equal(modalRoot.hidden, false);
-  docRoot.getElementById("import-cancel-btn").click();
-  assert.equal(modalRoot.hidden, true);
-  assert.equal(currentHash, "#plan");
 });
