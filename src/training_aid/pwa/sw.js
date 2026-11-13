@@ -11,6 +11,7 @@
     return (
       pathname.includes("/svgs/thumbs/") ||
       pathname.endsWith(".svg") ||
+      pathname.endsWith(".png") ||
       pathname.endsWith(".css") ||
       pathname.endsWith(".js") ||
       pathname.endsWith(".json") ||
@@ -22,7 +23,11 @@
     event.waitUntil(
       caches
         .open(CACHE_NAME)
-        .then((cache) => cache.addAll(APP_SHELL_ASSETS))
+        .then((cache) =>
+          cache.addAll(
+            APP_SHELL_ASSETS.map((url) => new Request(url, { cache: "reload" }))
+          )
+        )
         .then(() => self.skipWaiting())
     );
   });

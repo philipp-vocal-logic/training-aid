@@ -36,6 +36,24 @@ __all__ = [
 ]
 
 
+def _clean_output_dir(out_dir: Path) -> None:
+    resolved = out_dir.resolve()
+    if (
+        REPO_ROOT.is_relative_to(resolved)
+        or resolved.is_relative_to(PWA_SRC_DIR)
+        or resolved.is_relative_to(DATA_DIR)
+    ):
+        msg = f"Refusing to clean unsafe output_dir: {resolved}"
+        raise ValueError(msg)
+    if not resolved.is_dir():
+        return
+    for child in resolved.iterdir():
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+
+
 def _copy_asset_tree(src_dir: Path, dst_dir: Path) -> None:
     if not src_dir.is_dir():
         return
@@ -161,6 +179,7 @@ def build_pwa(
 ) -> dict[str, Any]:
     """Compile the complete zero-backend static PWA bundle into `output_dir`."""
     out_dir = Path(output_dir)
+    _clean_output_dir(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if pwa_dir.is_dir() and any(pwa_dir.iterdir()):

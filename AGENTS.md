@@ -5,7 +5,7 @@
 Training Aid compiles static exercise catalogs and forward-kinematics SVGs via Python ≥3.13 into a self-contained offline PWA (`dist/`):
 
 - `src/training_aid/{__init__.py,cli.py}` — CLI entrypoint (`training-aid`).
-- `src/training_aid/compiler/{__init__.py,coaching.py,catalog_builder.py,bundler.py}` — `CatalogExercise` model, coaching metadata, `dist/data/catalog.json` (`schema_version = 2`, 876 exercises, 126 inline SVGs), 126 SVG thumbnails, and 1:1 `dist/` bundler with deterministic `sw.js` `APP_SHELL_ASSETS` + `CACHE_VERSION` stamping.
+- `src/training_aid/compiler/{__init__.py,coaching.py,catalog_builder.py,bundler.py}` — `CatalogExercise` model, coaching metadata, `dist/data/catalog.json` (`schema_version = 2`, 876 exercises, 168 inline SVGs), 168 SVG thumbnails, and 1:1 `dist/` bundler with deterministic `sw.js` `APP_SHELL_ASSETS` + `CACHE_VERSION` stamping.
 - `src/training_aid/kinematics/{__init__.py,registry.py,ik_compiler.py,fk_solver.py,svg_props.py,svg_renderer.py}` — Declarative `AnimationRegistry`, 2-link IK pose compiler, 2D FK solver, equipment prop geometry, and interactive/thumbnail SVG renderer.
 - `src/training_aid/audit/{__init__.py,models.py,node_runner.py,bundle_security.py,catalog_checks.py,rig_checks.py}` — End-to-end catalog, kinematics, CSP/privacy, and Node ESM bundle audit (`training-aid-check`).
 - `src/training_aid/pwa/` — Unified 1:1 client tree copied directly into `dist/`:

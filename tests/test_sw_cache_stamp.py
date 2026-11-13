@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Philipp Kaaden
-"""Tests for deterministic Service Worker precache and CACHE_VERSION stamping."""
+"""Tests for Service Worker precache, bundle cleanup, and CSP/icon audit."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from training_aid.audit import DATA_DIR, REPO_ROOT
+from training_aid.audit.bundle_security import check_shell_and_privacy
 from training_aid.compiler import (
     PWA_SRC_DIR,
     build_pwa,
@@ -38,6 +40,8 @@ def test_build_pwa_stamps_deterministic_idempotent_sw(tmp_path: Path) -> None:
     sw_dist_text = (dist_a / "sw.js").read_text(encoding="utf-8")
     assert f'CACHE_VERSION = "{version_a}";' in sw_dist_text
     assert 'CACHE_VERSION = "v1";' not in sw_dist_text
+    assert 'new Request(url, { cache: "reload" })' in sw_dist_text
+    assert 'pathname.endsWith(".png")' in sw_dist_text
 
     match = _ASSETS_RE.search(sw_dist_text)
     assert match is not None
@@ -45,6 +49,10 @@ def test_build_pwa_stamps_deterministic_idempotent_sw(tmp_path: Path) -> None:
     assert "./" in assets
     assert "./index.html" in assets
     assert "./app.js" in assets
+    assert "./apple-touch-icon.png" in assets
+    assert "./icon-192.png" in assets
+    assert "./icon-512.png" in assets
+    assert "./icon-maskable-512.png" in assets
     assert "./data/catalog.json" in assets
     assert "./sw.js" not in assets
     assert not any(a.startswith("./svgs/thumbs/") for a in assets)
@@ -57,6 +65,76 @@ def test_build_pwa_stamps_deterministic_idempotent_sw(tmp_path: Path) -> None:
     restamped = stamp_service_worker(dist_a)
     assert restamped == version_a
     assert (dist_a / "sw.js").read_text(encoding="utf-8") == sw_dist_text
+
+
+def test_build_pwa_cleans_orphaned_files_and_guards_unsafe_paths(
+    tmp_path: Path,
+) -> None:
+    """Verify build_pwa purges stale files/dirs and rejects unsafe output_dir paths."""
+    dist_dir = tmp_path / "dist"
+    stale_dir = dist_dir / "old_nested"
+    stale_dir.mkdir(parents=True)
+    stale_file = dist_dir / "orphan.js"
+    stale_nested = stale_dir / "stale.txt"
+    stale_file.write_text("// orphan\n", encoding="utf-8")
+    stale_nested.write_text("stale\n", encoding="utf-8")
+
+    summary = build_pwa(dist_dir)
+    assert not stale_file.exists()
+    assert not stale_dir.exists()
+    assert (dist_dir / "index.html").is_file()
+
+    clean_bundle = tmp_path / "clean_dist"
+    assert summary["cache_version"] == build_pwa(clean_bundle)["cache_version"]
+
+    for unsafe_target in (
+        REPO_ROOT,
+        REPO_ROOT.parent,
+        PWA_SRC_DIR,
+        PWA_SRC_DIR / "core",
+        DATA_DIR,
+    ):
+        with pytest.raises(ValueError, match="Refusing to clean unsafe output_dir"):
+            build_pwa(unsafe_target)
+
+
+def test_bundle_security_enforces_png_signature_manifest_and_csp(
+    tmp_path: Path,
+) -> None:
+    """Verify check_shell_and_privacy checks PNG magic bytes, manifest, and CSP."""
+    dist_dir = tmp_path / "dist"
+    build_pwa(dist_dir)
+    assert check_shell_and_privacy(dist_dir) == []
+
+    # Corrupt a PNG file and verify magic-byte failure.
+    png_path = dist_dir / "icon-192.png"
+    original_png = png_path.read_bytes()
+    png_path.write_bytes(b"NOT_A_PNG_HEADER")
+    stamp_service_worker(dist_dir)
+    errs = check_shell_and_privacy(dist_dir)
+    assert any("invalid PNG magic signature" in err for err in errs)
+    png_path.write_bytes(original_png)
+
+    # Combine 'any maskable' in manifest and verify rejection.
+    manifest_path = dist_dir / "manifest.webmanifest"
+    original_manifest = manifest_path.read_text(encoding="utf-8")
+    bad_manifest = json.loads(original_manifest)
+    bad_manifest["icons"] = [
+        {
+            "src": "./icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable",
+        }
+    ]
+    manifest_path.write_text(json.dumps(bad_manifest), encoding="utf-8")
+    stamp_service_worker(dist_dir)
+    errs = check_shell_and_privacy(dist_dir)
+    assert any("must not combine purposes" in err for err in errs)
+    assert any("must include both 'any' and 'maskable'" in err for err in errs)
+    manifest_path.write_text(original_manifest, encoding="utf-8")
+    stamp_service_worker(dist_dir)
+    assert check_shell_and_privacy(dist_dir) == []
 
 
 def test_stamp_changes_when_any_bundle_asset_changes(tmp_path: Path) -> None:

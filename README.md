@@ -25,6 +25,10 @@ uv run training-aid
 uv run training-aid --build-only
 ```
 
+## GitHub Pages Deployment
+
+The repository ships with `.github/workflows/pages.yml`, which runs `bash scripts/verify_gate.sh`, compiles the clean `dist/` bundle via `uv run training-aid --build-only --out-dir dist`, and deploys to GitHub Pages using `actions/deploy-pages@v4`. All asset URLs and Service Worker precache routes use relative `./` paths so the PWA runs seamlessly at either a root domain or a `/<repo>/` subpath.
+
 ## Test & Audit
 
 ```bash

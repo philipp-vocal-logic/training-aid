@@ -38,7 +38,11 @@ REQUIRED_CSP_DIRECTIVES: tuple[str, ...] = (
     "connect-src 'self'",
     "img-src 'self' data: blob:",
     "style-src 'self' 'unsafe-inline'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "form-action 'self'",
 )
+_PNG_SIGNATURE: bytes = b"\x89PNG\r\n\x1a\n"
 _IGNORED_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo"})
 _SW_ASSETS_RE = re.compile(r"APP_SHELL_ASSETS\s*=\s*(\[[^\]]*\])", flags=re.DOTALL)
 _SW_STAMPED_VERSION_RE = re.compile(r'CACHE_VERSION\s*=\s*"v1-[0-9a-f]{12}"')
@@ -46,16 +50,17 @@ _URL_RE = re.compile(r"https?://[^\s\"'<>()\\]+", re.IGNORECASE)
 
 
 class _IndexHtmlInspector(HTMLParser):
-    """HTML parser extracting CSP meta content, script tags, and element IDs."""
+    """HTML parser extracting CSP meta content, links, scripts, and element IDs."""
 
     def __init__(self) -> None:
         super().__init__()
         self.csp_contents: list[str] = []
+        self.apple_touch_icons: list[str] = []
         self.scripts: list[dict[str, str]] = []
         self.element_ids: set[str] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        """Record meta CSP tags, script attributes, and DOM IDs."""
+        """Record meta CSP tags, apple-touch-icon links, scripts, and DOM IDs."""
         attr_map = {k.lower(): (v or "") for k, v in attrs}
         if elem_id := attr_map.get("id"):
             self.element_ids.add(elem_id)
@@ -65,6 +70,11 @@ class _IndexHtmlInspector(HTMLParser):
             and attr_map.get("http-equiv", "").lower() == "content-security-policy"
         ):
             self.csp_contents.append(attr_map.get("content", ""))
+        elif (
+            tag_lower == "link"
+            and "apple-touch-icon" in attr_map.get("rel", "").lower().split()
+        ):
+            self.apple_touch_icons.append(attr_map.get("href", ""))
         elif tag_lower == "script":
             self.scripts.append(attr_map)
 
@@ -85,7 +95,7 @@ def _iter_bundle_files(dist_dir: Path) -> list[tuple[str, Path]]:
 
 
 def _check_index_html(index_path: Path, errors: list[str]) -> None:
-    """Verify index.html CSP directives, module entrypoint, and dead-node removal."""
+    """Verify index.html CSP directives, apple-touch-icon, and module entrypoint."""
     inspector = _IndexHtmlInspector()
     inspector.feed(index_path.read_text(encoding="utf-8"))
 
@@ -104,6 +114,13 @@ def _check_index_html(index_path: Path, errors: list[str]) -> None:
             if forbidden_origin in csp_val
         )
 
+    if "./apple-touch-icon.png" not in inspector.apple_touch_icons:
+        errors.append(
+            "index.html must link './apple-touch-icon.png' as apple-touch-icon"
+        )
+    elif not (index_path.parent / "apple-touch-icon.png").is_file():
+        errors.append("dist/apple-touch-icon.png is missing")
+
     if "toast-root" in inspector.element_ids:
         errors.append("index.html must not contain legacy #toast-root element")
 
@@ -113,6 +130,45 @@ def _check_index_html(index_path: Path, errors: list[str]) -> None:
     }:
         errors.append(
             "index.html must load exactly one <script type='module' src='./app.js'>"
+        )
+
+
+def _check_manifest(
+    manifest: dict[str, object],
+    dist_dir: Path,
+    errors: list[str],
+) -> None:
+    """Verify manifest.webmanifest display, start_url, and separate icon purposes."""
+    if manifest.get("display") != "standalone" or manifest.get("start_url") != "./":
+        errors.append(
+            "manifest.webmanifest must specify display='standalone' and start_url='./'"
+        )
+
+    icons = manifest.get("icons")
+    if not isinstance(icons, list) or not icons:
+        errors.append("manifest.webmanifest must define a non-empty 'icons' list")
+        return
+
+    purposes: set[str] = set()
+    for entry in icons:
+        if not isinstance(entry, dict):
+            errors.append("manifest.webmanifest icon entry must be an object")
+            continue
+        src = str(entry.get("src", "")).strip()
+        rel_src = src.removeprefix("./")
+        if not rel_src or not (dist_dir / rel_src).is_file():
+            errors.append(f"manifest.webmanifest icon src missing in dist/: {src}")
+        purpose = str(entry.get("purpose", "any")).strip()
+        if " " in purpose:
+            errors.append(
+                f"manifest.webmanifest icon '{src}' must not combine purposes: "
+                f"'{purpose}'"
+            )
+        purposes.add(purpose)
+
+    if "any" not in purposes or "maskable" not in purposes:
+        errors.append(
+            "manifest.webmanifest icons must include both 'any' and 'maskable' purposes"
         )
 
 
@@ -178,16 +234,18 @@ def check_shell_and_privacy(dist_dir: Path) -> list[str]:
         return errors
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("display") != "standalone" or manifest.get("start_url") != "./":
-        errors.append(
-            "manifest.webmanifest must specify display='standalone' and start_url='./'"
-        )
+    _check_manifest(manifest, dist_dir, errors)
 
     bundle_files = _iter_bundle_files(dist_dir)
     _check_index_html(index_path, errors)
     _check_service_worker(sw_path, dist_dir, bundle_files, errors)
 
     for rel_posix, file_path in bundle_files:
+        if file_path.suffix.lower() == ".png":
+            if not file_path.read_bytes().startswith(_PNG_SIGNATURE):
+                errors.append(f"{rel_posix}: invalid PNG magic signature")
+            continue
+
         text = file_path.read_text(encoding="utf-8")
         text_lower = text.lower()
         errors.extend(

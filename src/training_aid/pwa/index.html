@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'" />
+  <meta name="description" content="Zero-backend offline guided workout trainer with live 2D kinematics and Web Audio synthesis." />
   <meta name="theme-color" content="#090d16" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Train</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
   <link rel="stylesheet" href="./styles/tokens.css" />
   <link rel="stylesheet" href="./styles/primitives.css" />
   <link rel="stylesheet" href="./styles/layout.css" />
@@ -36,6 +38,7 @@
     <main class="boot-screen" aria-busy="true">
       <span class="brand-dot"></span>
       <span class="muted">Loading trainer…</span>
+      <noscript><span class="muted">JavaScript is required to run Training Aid.</span></noscript>
     </main>
   </div>
 
