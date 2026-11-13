@@ -900,7 +900,7 @@ const path = require("node:path");
 
   const domStorage = makeMemoryStorage();
   const winListeners = new Map();
-  let currentHash = "";
+  let currentHash = "#edit/%";
   const activeRafs = new Map();
   const activeIntervals = new Map();
   let timerSeq = 1;
@@ -988,10 +988,27 @@ const path = require("node:path");
   new Function(
     fs.readFileSync(path.join(distDir, "static", "sound.js"), "utf8")
   )();
+  let stopAllCalls = 0;
+  const origCreateCtrl = mockWindow.TrainingSound.createController;
+  mockWindow.TrainingSound = Object.assign({}, mockWindow.TrainingSound, {
+    createController(opts) {
+      const ctrl = origCreateCtrl(opts);
+      const origStopAll = ctrl.stopAll.bind(ctrl);
+      ctrl.stopAll = () => {
+        stopAllCalls += 1;
+        return origStopAll();
+      };
+      return ctrl;
+    },
+  });
   new Function(fs.readFileSync(path.join(distDir, "app.js"), "utf8"))();
 
   await new Promise((r) => setTimeout(r, 10));
-  check(currentHash === "#setup", `Expected initial #setup, got '${currentHash}'`);
+  check(
+    currentHash === "#setup" &&
+      !appRoot.textContent.includes("Unable to load trainer catalog"),
+    `Malformed boot hash '#edit/%' failed to recover to #setup: '${currentHash}'`
+  );
 
   // Submit setup with XSS payload in athlete name & full_gym
   const setupForm = appRoot.querySelector(".setup-form");
@@ -1073,6 +1090,58 @@ const path = require("node:path");
   );
   mockWindow.location.hash = "#edit/r1";
   check(activeIntervals.size === 0, `Leaked ${activeIntervals.size} intervals`);
+
+  // Malformed URI hashes during active session tear down view & recover to #plan
+  mockWindow.location.hash = "#workout/r1";
+  docRoot.getElementById("primary-btn").click();
+  docRoot.getElementById("skip-btn").click();
+  check(
+    (winListeners.get("keydown") || new Set()).size === 1,
+    "Workout keydown shortcut listener not registered"
+  );
+  mockWindow.location.hash = "#workout/%E0%A4%A";
+  check(
+    currentHash === "#plan" && topbar.hidden === false,
+    "Malformed #workout/%E0%A4%A did not recover to #plan"
+  );
+  check(
+    (winListeners.get("keydown") || new Set()).size === 0,
+    "Malformed #workout/%E0%A4%A leaked workout keydown listener"
+  );
+  mockWindow.location.hash = "#edit/%";
+  check(
+    currentHash === "#plan" && topbar.hidden === false,
+    "Malformed #edit/% did not recover to #plan"
+  );
+
+  // Active #workout/r1 -> #import=<token> tears down audio, HUD, and shortcuts
+  mockWindow.location.hash = "#workout/r1";
+  docRoot.getElementById("primary-btn").click();
+  docRoot.getElementById("skip-btn").click();
+  const stopsBeforeImport = stopAllCalls;
+  mockWindow.location.hash = frag;
+  check(
+    stopAllCalls > stopsBeforeImport,
+    "#import= hashchange did not call Sound.stopAll() on active workout"
+  );
+  check(
+    topbar.hidden === false && !docRoot.getElementById("primary-btn"),
+    "#import= hashchange did not tear down active workout HUD"
+  );
+  check(
+    (winListeners.get("keydown") || new Set()).size === 0 &&
+      activeIntervals.size === 0,
+    "#import= hashchange leaked workout keydown shortcuts or intervals"
+  );
+  await new Promise((r) => setTimeout(r, 10));
+  check(modalRoot.hidden === false, "#import= confirmation modal did not open");
+  docRoot.getElementById("import-cancel-btn").click();
+  check(
+    modalRoot.hidden === true &&
+      currentHash === "#plan" &&
+      (winListeners.get("keydown") || new Set()).size === 0,
+    "#import= cancel did not cleanly close modal and return to #plan"
+  );
 
   process.stdout.write(JSON.stringify({ failures }));
 })().catch((err) => {
@@ -2151,6 +2220,20 @@ def _run_node_pwa_e2e_harness(dist_dir: Path, errors: list[str]) -> None:
     errors.extend(f"Node PWA E2E: {msg}" for msg in parsed.get("failures", []))
 
 
+def verify_pwa_bundle_with_node(dist_dir: Path) -> list[str]:
+    """Run the Node.js E2E harness against a compiled static PWA directory.
+
+    Args:
+        dist_dir: Path to a directory produced by ``build_pwa()``.
+
+    Returns:
+        List of diagnostic failure strings (empty when all checks pass).
+    """
+    errors: list[str] = []
+    _run_node_pwa_e2e_harness(dist_dir, errors)
+    return errors
+
+
 def _audit_pwa_programs_and_node_e2e(
     cfg: AuditConfig,
     exercises: list[CatalogExercise],
@@ -2158,7 +2241,7 @@ def _audit_pwa_programs_and_node_e2e(
 ) -> AuditSectionResult:
     by_id = {ex.id: ex for ex in exercises}
     errors = _audit_programs_config(cfg, by_id)
-    _run_node_pwa_e2e_harness(dist_dir, errors)
+    errors.extend(verify_pwa_bundle_with_node(dist_dir))
     return AuditSectionResult(
         "pwa_programs_and_node_e2e",
         len(exercises),

@@ -209,6 +209,16 @@
     return mon + " " + day;
   }
 
+  function safeDecodeRouteParam(rawSegment) {
+    if (!rawSegment) return null;
+    try {
+      var decoded = decodeURIComponent(rawSegment);
+      return decoded || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function buildProgressChartSvg(series) {
     var labels = (series && Array.isArray(series.labels) && series.labels) || [];
     var values = (series && Array.isArray(series.values) && series.values) || [];
@@ -736,6 +746,7 @@
     buildProgressChartSvg: buildProgressChartSvg,
     createViewScope: createViewScope,
     formatLogDate: formatLogDate,
+    safeDecodeRouteParam: safeDecodeRouteParam,
   };
 
   root.TrainingApp = exportedApi;
@@ -756,7 +767,6 @@
   var activeScope = null;
   var modalScope = null;
   var lastCompletedLog = null;
-  var hasMountedScreen = false;
 
   var Sound =
     root.TrainingSound &&
@@ -922,7 +932,6 @@
     teardownActiveView();
     var scope = createViewScope();
     activeScope = scope;
-    hasMountedScreen = true;
 
     document.title = "Setup";
     syncTopbar("setup", false);
@@ -1614,17 +1623,15 @@
   ------------------------------------------------------------------ */
 
   function handleIncomingShareImport(rawHash) {
-    if (!hasMountedScreen) {
-      if (store.hasActivePlan()) {
-        renderPlanScreen();
-      } else {
-        renderSetupScreen();
-      }
+    if (store.hasActivePlan()) {
+      renderPlanScreen();
+    } else {
+      renderSetupScreen();
     }
 
     function finishImportFlow() {
       closeModal();
-      replaceHash("#plan");
+      replaceHash(store.hasActivePlan() ? "#plan" : "#setup");
       handleRoute();
     }
 
@@ -1765,7 +1772,6 @@
     teardownActiveView();
     var scope = createViewScope();
     activeScope = scope;
-    hasMountedScreen = true;
 
     document.title = "Plan";
     syncTopbar("plan", false);
@@ -2158,7 +2164,6 @@
     teardownActiveView();
     var scope = createViewScope();
     activeScope = scope;
-    hasMountedScreen = true;
 
     document.title = routine.name;
     syncTopbar("plan", false);
@@ -2347,7 +2352,6 @@
     teardownActiveView();
     var scope = createViewScope();
     activeScope = scope;
-    hasMountedScreen = true;
 
     document.title = routine.name;
     syncTopbar("", true);
@@ -3087,7 +3091,6 @@
     teardownActiveView();
     var scope = createViewScope();
     activeScope = scope;
-    hasMountedScreen = true;
 
     document.title = "Stats";
     syncTopbar("progress", false);
@@ -3312,15 +3315,19 @@
     }
 
     if (clean.indexOf("edit/") === 0) {
-      var editId = decodeURIComponent(clean.slice(5));
-      renderRoutineEditScreen(editId);
-      return;
+      var editId = safeDecodeRouteParam(clean.slice(5));
+      if (editId !== null) {
+        renderRoutineEditScreen(editId);
+        return;
+      }
     }
 
     if (clean.indexOf("workout/") === 0) {
-      var workoutId = decodeURIComponent(clean.slice(8));
-      renderWorkoutScreen(workoutId);
-      return;
+      var workoutId = safeDecodeRouteParam(clean.slice(8));
+      if (workoutId !== null) {
+        renderWorkoutScreen(workoutId);
+        return;
+      }
     }
 
     if (store.hasActivePlan()) {
@@ -3356,9 +3363,7 @@
           throw new Error("TrainingStore missing");
         }
         store = root.TrainingStore.createStore({ catalog: catalog });
-        Sound.setTheme(store.getSoundTheme());
-        window.addEventListener("hashchange", handleRoute);
-        handleRoute();
+        return true;
       })
       .catch(function (err) {
         var appRoot = document.getElementById("app-root");
@@ -3374,6 +3379,13 @@
             ])
           );
         }
+        return false;
+      })
+      .then(function (ready) {
+        if (!ready || !store) return;
+        Sound.setTheme(store.getSoundTheme());
+        window.addEventListener("hashchange", handleRoute);
+        handleRoute();
       });
   }
 

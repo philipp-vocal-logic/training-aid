@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import training_aid
-from training_aid.audit import find_node_binary
+from training_aid.audit import find_node_binary, verify_pwa_bundle_with_node
 from training_aid.builder import (
     CANONICAL_EQUIPMENT_MODES,
     CATALOG_SCHEMA_VERSION,
@@ -299,6 +299,13 @@ const assert = (cond, msg) => {
   assert(
     appHelpers.formatLogDate("2026-11-12T10:00:00Z") === "Nov 12",
     "formatLogDate"
+  );
+  assert(
+    appHelpers.safeDecodeRouteParam("%") === null &&
+      appHelpers.safeDecodeRouteParam("%E0%A4%A") === null &&
+      appHelpers.safeDecodeRouteParam("") === null &&
+      appHelpers.safeDecodeRouteParam("day%201") === "day 1",
+    "safeDecodeRouteParam"
   );
 
   process.stdout.write(JSON.stringify({ ok: true }));
@@ -714,6 +721,7 @@ def test_node_store_qr_and_app_integration(built_pwa: Path) -> None:
     )
     assert proc.returncode == 0, f"Node harness failed:\n{proc.stdout}\n{proc.stderr}"
     assert json.loads(proc.stdout) == {"ok": True}
+    assert verify_pwa_bundle_with_node(built_pwa) == []
 
 
 def test_pregenerated_svgs_motion_js_and_minimal_coaching(
