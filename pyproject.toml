@@ -2,6 +2,8 @@
 name = "training-aid"
 version = "0.1.0"
 description = "Simple KISS/YAGNI Workout Trainer web application for creating, motivating, and measuring training workouts"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
     { name = "Philipp Kaaden", email = "274027022+philipp-vocal-logic@users.noreply.github.com" }
 ]

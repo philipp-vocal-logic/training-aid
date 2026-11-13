@@ -41,3 +41,7 @@ uv run training-aid-check
 # Enable fast (<1s) Ruff + JS syntax pre-commit hook on fresh clones
 git config core.hooksPath .githooks
 ```
+
+## License
+
+Licensed under the [GNU General Public License v3.0 or later](./LICENSE) (`GPL-3.0-or-later`).
