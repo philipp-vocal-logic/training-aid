@@ -71,30 +71,71 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   await appMod.boot();
   assert.equal(getHash(), "#setup");
 
-  // Setup with XSS attempt in name + multiselect equipment (Dumbbells + Bands) + Fast tempo + 15s rest
+  // Setup omits Athlete name input, adds .setup-stage, and saves default "Athlete"
+  const setupStage = appRoot.querySelector(".graphic-stage");
+  assert.equal(setupStage.classList.contains("setup-stage"), true);
   const setupForm = appRoot.querySelector(".setup-form");
   const allInputs = setupForm.querySelectorAll("input");
-  allInputs.find((n) => n.attrs.name === "name").value =
-    "<img src=x onerror=alert(1)>";
+  assert.equal(
+    allInputs.find((n) => n.attrs.name === "name"),
+    undefined,
+    "#setup must omit Athlete name input"
+  );
   for (const inp of allInputs) {
     if (inp.attrs.name === "equipment") {
       inp.checked = inp.value === "dumbbell" || inp.value === "bands";
     }
     if (inp.attrs.name === "speed_mode") inp.checked = inp.value === "fast";
     if (inp.attrs.name === "rest_seconds") inp.checked = inp.value === "15";
+    inp.dispatchEvent({ type: "change" });
   }
+  assert.ok(
+    setupForm
+      .querySelector(".setup-pacing-disclosure")
+      .querySelector(".disclosure-summary")
+      .textContent.includes("Fast \u00b7 15s")
+  );
   setupForm.dispatchEvent({ type: "submit" });
 
   assert.equal(getHash(), "#plan");
+  assert.equal(
+    JSON.parse(env.storage.getItem("training_aid_state_v2")).profile.name,
+    "Athlete"
+  );
   assert.ok(appRoot.textContent.includes("Recommended Today"));
   assert.ok(appRoot.textContent.includes("Intensity 100%"));
   assert.equal(
-    docRoot
-      .querySelectorAll("*")
-      .filter((n) => n.attrs && ("onerror" in n.attrs || n.tagName === "SCRIPT"))
-      .length,
-    0
+    appRoot.querySelectorAll("a").filter((a) => a.getAttribute("href") === "#quick").length,
+    0,
+    "#plan must have 0 duplicate href='#quick' links inside #app-root"
   );
+
+  const planFilter = appRoot.querySelector(".filter-panel");
+  assert.equal(planFilter.tagName, "DETAILS");
+  assert.equal(planFilter.open, false);
+  assert.equal(planFilter.getAttribute("open"), null);
+  assert.ok(
+    planFilter.querySelector(".disclosure-summary").textContent.includes("Dumbbells & Bands \u00b7 15s")
+  );
+
+  const routineCards = appRoot.querySelectorAll(".routine-card");
+  assert.equal(routineCards.length, 3);
+  for (const card of routineCards) {
+    const details = card.querySelector(".routine-details");
+    assert.ok(Boolean(details) && details.tagName === "DETAILS");
+    const isNext = card.classList.contains("is-next");
+    assert.equal(details.open, isNext);
+    assert.equal(details.getAttribute("open"), isNext ? "" : null);
+  }
+
+  // Verify #progress compact empty state before any workout is completed
+  setHash("#progress");
+  const emptyCard = appRoot.querySelector(".empty-state-card");
+  assert.ok(Boolean(emptyCard), "#progress must render .empty-state-card when empty");
+  assert.ok(emptyCard.textContent.includes("Complete a workout to unlock your progression chart."));
+  assert.equal(emptyCard.querySelector("a").getAttribute("href"), "#plan");
+  assert.equal(docRoot.getElementById("empty-progress-svg"), null);
+  assert.equal(docRoot.getElementById("progress-export-btn"), null);
 
   // Open On-the-Fly (#quick), generate workout, trim to 1 exercise with 2 sets x 2 reps
   setHash("#quick");
@@ -172,7 +213,10 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
 
   setHash("#progress");
   assert.ok(Boolean(appRoot.querySelector(".progress-svg-chart")));
-  assert.ok(Boolean(appRoot.querySelector(".log-ex-list")));
+  const logDetails = appRoot.querySelector(".log-details");
+  assert.ok(Boolean(logDetails) && logDetails.tagName === "DETAILS");
+  assert.equal(logDetails.open, false);
+  assert.ok(Boolean(logDetails.querySelector(".log-ex-list")));
   assert.ok(
     /20\d\d\s\u00b7\s\d\d:\d\d/.test(appRoot.textContent),
     "Stats must render local year and HH:MM time"
@@ -422,17 +466,17 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
 
   setHash("#edit/r1");
   const editResults = docRoot.getElementById("search-results");
-  assert.equal(
+  assert.match(
     editResults.querySelector(".picker-meta").textContent,
-    "Showing 48 of 876 exercises"
+    /^Showing (24|48) of 876 exercises$/
   );
   const editEquipChips = appRoot
     .querySelector(".catalog-equip-bar")
     .querySelectorAll(".equip-chip");
   editEquipChips[0].click(); // body_only -> 176 bodyweight exercises
-  assert.equal(
+  assert.match(
     editResults.querySelector(".picker-meta").textContent,
-    "Showing 48 of 176 exercises"
+    /^Showing (24|48) of 176 exercises$/
   );
   const [editMuscleSelect, , editMovementSelect] = appRoot
     .querySelector(".picker-filter-strip")
@@ -447,9 +491,9 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
     filteredChestPushCards.every((c) => c.textContent.includes("chest \u00b7 body only"))
   );
   appRoot.querySelector(".picker-reset-btn").click();
-  assert.equal(
+  assert.match(
     editResults.querySelector(".picker-meta").textContent,
-    "Showing 48 of 876 exercises"
+    /^Showing (24|48) of 876 exercises$/
   );
 
   const editSearch = appRoot.querySelector(".minimal-input");

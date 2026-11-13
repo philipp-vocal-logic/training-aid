@@ -1,9 +1,20 @@
 /* Screen 2: Daily Recommended Session, Non-Destructive Equipment Filter & Weekly Plan (#plan) */
+import { formatEquipmentSummary } from "../core/constants.js";
 import { stepToIntensityPercent } from "../core/prescription.js";
 import { el, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
 import { bindPreviewLoop } from "../ui/preview-loop.js";
 import { createViewScope } from "../ui/scope.js";
 import { renderEquipmentChipBar, renderPacingControls } from "../ui/widgets.js";
+
+let preserveFilterPanelOpen = false;
+
+function setDetailsOpen(detailsEl, isOpen) {
+  const open = Boolean(isOpen);
+  detailsEl.open = open;
+  if (open) detailsEl.setAttribute("open", "");
+  else detailsEl.removeAttribute("open");
+  return detailsEl;
+}
 
 function getCardIntensityPercent(card) {
   if (card && typeof card.intensity_percent === "number") return card.intensity_percent;
@@ -23,11 +34,15 @@ export function renderPlanView(ctx) {
     });
   const syncTopbar = ctx.syncTopbar || (() => {});
 
+  const initialFilterOpen = preserveFilterPanelOpen;
+  preserveFilterPanelOpen = false;
+
   document.title = "Plan";
   syncTopbar("plan", false);
 
   const state = store.getState();
   const rec = store.getRecommendedToday();
+  const timing = store.getWorkoutTiming();
   const routineCards = store.buildRoutineCards(undefined, { adaptForSession: true });
   const nextCard = rec.card;
   const stats = rec.stats;
@@ -107,10 +122,7 @@ export function renderPlanView(ctx) {
               el("div", { className: "muted", textContent: state.plan.name }),
               stageTitleEl,
             ]),
-            el("div", { className: "row-cluster" }, [
-              el("a", { href: "#quick", className: "btn-ghost", textContent: "\u26a1 On-the-Fly" }),
-              stageActionBtn,
-            ]),
+            el("div", { className: "row-cluster" }, [stageActionBtn]),
           ])
         : null,
     ]
@@ -134,7 +146,6 @@ export function renderPlanView(ctx) {
     el("div", { className: "mini-bar", "aria-label": "Weekly goal" }, [
       el("div", { className: "mini-bar-fill", style: { width: `${pct}%` } }),
     ]),
-    el("a", { href: "#quick", className: "btn-ghost btn-compact", textContent: "\u26a1 Quick" }),
     addDayBtn,
   ]);
 
@@ -147,26 +158,44 @@ export function renderPlanView(ctx) {
       textContent: "Reset Gear",
     });
     scope.on(resetEqBtn, "click", () => {
+      preserveFilterPanelOpen = true;
       store.resetSessionEquipment();
       navigateTo("#plan");
     });
   }
 
-  const equipPanel = el("section", { className: "filter-panel" }, [
-    el("div", { className: "field-label-row" }, [
-      el("span", { className: "field-label", textContent: "Equipment Available Today" }),
-      renderPacingControls(scope, store.getWorkoutTiming(), (patch) => store.setWorkoutTiming(patch)),
+  const equipSummaryText = (restSec) =>
+    `${formatEquipmentSummary(rec.equipment)} \u00b7 ${Number(restSec) || 30}s`;
+  const equipSummaryPill = el("span", {
+    className: "pill",
+    textContent: equipSummaryText(timing.rest_seconds),
+  });
+
+  const equipPanel = setDetailsOpen(
+    el("details", { className: "filter-panel disclosure-card" }, [
+      el("summary", { className: "disclosure-summary" }, [
+        el("span", { className: "field-label", textContent: "Equipment Available Today" }),
+        equipSummaryPill,
+      ]),
+      el("div", { className: "disclosure-body" }, [
+        renderPacingControls(scope, timing, (patch) => {
+          const updated = store.setWorkoutTiming(patch);
+          equipSummaryPill.textContent = equipSummaryText(updated.rest_seconds);
+        }),
+        renderEquipmentChipBar(
+          scope,
+          rec.equipment,
+          (nextList) => {
+            preserveFilterPanelOpen = true;
+            store.setSessionEquipment(nextList);
+            navigateTo("#plan");
+          },
+          resetEqBtn
+        ),
+      ]),
     ]),
-    renderEquipmentChipBar(
-      scope,
-      rec.equipment,
-      (nextList) => {
-        store.setSessionEquipment(nextList);
-        navigateTo("#plan");
-      },
-      resetEqBtn
-    ),
-  ]);
+    initialFilterOpen
+  );
 
   const previewLoop = bindPreviewLoop(scope, svgWrap, (rig) => ({
     speed: 0.38,
@@ -183,11 +212,15 @@ export function renderPlanView(ctx) {
     previewLoop.rebind(svgWrap);
   }
 
+  const canHoverStage =
+    !globalThis.matchMedia || globalThis.matchMedia("(min-width: 861px)").matches;
+
   const articleElements = [];
   const cardNodes = routineCards.map((card) => {
     const isNext = Boolean(nextCard && card.routine.id === nextCard.routine.id);
     const cardPct = getCardIntensityPercent(card);
     const hasEx = Boolean(card.exercises && card.exercises.length > 0);
+    const exCount = hasEx ? card.exercises.length : 0;
     const routineIdEnc = encodeURIComponent(card.routine.id);
 
     const exListNode = hasEx
@@ -219,7 +252,9 @@ export function renderPlanView(ctx) {
                 el("span", { className: "ex-row-target", textContent: row.scaled.formatted }),
               ]
             );
-            scope.on(li, "mouseenter", () => swapStageSvg(row.svg_key, row.archetype));
+            if (canHoverStage) {
+              scope.on(li, "mouseenter", () => swapStageSvg(row.svg_key, row.archetype));
+            }
             scope.on(li, "click", () => {
               swapStageSvg(row.svg_key, row.archetype);
               stageTitleEl.textContent = card.routine.name;
@@ -238,6 +273,21 @@ export function renderPlanView(ctx) {
           })
         )
       : el("a", { href: `#edit/${routineIdEnc}`, className: "muted", textContent: "+ Add exercises" });
+
+    const summaryLabel = isNext
+      ? "Today's exercises"
+      : `${exCount} ${exCount === 1 ? "exercise" : "exercises"}`;
+
+    const routineDetails = setDetailsOpen(
+      el("details", { className: "routine-details" }, [
+        el("summary", {
+          className: "disclosure-summary text-xs muted",
+          textContent: summaryLabel,
+        }),
+        exListNode,
+      ]),
+      isNext
+    );
 
     const article = el(
       "article",
@@ -277,7 +327,7 @@ export function renderPlanView(ctx) {
               : null,
           ]),
         ]),
-        exListNode,
+        routineDetails,
       ]
     );
     articleElements.push(article);

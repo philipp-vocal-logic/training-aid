@@ -1,5 +1,5 @@
 // Unit and integration tests for SW updateViaCache, JSON backup Export/Import, storage error detection,
-// #setup overwrite confirmation guard, native <dialog> focus management, and keyboard-accessible tiles.
+// #setup overwrite confirmation guard, native <dialog>/<details> disclosures, and keyboard-accessible tiles.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -135,7 +135,7 @@ test("AC-1: store.exportStateJson, store.importStateJson round-trip, validation,
   assert.equal(store2.getState().profile.name, "Backup Athlete");
 });
 
-test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and #progress-export-btn", async () => {
+test("AC-2: #setup overwrite confirmation guard, .backup-bar & <details> disclosures, and #progress-export-btn removal", async () => {
   const env = installBrowserEnv({ catalog, initialHash: "#setup", manualBoot: true });
   const { docRoot, appRoot, modalRoot, getHash, setHash } = env;
 
@@ -157,24 +157,49 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     await appMod.boot();
     assert.equal(getHash(), "#setup");
 
-    // Verify .backup-bar is outside .setup-form and Export button is initially hidden
+    // Verify .setup-form omits Athlete name input, keeps <input type='file'> outside, and wraps disclosures in <details>
     const setupForm = appRoot.querySelector(".setup-form");
+    assert.equal(
+      setupForm.querySelectorAll("input").some((i) => i.attrs.name === "name"),
+      false,
+      ".setup-form must omit Athlete name input"
+    );
     assert.equal(
       setupForm.querySelectorAll("input").some((i) => i.attrs.type === "file"),
       false,
       ".setup-form must not contain <input type='file'>"
     );
-    const backupBar = appRoot.querySelector(".backup-bar");
-    assert.ok(Boolean(backupBar), "#setup must render sibling .backup-bar");
+    const pacingDisclosure = setupForm.querySelector(".setup-pacing-disclosure");
+    assert.ok(Boolean(pacingDisclosure) && pacingDisclosure.tagName === "DETAILS");
+    assert.equal(pacingDisclosure.open, false);
+    assert.equal(pacingDisclosure.getAttribute("open"), null);
+
+    const backupDisclosure = appRoot.querySelector(".backup-disclosure");
+    assert.ok(Boolean(backupDisclosure) && backupDisclosure.tagName === "DETAILS");
+    assert.equal(setupForm.querySelector(".backup-disclosure"), null);
+    assert.equal(backupDisclosure.open, false);
+    assert.equal(backupDisclosure.getAttribute("open"), null);
+    const backupBar = backupDisclosure.querySelector(".backup-bar");
+    assert.ok(Boolean(backupBar), "#setup must render .backup-bar inside .backup-disclosure");
     assert.equal(docRoot.getElementById("backup-export-btn").hidden, true);
     assert.equal(docRoot.getElementById("storage-error-pill").hidden, true);
 
-    // 1. First-time #setup submit saves directly without confirmation modal
-    const nameInput = setupForm.querySelectorAll("input").find((i) => i.attrs.name === "name");
-    nameInput.value = "First Plan Athlete";
+    // 1. First-time #setup submit saves directly without confirmation modal, defaulting name to "Athlete"
     setupForm.dispatchEvent({ type: "submit" });
     assert.equal(modalRoot.hidden, true, "First-time setup must not open overwrite modal");
     assert.equal(getHash(), "#plan");
+
+    // Verify #plan <details.filter-panel> is closed by default and preserves open across gear toggles
+    const planFilter = appRoot.querySelector(".filter-panel");
+    assert.ok(Boolean(planFilter) && planFilter.tagName === "DETAILS");
+    assert.equal(planFilter.open, false);
+    assert.equal(planFilter.getAttribute("open"), null);
+    planFilter.open = true;
+    planFilter.setAttribute("open", "");
+    planFilter.querySelector(".equip-chip-bar").querySelectorAll("button")[0].click();
+    const reRenderedFilter = appRoot.querySelector(".filter-panel");
+    assert.equal(reRenderedFilter.open, true, "Gear toggle in #plan must preserve filter-panel open state");
+    assert.equal(reRenderedFilter.getAttribute("open"), "");
 
     // Add a custom workout day in #plan so routines length becomes 4
     const addDayBtn = appRoot
@@ -195,13 +220,11 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     assert.equal(revokedUrls.length, 1);
     const exportedText = await createdUrls[0].blob.text();
     const exportedData = JSON.parse(exportedText);
-    assert.equal(exportedData.profile.name, "First Plan Athlete");
+    assert.equal(exportedData.profile.name, "Athlete");
     assert.equal(exportedData.plan.routines.length, 4);
 
     // 3. Submitting #setup when store.hasActivePlan() opens confirmation modal
     const setupForm2 = appRoot.querySelector(".setup-form");
-    const nameInput2 = setupForm2.querySelectorAll("input").find((i) => i.attrs.name === "name");
-    nameInput2.value = "Overwritten Athlete";
     setupForm2.dispatchEvent({ type: "submit" });
 
     assert.equal(modalRoot.hidden, false, "Submitting #setup with active plan must open modal");
@@ -220,7 +243,6 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     // Return to #setup, submit again, and Confirm overwrite
     setHash("#setup");
     const setupForm3 = appRoot.querySelector(".setup-form");
-    setupForm3.querySelectorAll("input").find((i) => i.attrs.name === "name").value = "Confirmed Athlete";
     setupForm3.dispatchEvent({ type: "submit" });
     assert.equal(modalRoot.hidden, false);
     docRoot.getElementById("setup-overwrite-confirm-btn").click();
@@ -228,12 +250,11 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     assert.equal(getHash(), "#plan");
     assert.equal(appRoot.querySelectorAll(".routine-card").length, 3, "Plan replaced with fresh 3-day schedule");
 
-    // 4. Test #progress-export-btn on #progress
+    // 4. Verify #progress omits #progress-export-btn and renders compact .empty-state-card when empty
     setHash("#progress");
-    const progressExportBtn = docRoot.getElementById("progress-export-btn");
-    assert.ok(Boolean(progressExportBtn), "#progress must render #progress-export-btn");
-    progressExportBtn.click();
-    assert.equal(createdUrls.length, 2);
+    assert.equal(docRoot.getElementById("progress-export-btn"), null, "#progress must omit #progress-export-btn");
+    assert.equal(docRoot.getElementById("empty-progress-svg"), null);
+    assert.ok(Boolean(appRoot.querySelector(".empty-state-card")));
 
     // 5. Test Import JSON error handling (XSS & invalid schema) and valid round-trip restore on #setup
     setHash("#setup");
@@ -246,8 +267,9 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     assert.match(statusMsg.textContent, /not valid JSON/i);
     assert.equal(getHash(), "#setup");
 
-    // Valid import restores the 4-routine backup (with completed workout log) and navigates to #plan
+    // Valid import restores the 4-routine backup (with custom profile.name and completed workout log) and navigates to #plan
     const backupWithLog = JSON.parse(exportedText);
+    backupWithLog.profile.name = "Restored Athlete";
     backupWithLog.logs = [
       {
         id: "log_test_1",
@@ -269,16 +291,26 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     assert.equal(getHash(), "#plan");
     assert.equal(appRoot.querySelectorAll(".routine-card").length, 4);
 
-    // Confirming #setup overwrite replaces routines while keeping completed workout history
+    // Confirming #setup overwrite preserves curName ("Restored Athlete") and completed workout history
     setHash("#setup");
     const setupForm4 = appRoot.querySelector(".setup-form");
-    setupForm4.querySelectorAll("input").find((i) => i.attrs.name === "name").value = "History Kept Athlete";
     setupForm4.dispatchEvent({ type: "submit" });
     docRoot.getElementById("setup-overwrite-confirm-btn").click();
-    setHash("#progress");
-    assert.ok(Boolean(appRoot.querySelector(".log-ex-list")), "Completed workout history must be kept after plan overwrite");
+    assert.equal(
+      JSON.parse(env.storage.getItem("training_aid_state_v2")).profile.name,
+      "Restored Athlete",
+      "Setup overwrite must preserve existing curName"
+    );
 
-    // Verify #storage-error-pill renders when localStorage.setItem throws
+    setHash("#progress");
+    const logDetails = appRoot.querySelector(".log-details");
+    assert.ok(Boolean(logDetails) && logDetails.tagName === "DETAILS");
+    assert.equal(logDetails.open, false);
+    assert.equal(logDetails.getAttribute("open"), null);
+    assert.ok(Boolean(logDetails.querySelector(".disclosure-summary")));
+    assert.ok(Boolean(logDetails.querySelector(".log-ex-list")), "Completed workout history must be kept after plan overwrite");
+
+    // Verify #storage-error-pill renders and .backup-disclosure auto-opens when localStorage.setItem throws
     const origSetItem = env.storage.setItem;
     env.storage.setItem = () => {
       throw new Error("QuotaExceededError");
@@ -289,6 +321,9 @@ test("AC-2: #setup overwrite confirmation guard, .backup-bar Export/Import, and 
     fileInput2.dispatchEvent({ type: "change" });
     setHash("#setup");
     assert.equal(docRoot.getElementById("storage-error-pill").hidden, false);
+    const errBackupDisclosure = appRoot.querySelector(".backup-disclosure");
+    assert.equal(errBackupDisclosure.open, true, ".backup-disclosure must auto-open when hasStorageErr is true");
+    assert.equal(errBackupDisclosure.getAttribute("open"), "");
     env.storage.setItem = origSetItem;
 
     appMod.teardownActiveView();
