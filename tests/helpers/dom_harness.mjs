@@ -14,6 +14,7 @@ export const DEFAULT_RIG_SELECTORS = Object.freeze([
   ".js-j-shoulder", ".js-j-hip", ".js-j-knee", ".js-j-elbow", ".js-weight", ".js-weight-cap",
   ".js-weight-b", ".js-kb-handle-f", ".js-bar-shaft", ".js-bar-hub", ".js-band-f", ".js-band-b",
   ".js-cable", ".js-cable-grip", ".js-shadow", ".js-aura", ".js-ring", ".js-pulse",
+  ".js-clavicle", ".js-pelvis", ".js-j-shoulder-b", ".js-j-hip-b", ".js-j-knee-b", ".js-j-elbow-b",
 ]);
 
 export const toCamel = (s) => String(s).replace(/-([a-z])/g, (_, ch) => ch.toUpperCase());

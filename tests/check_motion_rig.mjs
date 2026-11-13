@@ -27,6 +27,7 @@ for (const item of combos) {
       holdStyle: item.hold_style,
       equipment: item.eq_mode,
       barMode: item.bar_mode,
+      ...(item.view === "front" ? { view: "front" } : {}),
     },
     querySelector: (sel) => els[sel] || null,
   });

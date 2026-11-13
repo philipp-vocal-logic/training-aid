@@ -339,3 +339,20 @@ test("schema v2 store, non-destructive daily filter, and unified *ExerciseItem C
   assert.equal(gymStore.getRecommendedToday().workouts_today, 2);
   assert.equal(gymStore.getStats().workouts_this_week, 3);
 });
+
+test("ARCHETYPE_FAMILY maps all 6 coronal archetypes to expected families", () => {
+  const expectedCoronal = {
+    lateral_raise: "push",
+    chest_fly: "push",
+    rear_fly: "pull",
+    upright_row: "pull",
+    side_lunge: "lower",
+    side_bend: "core",
+  };
+  for (const [arch, family] of Object.entries(expectedCoronal)) {
+    assert.equal(catalogMod.ARCHETYPE_FAMILY[arch], family);
+    assert.equal(catalogMod.familyForArchetype(arch), family);
+    assert.equal(catalogMod.familyForArchetype(arch.toUpperCase()), family);
+  }
+  assert.equal(Object.keys(catalogMod.ARCHETYPE_FAMILY).length, 24);
+});
