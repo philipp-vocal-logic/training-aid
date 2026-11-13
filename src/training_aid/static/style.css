@@ -464,8 +464,7 @@ select {
   color: var(--muted);
 }
 
-.minimal-input,
-.minimal-select {
+.minimal-input {
   width: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -477,8 +476,7 @@ select {
   transition: border-color 0.15s ease;
 }
 
-.minimal-input:focus,
-.minimal-select:focus {
+.minimal-input:focus {
   border-color: var(--brand-bright);
 }
 
@@ -1254,7 +1252,6 @@ select {
   .ex-row,
   .tile-option,
   .minimal-input,
-  .minimal-select,
   .toast-pill,
   .nav-pills a {
     transition: none !important;
