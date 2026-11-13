@@ -80,6 +80,7 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
   const pageSize = Number(opts.limit) > 0 ? Math.trunc(Number(opts.limit)) : 48;
   const compatibleOnly = Boolean(opts.compatibleOnly);
   const showEquipment = opts.showEquipment !== false;
+  const showEquipmentFilter = opts.showEquipmentFilter !== false;
   const fetchLimit = 1000;
   const onSelect = opts.onAdd || opts.onSelect || (() => {});
   const getAddedCounts =
@@ -124,41 +125,62 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
     resetBtn,
   ]);
 
-  const equipButtons = CATALOG_EQUIP_OPTIONS.map((opt) => {
-    const btn = el(
-      "button",
-      {
-        type: "button",
-        className: "equip-chip",
-        dataset: { equipId: opt.id },
-        "aria-pressed": "false",
-      },
-      [makeEquipmentIcon(opt.id, 14), el("span", { textContent: opt.label })]
-    );
-    scope.on(btn, "click", () => {
-      if (activeEquip.has(opt.id)) activeEquip.delete(opt.id);
-      else activeEquip.add(opt.id);
-      visibleCount = pageSize;
-      refresh();
-    });
-    return { id: opt.id, btn };
+  const equipButtons = showEquipmentFilter
+    ? CATALOG_EQUIP_OPTIONS.map((opt) => {
+        const btn = el(
+          "button",
+          {
+            type: "button",
+            className: "equip-chip",
+            dataset: { equipId: opt.id },
+            "aria-pressed": "false",
+          },
+          [makeEquipmentIcon(opt.id, 14), el("span", { textContent: opt.label })]
+        );
+        scope.on(btn, "click", () => {
+          if (activeEquip.has(opt.id)) activeEquip.delete(opt.id);
+          else activeEquip.add(opt.id);
+          visibleCount = pageSize;
+          refresh();
+        });
+        return { id: opt.id, btn };
+      })
+    : [];
+
+  const equipBar = showEquipmentFilter
+    ? el(
+        "div",
+        {
+          className: "equip-chip-bar catalog-equip-bar",
+          role: "group",
+          "aria-label": "Filter catalog equipment",
+        },
+        equipButtons.map((item) => item.btn)
+      )
+    : null;
+
+  const filterCountBadge = el("span", {
+    className: "pill pill-brand",
+    hidden: true,
   });
 
-  const equipBar = el(
-    "div",
-    {
-      className: "equip-chip-bar catalog-equip-bar",
-      role: "group",
-      "aria-label": "Filter catalog equipment",
-    },
-    equipButtons.map((item) => item.btn)
+  const filtersDisclosure = el(
+    "details",
+    { className: "disclosure-card picker-filters-disclosure", open: false },
+    [
+      el("summary", { className: "disclosure-summary" }, [
+        el("span", { className: "field-label", textContent: "Filters" }),
+        filterCountBadge,
+      ]),
+      filterStrip,
+      equipBar,
+    ]
   );
 
   const resultsWrap = el("div", { id: resultsId });
   const pane = el("section", { className: "editor-pane" }, [
     searchInput,
-    filterStrip,
-    equipBar,
+    filtersDisclosure,
     resultsWrap,
   ]);
 
@@ -182,12 +204,16 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
       btn.classList.toggle("is-active", active);
       btn.setAttribute("aria-pressed", active ? "true" : "false");
     }
+    const activeFacetCount =
+      activeEquip.size +
+      (muscleSelect.value ? 1 : 0) +
+      (categorySelect.value ? 1 : 0) +
+      (movementSelect.value ? 1 : 0);
+    filterCountBadge.hidden = activeFacetCount === 0;
+    filterCountBadge.textContent =
+      activeFacetCount > 0 ? String(activeFacetCount) : "";
     const hasActiveFilter = Boolean(
-      activeEquip.size > 0 ||
-        muscleSelect.value ||
-        categorySelect.value ||
-        movementSelect.value ||
-        searchInput.value.trim()
+      activeFacetCount > 0 || searchInput.value.trim()
     );
     resetBtn.hidden = !hasActiveFilter;
   }

@@ -25,13 +25,19 @@ export function renderEditView(ctx) {
   document.title = routine.name;
   syncTopbar("plan", false);
 
+  const initCards = store.buildRoutineCards([routine]);
+  const initRows = initCards && initCards[0] ? initCards[0].exercises : [];
+  const defaultPickerOpen =
+    initRows.length === 0 ||
+    Boolean(globalThis.matchMedia?.("(min-width: 861px)")?.matches);
+
   const leftPane = el("section", { className: "editor-pane" });
   const picker = renderCatalogPicker(scope, store, {
     resultsId: "search-results",
     placeholder: "Search name, muscle, gear, or category...",
     ariaLabel: "Search exercises",
     emptyText: "No matching exercises.",
-    limit: 48,
+    limit: 24,
     showEquipment: true,
     getAddedCounts: () => countExercises(store.getRoutine(targetId)),
     onAdd: (exId) => {
@@ -40,9 +46,23 @@ export function renderEditView(ctx) {
     },
   });
 
+  const pickerDisclosure = el(
+    "details",
+    { className: "picker-disclosure", open: defaultPickerOpen },
+    [
+      el("summary", {
+        className: "btn-ghost btn-block picker-toggle-summary",
+        textContent: "+ Browse & Search Catalog",
+      }),
+      picker,
+    ]
+  );
+
   document
     .getElementById("app-root")
-    .replaceChildren(el("main", { className: "editor-screen" }, [leftPane, picker]));
+    .replaceChildren(
+      el("main", { className: "editor-screen" }, [leftPane, pickerDisclosure])
+    );
 
   function refreshRoutineExercises() {
     const latestRoutine = store.getRoutine(targetId);
@@ -104,6 +124,10 @@ export function renderEditView(ctx) {
           )
         : el("div", { className: "muted", textContent: "+ Select or randomize exercises" });
 
+    if (rows.length === 0) {
+      pickerDisclosure.open = true;
+      pickerDisclosure.setAttribute("open", "");
+    }
     leftPane.replaceChildren(headerRow, listContent);
     picker.refresh();
   }
