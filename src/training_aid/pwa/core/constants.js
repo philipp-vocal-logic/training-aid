@@ -3,7 +3,7 @@ export const EQUIPMENT_OPTIONS = Object.freeze([
   Object.freeze({ id: "kettlebells", label: "Kettlebells", arch: "hinge", prop: "kettlebells" }),
   Object.freeze({ id: "bands", label: "Bands", arch: "row_pull", prop: "bands" }),
   Object.freeze({ id: "barbell", label: "Barbell", arch: "bench_press", prop: "barbell" }),
-  Object.freeze({ id: "pull_up_bar", label: "Pull-Up Bar", arch: "vertical_pull", prop: "body_only" }),
+  Object.freeze({ id: "pull_up_bar", label: "Pull-Up Bar", arch: "pull_up", prop: "body_only" }),
   Object.freeze({ id: "bench", label: "Bench", arch: "dip", prop: "body_only" }),
   Object.freeze({ id: "machine", label: "Machines", arch: "leg_extension_curl", prop: "machine" }),
 ]);

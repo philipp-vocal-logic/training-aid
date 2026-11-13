@@ -60,17 +60,24 @@ __all__ = [
 def compute_required_equipment(exercise: CatalogExercise) -> list[str]:
     """Derive canonical required equipment IDs (plus fixture props) for an exercise."""
     raw_eq = exercise.equipment.strip().lower()
+    arch = exercise.archetype.lower()
+    name = exercise.name
     if raw_eq in _OTHER_EQ:
+        if raw_eq == "other" and (arch == "pull_up" or _PULL_UP_BAR_RE.search(name)):
+            if "rope" in name.lower():
+                return ["__other__"]
+            req = ["pull_up_bar"]
+            if "band" in name.lower():
+                req.append("bands")
+            return req
         return ["__other__"]
 
     required: list[str] = []
     if mapped := _EQUIPMENT_MAP.get(raw_eq):
         required.append(mapped)
 
-    arch = exercise.archetype.lower()
-    name = exercise.name
     if raw_eq == "body only" and (
-        arch == "vertical_pull" or _PULL_UP_BAR_RE.search(name)
+        arch in {"pull_up", "vertical_pull"} or _PULL_UP_BAR_RE.search(name)
     ):
         required.append("pull_up_bar")
     if raw_eq not in _BENCH_FREE_EQ and not _NO_BENCH_RE.search(name):

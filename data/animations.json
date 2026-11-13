@@ -1061,6 +1061,52 @@
         "cue_return": "↑ Tall",
         "tempo_mode": "standard"
       }
+    },
+    "pull_up": {
+      "label": "Pull-Up",
+      "view": "front",
+      "fixture": "pullup_bar",
+      "forefoot": null,
+      "default_equipment": "body_only",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [120.0, 172.0],
+      "band_target": "foot",
+      "cable_anchor": [120.0, 170.0],
+      "cable_target": "hand",
+      "bones": {
+        "lumbar": 21.0,
+        "thoracic": 21.0,
+        "neck": 18.0,
+        "uarm": 25.0,
+        "farm": 25.0,
+        "thigh": 28.0,
+        "shin": 26.0
+      },
+      "pose_a": {
+        "hip": [120.0, 112.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": { "target": [146.0, 28.0], "bend_sign": 1 },
+        "arm_b": { "target": [94.0, 28.0], "bend_sign": -1 },
+        "leg_f": [86.0, 96.0],
+        "leg_b": [94.0, 84.0]
+      },
+      "pose_b": {
+        "hip": [120.0, 80.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": { "target": [146.0, 28.0], "bend_sign": 1 },
+        "arm_b": { "target": [94.0, 28.0], "bend_sign": -1 },
+        "leg_f": [84.0, 98.0],
+        "leg_b": [96.0, 82.0]
+      },
+      "coaching": {
+        "rep_seconds": 2.6,
+        "is_hold": false,
+        "how_to": "Grip wide, pull chest to bar",
+        "cue_work": "↑ Pull",
+        "cue_return": "↓ Hang",
+        "tempo_mode": "standard"
+      }
     }
   }
 }

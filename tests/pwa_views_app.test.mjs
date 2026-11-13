@@ -653,6 +653,13 @@ test("makeEquipmentIcon SVG symbols, .equip-chip & #setup tile icons, and #setup
   assert.equal(fallbackIcon.children.length, 1);
   assert.equal(fallbackIcon.children[0].tagName, "CIRCLE");
 
+  const pullUpIcon = domMod.makeEquipmentIcon("pull_up_bar", 16);
+  assert.equal(pullUpIcon.children.length, 3);
+  assert.equal(pullUpIcon.children[0].tagName, "PATH");
+  assert.equal(pullUpIcon.children[1].tagName, "CIRCLE");
+  assert.equal(pullUpIcon.children[2].tagName, "PATH");
+  assert.equal(pullUpIcon.textContent, "");
+
   // Boot at #setup and verify .setup-equip-grid tiles & newly-checked preview behavior
   await appMod.boot();
   const equipGrid = appRoot.querySelector(".setup-equip-grid");

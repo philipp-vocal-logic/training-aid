@@ -72,6 +72,22 @@ _STATIC_FIXTURES: dict[str, str] = {
         '<line x1="166" y1="154" x2="169" y2="174" stroke="#475569" '
         'stroke-width="3.2" stroke-linecap="round" />'
     ),
+    "pullup_bar": (
+        '<line x1="66" y1="22" x2="66" y2="174" stroke="#334155" '
+        'stroke-width="5" stroke-linecap="round" />'
+        '<line x1="174" y1="22" x2="174" y2="174" stroke="#334155" '
+        'stroke-width="5" stroke-linecap="round" />'
+        '<line x1="66" y1="36" x2="78" y2="28" stroke="#475569" '
+        'stroke-width="3.2" stroke-linecap="round" />'
+        '<line x1="174" y1="36" x2="162" y2="28" stroke="#475569" '
+        'stroke-width="3.2" stroke-linecap="round" />'
+        '<line x1="58" y1="28" x2="182" y2="28" stroke="#cbd5e1" '
+        'stroke-width="4.2" stroke-linecap="round" />'
+        '<line x1="88" y1="28" x2="100" y2="28" stroke="#34d399" '
+        'stroke-width="5.2" stroke-linecap="round" />'
+        '<line x1="140" y1="28" x2="152" y2="28" stroke="#34d399" '
+        'stroke-width="5.2" stroke-linecap="round" />'
+    ),
 }
 
 

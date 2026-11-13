@@ -152,6 +152,11 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
 
     by_id = {ex["id"]: ex for ex in payload["exercises"]}
     assert by_id["Pullups"]["required_equipment"] == ["pull_up_bar"]
+    assert by_id["Band_Assisted_Pull-Up"]["required_equipment"] == [
+        "pull_up_bar",
+        "bands",
+    ]
+    assert by_id["Rope_Climb"]["required_equipment"] == ["__other__"]
     assert by_id["Bench_Dips"]["required_equipment"] == ["bench"]
     assert by_id["Dumbbell_Bench_Press"]["required_equipment"] == [
         "dumbbell",
@@ -439,6 +444,37 @@ def test_front_view_svg_and_props() -> None:
     assert f'x2="{joints_b["shoulder_f"][0]:.2f}"' in sh_front
 
 
+def test_pull_up_closed_chain_kinematics_and_fixture() -> None:
+    """Verify pull_up overhead bar fixture, grip coordinates, and airborne motion."""
+    reg = load_animation_registry()
+    spec = reg.specs["pull_up"]
+    assert spec["view"] == "front"
+    assert spec["fixture"] == "pullup_bar"
+    assert spec["pose_b"]["hip_y"] < spec["pose_a"]["hip_y"] - 25.0
+
+    joints_a = solve_fk(spec["bones"], spec["pose_a"], view="front")
+    joints_b = solve_fk(spec["bones"], spec["pose_b"], view="front")
+    assert joints_a["hand_f"] == pytest.approx((146.0, 28.0), abs=0.2)
+    assert joints_a["hand_b"] == pytest.approx((94.0, 28.0), abs=0.2)
+    assert joints_b["hand_f"] == pytest.approx((146.0, 28.0), abs=0.2)
+    assert joints_b["hand_b"] == pytest.approx((94.0, 28.0), abs=0.2)
+    assert 11.5 <= joints_b["head"][1] < 28.0
+
+    for eq_mode in CANONICAL_EQUIPMENT_MODES:
+        for alpha in (0.0, 0.25, 0.5, 0.75, 1.0):
+            pose = lerp_pose(spec["pose_a"], spec["pose_b"], alpha)
+            joints = solve_fk(spec["bones"], pose, view="front")
+            assert joints["elbow_f"][0] > 134.5
+            assert joints["elbow_b"][0] < 105.5
+            assert joints["foot_f"][1] < 174.0
+            assert joints["foot_b"][1] < 174.0
+        svg = render_archetype_svg(
+            "pull_up", equipment=eq_mode, thumbnail=False, registry=reg
+        )
+        assert 'y1="28" x2="182" y2="28"' in svg
+        assert "<rect" not in svg
+
+
 def test_compute_required_equipment_chest_fly_bench_rules(tmp_path: Path) -> None:
     """Verify equipment-aware 'bench' inference, consolidation, and ID checks."""
     by_id = {ex.id: ex for ex in load_catalog_exercises()}
@@ -469,6 +505,12 @@ def test_compute_required_equipment_chest_fly_bench_rules(tmp_path: Path) -> Non
         "Incline_Cable_Chest_Press": ["machine", "bench"],
         "Flat_Bench_Cable_Flyes": ["machine", "bench"],
         "Bench_Press_-_With_Bands": ["bands", "bench"],
+        "Gironda_Sternum_Chins": ["pull_up_bar"],
+        "Weighted_Pull_Ups": ["pull_up_bar"],
+        "One_Handed_Hang": ["pull_up_bar"],
+        "Muscle_Up": ["pull_up_bar"],
+        "Band_Assisted_Pull-Up": ["pull_up_bar", "bands"],
+        "Rope_Climb": ["__other__"],
     }
     for ex_id, expected in expected_by_id.items():
         assert ex_id in by_id, f"Missing catalog exercise: {ex_id}"

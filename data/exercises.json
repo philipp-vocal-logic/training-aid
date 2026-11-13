@@ -390,7 +390,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1754,7 +1754,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -3283,7 +3283,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -4284,7 +4284,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -5153,7 +5153,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "middle back",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -5208,7 +5208,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -5604,7 +5604,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "middle back",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5692,7 +5692,7 @@
     "category": "stretching",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -6187,7 +6187,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -6660,7 +6660,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -6693,7 +6693,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -6803,7 +6803,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "traps",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7408,7 +7408,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9300,7 +9300,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9388,7 +9388,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9487,7 +9487,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "lats",
-    "archetype": "vertical_pull",
+    "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false

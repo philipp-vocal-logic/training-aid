@@ -186,7 +186,9 @@ export function selectProgramKeyForEquipment(availableEquip) {
 
 export function buildProgramRoutines(catalog, profile, exerciseList, exerciseMap) {
   const eqPrograms = catalog?.programs?.equipment_programs || {};
-  const program = eqPrograms[selectProgramKeyForEquipment(profile.equipment_list)]
+  const programKey = selectProgramKeyForEquipment(profile.equipment_list);
+  const injectPullUp = programKey === "body_only" && toAvailableSet(profile.equipment_list).has("pull_up_bar");
+  const program = eqPrograms[programKey]
     || eqPrograms.body_only
     || { routines: [] };
   const templateRoutines = Array.isArray(program.routines) ? program.routines : [];
@@ -201,7 +203,12 @@ export function buildProgramRoutines(catalog, profile, exerciseList, exerciseMap
     const rtName = dIdx >= templateRoutines.length
       ? `Day ${dIdx + 1}: ${baseRtName.replace(/^Day\s+\d+:\s*/i, "")}`
       : baseRtName;
-    const specs = Array.isArray(rtDef) ? rtDef[1] || [] : rtDef?.exercises || [];
+    const rawSpecs = Array.isArray(rtDef) ? rtDef[1] || [] : rtDef?.exercises || [];
+    const specs = rawSpecs.slice();
+    if (injectPullUp && dIdx % 2 === 0 && specs.length > 2) {
+      const pullSpec = dIdx % 4 === 0 ? ["Pullups", 8, null] : ["Chin-Up", 8, null];
+      if (exerciseMap.size === 0 || exerciseMap.has(pullSpec[0])) specs[2] = pullSpec;
+    }
     const items = [];
 
     for (const spec of specs) {

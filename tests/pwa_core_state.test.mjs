@@ -41,7 +41,7 @@ test("catalog equipment hygiene: pre-baked required_equipment, 'other' isolation
     { id: "kettlebells", label: "Kettlebells", arch: "hinge", prop: "kettlebells" },
     { id: "bands", label: "Bands", arch: "row_pull", prop: "bands" },
     { id: "barbell", label: "Barbell", arch: "bench_press", prop: "barbell" },
-    { id: "pull_up_bar", label: "Pull-Up Bar", arch: "vertical_pull", prop: "body_only" },
+    { id: "pull_up_bar", label: "Pull-Up Bar", arch: "pull_up", prop: "body_only" },
     { id: "bench", label: "Bench", arch: "dip", prop: "body_only" },
     { id: "machine", label: "Machines", arch: "leg_extension_curl", prop: "machine" },
   ]);
@@ -124,14 +124,33 @@ test("catalog equipment hygiene: pre-baked required_equipment, 'other' isolation
     "bench",
   ]);
 
+  assert.deepEqual(catalogMod.getRequiredEquipment(byId.get("Band_Assisted_Pull-Up")), [
+    "pull_up_bar",
+    "bands",
+  ]);
+  assert.deepEqual(catalogMod.getRequiredEquipment(byId.get("Gironda_Sternum_Chins")), [
+    "pull_up_bar",
+  ]);
+  assert.deepEqual(catalogMod.getRequiredEquipment(byId.get("Rope_Climb")), ["__other__"]);
+
   const retiredOtherRaw = new Set(["other", "medicine ball", "exercise ball", "foam roll"]);
+  const pullUpBarRe = /pull-?ups?|chin-?ups?|inverted row/i;
   for (const ex of catalog.exercises) {
-    if (retiredOtherRaw.has(ex.equipment.toLowerCase())) {
-      assert.deepEqual(catalogMod.getRequiredEquipment(ex), ["__other__"]);
-      assert.equal(
-        catalogMod.isExerciseCompatible(ex, constantsMod.VALID_EQUIPMENT_IDS),
-        false
-      );
+    const rawEq = ex.equipment.toLowerCase();
+    if (retiredOtherRaw.has(rawEq)) {
+      const isPullUpOther = rawEq === "other"
+        && (ex.archetype === "pull_up" || pullUpBarRe.test(ex.name))
+        && !ex.name.toLowerCase().includes("rope");
+      if (isPullUpOther) {
+        assert.equal(catalogMod.getRequiredEquipment(ex)[0], "pull_up_bar");
+        assert.equal(catalogMod.isExerciseCompatible(ex, constantsMod.VALID_EQUIPMENT_IDS), true);
+      } else {
+        assert.deepEqual(catalogMod.getRequiredEquipment(ex), ["__other__"]);
+        assert.equal(
+          catalogMod.isExerciseCompatible(ex, constantsMod.VALID_EQUIPMENT_IDS),
+          false
+        );
+      }
     }
   }
 });
@@ -410,7 +429,33 @@ test("ARCHETYPE_FAMILY maps all 6 coronal archetypes to expected families", () =
     assert.equal(catalogMod.familyForArchetype(arch), family);
     assert.equal(catalogMod.familyForArchetype(arch.toUpperCase()), family);
   }
-  assert.equal(Object.keys(catalogMod.ARCHETYPE_FAMILY).length, 24);
+  assert.equal(catalogMod.ARCHETYPE_FAMILY.pull_up, "pull");
+  assert.equal(Object.keys(catalogMod.ARCHETYPE_FAMILY).length, 25);
+});
+
+test("buildProgramRoutines injects Pullups and Chin-Up for pull_up_bar body_only plans", () => {
+  const exerciseList = catalog.exercises.map(catalogMod.normalizeCatalogExercise);
+  const exerciseMap = new Map(exerciseList.map((ex) => [ex.id, ex]));
+
+  const barRoutines = generatorMod.buildProgramRoutines(
+    catalog,
+    { equipment_list: ["pull_up_bar"], starting_intensity: "moderate", weekly_goal: 4 },
+    exerciseList,
+    exerciseMap,
+  );
+  assert.equal(barRoutines.length, 4);
+  assert.equal(barRoutines[0].exercises[2].exercise_id, "Pullups");
+  assert.equal(barRoutines[2].exercises[2].exercise_id, "Chin-Up");
+  assert.ok(!barRoutines[1].exercises.some((it) => it.exercise_id === "Pullups" || it.exercise_id === "Chin-Up"));
+
+  const bodyOnlyRoutines = generatorMod.buildProgramRoutines(
+    catalog,
+    { equipment_list: [], starting_intensity: "moderate", weekly_goal: 4 },
+    exerciseList,
+    exerciseMap,
+  );
+  assert.equal(bodyOnlyRoutines[0].exercises[2].exercise_id, "Single_Leg_Glute_Bridge");
+  assert.equal(bodyOnlyRoutines[2].exercises[2].exercise_id, "Air_Bike");
 });
 
 test("soft-ranked multi-field catalog search across all 876 exercises (AC-1)", () => {

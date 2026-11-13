@@ -178,6 +178,33 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
     assert by_id["Dumbbell_Side_Bend"].archetype == "side_bend"
     assert by_id["Barbell_Squat"].is_hold is False
 
+    pull_up_ids = {
+        "Band_Assisted_Pull-Up",
+        "Chin-Up",
+        "Gironda_Sternum_Chins",
+        "Kipping_Muscle_Up",
+        "Mixed_Grip_Chin",
+        "Muscle_Up",
+        "One_Arm_Chin-Up",
+        "One_Handed_Hang",
+        "Pullups",
+        "Rocky_Pull-Ups_Pulldowns",
+        "Rope_Climb",
+        "Scapular_Pull-Up",
+        "Side_To_Side_Chins",
+        "V-Bar_Pullup",
+        "Weighted_Pull_Ups",
+        "Wide-Grip_Rear_Pull-Up",
+    }
+    for ex_id in pull_up_ids:
+        assert by_id[ex_id].archetype == "pull_up", ex_id
+    assert by_id["One_Handed_Hang"].is_hold is True
+    assert by_id["One_Handed_Hang"].tempo_mode == "hold"
+
+    cable_pulldown_ids = {ex.id for ex in catalog if ex.archetype == "vertical_pull"}
+    assert len(cable_pulldown_ids) == 9
+    assert all(by_id[ex_id].equipment == "cable" for ex_id in cable_pulldown_ids)
+
     stretch = CatalogExercise(
         id="Test_Stretch",
         name="Test Stretch",
@@ -193,7 +220,7 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
 
 
 def test_programs_config_18_archetype_coverage() -> None:
-    """Verify preset programs cover all 24 archetypes and omit legacy keys."""
+    """Verify preset programs cover all 25 archetypes and omit legacy keys."""
     registry = load_animation_registry()
     specs = registry.specs
     programs_cfg = load_programs_config()

@@ -153,7 +153,9 @@ export function makeEquipmentIcon(equipId, size = 15) {
       break;
     case "pull_up_bar":
       children = [
-        svgNode("path", { d: "M3 7h18M6 4v16M18 4v16" }),
+        svgNode("path", { d: "M2.5 5h19M5 2.5v4.5M19 2.5v4.5" }),
+        svgNode("circle", { cx: "12", cy: "11.5", r: "2" }),
+        svgNode("path", { d: "M7 5l2.5 9.5h5L17 5M12 14.5V21" }),
       ];
       break;
     case "bench":

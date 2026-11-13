@@ -15,6 +15,7 @@ export const ARCHETYPE_FAMILY = Object.freeze({
   lateral_raise: "push",
   chest_fly: "push",
   vertical_pull: "pull",
+  pull_up: "pull",
   row_pull: "pull",
   hinge: "pull",
   curl: "pull",
