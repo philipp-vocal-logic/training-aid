@@ -249,7 +249,7 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
     assert meta["cue_return"]
     assert normalize_equipment("kettlebells", "squat") == "kettlebells"
 
-    for arch_name in ("squat", "plank", "carry"):
+    for arch_name in ("squat", "plank", "hinge"):
         spec = specs[arch_name]
         pose_mid = lerp_pose(spec["pose_a"], spec["pose_b"], 0.5)
         joints = solve_fk(spec["bones"], pose_mid)

@@ -278,9 +278,13 @@ test("dom.js, views/*, and app.js routing, workout HUD sync, teardown, and XSS s
   const activeIntervals = new Map();
   let timerSeq = 1;
 
+  Object.defineProperty(globalThis, "navigator", {
+    value: { clipboard: { writeText: () => Promise.resolve() }, storage: { persist: () => Promise.resolve(true) } },
+    configurable: true,
+    writable: true,
+  });
   Object.assign(globalThis, {
     localStorage: domStorage, __TRAINING_CATALOG__: catalog,
-    navigator: { clipboard: { writeText: () => Promise.resolve() }, storage: { persist: () => Promise.resolve(true) } },
     matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
     requestAnimationFrame: () => timerSeq++, cancelAnimationFrame: () => {},
     setInterval: (cb) => { const id = timerSeq++; activeIntervals.set(id, cb); return id; },
