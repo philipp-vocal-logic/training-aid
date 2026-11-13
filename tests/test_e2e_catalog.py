@@ -1,12 +1,11 @@
 # Copyright (c) 2026 Philipp Kaaden
-"""End-to-end catalog, CLI, safe-grip, thumbnail, prescription, and workout tests."""
+"""End-to-end catalog, CLI, safe-grip, thumbnail, prescription, and PWA tests."""
 
 from __future__ import annotations
 
-import html
 import json
 import math
-import re
+import os
 import subprocess
 import sys
 import tomllib
@@ -14,9 +13,6 @@ import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, col, create_engine, select
-from sqlmodel.pool import StaticPool
 
 from training_aid import audit
 from training_aid.audit import (
@@ -24,27 +20,21 @@ from training_aid.audit import (
     EXPECTED_CATALOG_COUNT,
     AuditReport,
     AuditSectionResult,
+    find_node_binary,
     run_catalog_audit,
     verify_motion_js_safe_grip,
+)
+from training_aid.builder import (
+    CatalogExercise,
+    build_pwa,
+    load_catalog_exercises,
+    load_programs_config,
 )
 from training_aid.coaching import (
     EXERCISE_COACHING,
     build_exercise_guidance,
     classify_archetype,
-)
-from training_aid.database import get_session
-from training_aid.main import app, search_exercises_for_user
-from training_aid.models import (
-    Exercise,
-    RoutineExercise,
-    TrainingPlan,
-    User,
-)
-from training_aid.services import (
-    EQUIPMENT_PROGRAMS,
-    compute_scaled_target,
-    default_prescription_for_exercise,
-    seed_exercises,
+    exercise_svg_url,
 )
 from training_aid.svg_assets import (
     ANIMATIONS_JSON,
@@ -56,10 +46,148 @@ from training_aid.svg_assets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
     from pathlib import Path
 
 REPO_ROOT = audit.REPO_ROOT
+
+_HOLD_AND_CUSTOMIZER_HARNESS = """\
+const fs = require("node:fs");
+const path = require("node:path");
+const assert = (cond, msg) => {
+  if (!cond) throw new Error(msg);
+};
+
+const distDir = process.env.TA_DIST_DIR;
+const catalog = JSON.parse(
+  fs.readFileSync(path.join(distDir, "data", "catalog.json"), "utf8")
+);
+const storeMod = require(path.join(distDir, "store.js"));
+
+function makeStorage() {
+  const map = new Map();
+  return {
+    getItem: (k) => (map.has(String(k)) ? map.get(String(k)) : null),
+    setItem: (k, v) => { map.set(String(k), String(v)); },
+    removeItem: (k) => { map.delete(String(k)); },
+    clear: () => { map.clear(); },
+  };
+}
+
+const byId = new Map(catalog.exercises.map((ex) => [ex.id, ex]));
+const plank = byId.get("Plank");
+const expectedHold = { light: 24, moderate: 30, intense: 36 };
+for (const [intensity, expSec] of Object.entries(expectedHold)) {
+  const presc = storeMod.defaultPrescriptionForExercise(
+    { equipment: "full_gym", starting_intensity: intensity },
+    plank
+  );
+  assert(presc.reps === expSec && presc.reps >= 24, `hold reps ${intensity}`);
+  assert(presc.weight_kg === null, "Plank must not prescribe weight");
+  const scaled = storeMod.computeScaledTarget(
+    {
+      id: "rx1",
+      exercise_id: plank.id,
+      sets: presc.sets,
+      base_reps: presc.reps,
+      base_weight_kg: presc.weight_kg,
+    },
+    0,
+    plank
+  );
+  assert(
+    scaled.formatted === `${presc.sets} \u00d7 ${expSec} sec`,
+    `scaled Plank ${scaled.formatted}`
+  );
+}
+
+const weightedPlank = storeMod.computeScaledTarget(
+  {
+    id: "rx2",
+    exercise_id: plank.id,
+    sets: 3,
+    base_reps: 30,
+    base_weight_kg: 10,
+  },
+  0,
+  plank
+);
+assert(
+  weightedPlank.formatted.includes("sec") &&
+    weightedPlank.formatted.includes("10 kg"),
+  `weighted Plank ${weightedPlank.formatted}`
+);
+
+// Browse tier reachability
+const gymStore = storeMod.createStore({ storage: makeStorage(), catalog });
+gymStore.setupPlan({
+  name: "Gym",
+  equipment: "full_gym",
+  starting_intensity: "moderate",
+  days_per_week: 2,
+});
+assert(
+  gymStore.searchCatalog("", 1000).length === 876,
+  "full_gym must browse all 876 exercises"
+);
+
+const bwStore = storeMod.createStore({ storage: makeStorage(), catalog });
+bwStore.setupPlan({
+  name: "BW",
+  equipment: "body_only",
+  starting_intensity: "moderate",
+  days_per_week: 2,
+});
+const bwRows = bwStore.searchCatalog("", 1000);
+const bwEquips = new Set(bwRows.map((r) => r.equipment));
+assert(
+  bwEquips.size === 4 &&
+    bwEquips.has("body only") &&
+    bwEquips.has("foam roll") &&
+    bwEquips.has("exercise ball") &&
+    bwEquips.has("other"),
+  "body_only equipment tier mismatch"
+);
+
+// Customizer flow: add day, search & add 3 exercises, build playlist, complete
+const newDay = gymStore.addWorkoutDay();
+for (const exId of ["Barbell_Glute_Bridge", "Goblet_Squat", "Side_Bridge"]) {
+  const ex = byId.get(exId);
+  const hits = gymStore.searchCatalog(ex.name, 20);
+  assert(hits.some((h) => h.id === exId), `search missing ${exId}`);
+  const added = gymStore.addExerciseToRoutine(newDay.id, exId);
+  assert(Boolean(added), `addExerciseToRoutine failed for ${exId}`);
+}
+
+const card = gymStore.buildRoutineCards([newDay.id])[0];
+assert(
+  card.exercises[1].thumb_url === "./svgs/thumbs/squat__kettlebells.svg",
+  "Goblet_Squat thumb_url"
+);
+assert(
+  card.exercises[2].scaled.formatted === "3 \u00d7 30 sec",
+  "Side_Bridge hold prescription"
+);
+
+const playlist = gymStore.buildPlaylist(newDay.id);
+assert(playlist.length === 3, "playlist length");
+for (const item of playlist) {
+  assert(item.instructions.length >= 1, `empty instructions on ${item.exercise_id}`);
+  assert(Boolean(item.how_to), `empty how_to on ${item.exercise_id}`);
+  const svgMarkup = catalog.svgs[item.svg_key];
+  assert(
+    svgMarkup && !svgMarkup.includes('data-bar-mode="shoulder"'),
+    `unsafe bar_mode on ${item.exercise_id}`
+  );
+}
+assert(playlist[2].is_hold === true && playlist[2].reps === 30, "Side_Bridge hold");
+
+const doneLog = gymStore.completeWorkout(newDay.id, {
+  next_intensity_choice: "keep",
+  duration_minutes: 20,
+});
+assert(doneLog.routine_id === newDay.id, "completed log routine_id");
+process.stdout.write(JSON.stringify({ ok: true }));
+"""
 
 
 def _parse_svg(svg_markup: str) -> ET.Element:
@@ -69,38 +197,22 @@ def _parse_svg(svg_markup: str) -> ET.Element:
 
 @pytest.fixture(scope="module")
 def catalog_report() -> AuditReport:
-    """Run the full 876-exercise E2E catalog audit once per test module."""
+    """Run the full 876-exercise E2E catalog and static PWA audit once per module."""
     return run_catalog_audit()
 
 
-@pytest.fixture
-def session() -> Generator[Session]:
-    """Provide an isolated in-memory SQLite session seeded with all 876 exercises."""
-    test_engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(test_engine)
-    with Session(test_engine) as db:
-        seed_exercises(db)
-        yield db
+@pytest.fixture(scope="module")
+def exercises() -> list[CatalogExercise]:
+    """Load all 876 CatalogExercise entries sorted by ID."""
+    return sorted(load_catalog_exercises(), key=lambda ex: ex.id)
 
 
-@pytest.fixture
-def client(session: Session) -> Generator[TestClient]:
-    """Provide a FastAPI TestClient wired to the isolated test session."""
-
-    def override_get_session() -> Generator[Session]:
-        yield session
-
-    prev = dict(app.dependency_overrides)
-    app.dependency_overrides[get_session] = override_get_session
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
-        app.dependency_overrides.update(prev)
+@pytest.fixture(scope="module")
+def built_pwa_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Compile the static PWA bundle once per module for thumbnail & store checks."""
+    out_dir = tmp_path_factory.mktemp("e2e_pwa_dist") / "dist"
+    build_pwa(out_dir)
+    return out_dir
 
 
 def test_run_catalog_audit_passes_all_876_exercises(
@@ -113,10 +225,10 @@ def test_run_catalog_audit_passes_all_876_exercises(
     assert catalog_report.passed is True
 
     expected_sections = (
-        "catalog_seeding",
+        "catalog_and_pwa_bundle",
         "coaching_integration",
         "animations_and_safe_grip",
-        "programs_and_customizer_e2e",
+        "pwa_programs_and_node_e2e",
     )
     assert tuple(sec.name for sec in catalog_report.sections) == expected_sections
     for sec in catalog_report.sections:
@@ -129,11 +241,12 @@ def test_cli_script_packaging_readme_and_exit_codes(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Verify training-aid-check script wiring, README docs, and CLI exit codes."""
+    """Verify CLI script entrypoints, README docs, and audit exit codes."""
     pyproject = tomllib.loads(
         (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
     scripts = pyproject["project"]["scripts"]
+    assert scripts.get("training-aid") == "training_aid:main"
     assert scripts.get("training-aid-check") == "training_aid.audit:main"
 
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
@@ -142,7 +255,7 @@ def test_cli_script_packaging_readme_and_exit_codes(
     passing_report = AuditReport(
         exercise_count=876,
         archetype_count=18,
-        sections=(AuditSectionResult("catalog_seeding", 876, ()),),
+        sections=(AuditSectionResult("catalog_and_pwa_bundle", 876, ()),),
     )
     monkeypatch.setattr(audit, "run_catalog_audit", lambda: passing_report)
     with pytest.raises(SystemExit) as ok_exc:
@@ -152,7 +265,9 @@ def test_cli_script_packaging_readme_and_exit_codes(
     failing_report = AuditReport(
         exercise_count=876,
         archetype_count=18,
-        sections=(AuditSectionResult("catalog_seeding", 876, ("injected failure",)),),
+        sections=(
+            AuditSectionResult("catalog_and_pwa_bundle", 876, ("injected failure",)),
+        ),
     )
     monkeypatch.setattr(audit, "run_catalog_audit", lambda: failing_report)
     with pytest.raises(SystemExit) as fail_exc:
@@ -187,8 +302,46 @@ def test_cli_subprocess_execution() -> None:
     assert "PASSED" in proc.stdout
 
 
+def _check_weighted_combo_svg(arch: str, eq_mode: str, *, thumb: bool) -> None:
+    root = _parse_svg(render_archetype_svg(arch, equipment=eq_mode, thumbnail=thumb))
+    assert root.attrib.get("data-bar-mode") != "shoulder"
+    farm_f = root.find(".//*[@class='js-farm-f']")
+    farm_b = root.find(".//*[@class='js-farm-b']")
+    wf_el = root.find(".//*[@class='js-weight']")
+    wb_el = root.find(".//*[@class='js-weight-b']")
+    assert farm_f is not None
+    assert farm_b is not None
+    assert wf_el is not None
+    assert wb_el is not None
+
+    hand_f = (float(farm_f.attrib["x2"]), float(farm_f.attrib["y2"]))
+    hand_b = (float(farm_b.attrib["x2"]), float(farm_b.attrib["y2"]))
+    wf = (float(wf_el.attrib["cx"]), float(wf_el.attrib["cy"]))
+    wb = (float(wb_el.attrib["cx"]), float(wb_el.attrib["cy"]))
+    rf = float(wf_el.attrib["r"])
+    rb = float(wb_el.attrib["r"])
+
+    assert wf[0] - rf >= 0.0
+    assert wf[0] + rf <= 240.0
+    assert wf[1] - rf >= 0.0
+    assert wf[1] + rf <= 175.0
+    assert wb[0] - rb >= 0.0
+    assert wb[0] + rb <= 240.0
+    assert wb[1] - rb >= 0.0
+    assert wb[1] + rb <= 175.0
+
+    if eq_mode in {"barbell", "dumbbell"}:
+        assert math.hypot(wf[0] - hand_f[0], wf[1] - hand_f[1]) <= 0.03
+        assert math.hypot(wb[0] - hand_b[0], wb[1] - hand_b[1]) <= 0.03
+    else:
+        hdl_el = root.find(".//*[@class='js-kb-handle-f']")
+        assert hdl_el is not None
+        hdl = (float(hdl_el.attrib["cx"]), float(hdl_el.attrib["cy"]))
+        assert math.hypot(hdl[0] - hand_f[0], hdl[1] - hand_f[1]) <= 3.0
+
+
 def test_safe_grip_and_floor_bounds_across_catalog_and_motion_js(
-    session: Session,
+    exercises: list[CatalogExercise],
 ) -> None:
     """Verify hands always grip weights and props never penetrate y=175 floor."""
     raw_anim = json.loads(ANIMATIONS_JSON.read_text(encoding="utf-8"))["animations"]
@@ -209,7 +362,6 @@ def test_safe_grip_and_floor_bounds_across_catalog_and_motion_js(
                 <= 28.0
             )
 
-    exercises = list(session.exec(select(Exercise).order_by(col(Exercise.id))).all())
     assert len(exercises) == 876
     combos = sorted(
         {
@@ -222,46 +374,9 @@ def test_safe_grip_and_floor_bounds_across_catalog_and_motion_js(
     )
 
     for arch, eq_mode in combos:
-        if eq_mode not in {"barbell", "dumbbell", "kettlebells"}:
-            continue
-        for thumb in (False, True):
-            root = _parse_svg(
-                render_archetype_svg(arch, equipment=eq_mode, thumbnail=thumb)
-            )
-            assert root.attrib.get("data-bar-mode") != "shoulder"
-            farm_f = root.find(".//*[@class='js-farm-f']")
-            farm_b = root.find(".//*[@class='js-farm-b']")
-            wf_el = root.find(".//*[@class='js-weight']")
-            wb_el = root.find(".//*[@class='js-weight-b']")
-            assert farm_f is not None
-            assert farm_b is not None
-            assert wf_el is not None
-            assert wb_el is not None
-
-            hand_f = (float(farm_f.attrib["x2"]), float(farm_f.attrib["y2"]))
-            hand_b = (float(farm_b.attrib["x2"]), float(farm_b.attrib["y2"]))
-            wf = (float(wf_el.attrib["cx"]), float(wf_el.attrib["cy"]))
-            wb = (float(wb_el.attrib["cx"]), float(wb_el.attrib["cy"]))
-            rf = float(wf_el.attrib["r"])
-            rb = float(wb_el.attrib["r"])
-
-            assert wf[0] - rf >= 0.0
-            assert wf[0] + rf <= 240.0
-            assert wf[1] - rf >= 0.0
-            assert wf[1] + rf <= 175.0
-            assert wb[0] - rb >= 0.0
-            assert wb[0] + rb <= 240.0
-            assert wb[1] - rb >= 0.0
-            assert wb[1] + rb <= 175.0
-
-            if eq_mode in {"barbell", "dumbbell"}:
-                assert math.hypot(wf[0] - hand_f[0], wf[1] - hand_f[1]) <= 0.03
-                assert math.hypot(wb[0] - hand_b[0], wb[1] - hand_b[1]) <= 0.03
-            else:
-                hdl_el = root.find(".//*[@class='js-kb-handle-f']")
-                assert hdl_el is not None
-                hdl = (float(hdl_el.attrib["cx"]), float(hdl_el.attrib["cy"]))
-                assert math.hypot(hdl[0] - hand_f[0], hdl[1] - hand_f[1]) <= 3.0
+        if eq_mode in {"barbell", "dumbbell", "kettlebells"}:
+            for thumb in (False, True):
+                _check_weighted_combo_svg(arch, eq_mode, thumb=thumb)
 
     motion_errors = verify_motion_js_safe_grip(
         audit.STATIC_DIR / "motion.js",
@@ -270,46 +385,44 @@ def test_safe_grip_and_floor_bounds_across_catalog_and_motion_js(
     assert motion_errors == []
 
 
-def test_equipment_aware_thumbnails_and_svg_endpoint(
-    client: TestClient,
-    session: Session,
+def test_equipment_aware_thumbnails_in_compiled_bundle(
+    exercises: list[CatalogExercise],
+    built_pwa_dir: Path,
 ) -> None:
-    """Verify /svgs/{archetype}.svg endpoint and equipment-aware thumbnail URLs."""
-    not_found = client.get("/svgs/nonexistent_archetype.svg")
-    assert not_found.status_code == 404
+    """Verify equipment-aware static thumbnail URLs and compiled SVG files on disk."""
+    by_id = {ex.id: ex for ex in exercises}
+    pushups = by_id["Pushups"]
+    band_skull = by_id["Band_Skull_Crusher"]
+    goblet = by_id["Goblet_Squat"]
 
-    kb_squat_res = client.get("/svgs/squat.svg?equipment=kettlebells")
-    assert kb_squat_res.status_code == 200
-    assert "image/svg+xml" in kb_squat_res.headers["content-type"]
-    kb_root = _parse_svg(kb_squat_res.text)
+    assert exercise_svg_url("pushup", "body only") == (
+        "./svgs/thumbs/pushup__body_only.svg"
+    )
+    assert build_exercise_guidance(pushups)["svg_url"] == (
+        "./svgs/thumbs/pushup__body_only.svg"
+    )
+    band_url = build_exercise_guidance(band_skull)["svg_url"]
+    goblet_url = build_exercise_guidance(goblet)["svg_url"]
+    assert band_url == "./svgs/thumbs/triceps_extension__bands.svg"
+    assert goblet_url == "./svgs/thumbs/squat__kettlebells.svg"
+
+    kb_path = built_pwa_dir / goblet_url.removeprefix("./")
+    band_path = built_pwa_dir / band_url.removeprefix("./")
+    assert kb_path.is_file()
+    assert band_path.is_file()
+
+    kb_root = _parse_svg(kb_path.read_text(encoding="utf-8"))
     assert kb_root.attrib.get("data-equipment") == "kettlebells"
     assert kb_root.find(".//*[@class='js-kb-handle-f']") is not None
 
-    pushups = session.get(Exercise, "Pushups")
-    band_skull = session.get(Exercise, "Band_Skull_Crusher")
-    goblet = session.get(Exercise, "Goblet_Squat")
-    assert pushups is not None
-    assert band_skull is not None
-    assert goblet is not None
 
-    assert build_exercise_guidance(pushups)["svg_url"] == "/static/svgs/pushup.svg"
-    band_url = build_exercise_guidance(band_skull)["svg_url"]
-    goblet_url = build_exercise_guidance(goblet)["svg_url"]
-    assert band_url == "/svgs/triceps_extension.svg?equipment=bands"
-    assert goblet_url == "/svgs/squat.svg?equipment=kettlebells"
-
-    for url in (band_url, goblet_url):
-        res = client.get(url)
-        assert res.status_code == 200
-        assert "image/svg+xml" in res.headers["content-type"]
-
-
-def test_hold_prescriptions_all_18_program_archetypes_and_browse_reachability(
-    session: Session,
+def test_hold_prescriptions_all_18_program_archetypes_and_customizer_e2e(
+    exercises: list[CatalogExercise],
+    built_pwa_dir: Path,
 ) -> None:
-    """Verify hold durations >= 24s, 18 program archetypes, and browse tiers."""
-    exercises = list(session.exec(select(Exercise).order_by(col(Exercise.id))).all())
+    """Verify hold durations >= 24s, 18 program archetypes, browse tiers, & playlist."""
     by_id = {ex.id: ex for ex in exercises}
+    programs_cfg = load_programs_config()
 
     for ex in exercises:
         assert ex.instructions
@@ -319,121 +432,22 @@ def test_hold_prescriptions_all_18_program_archetypes_and_browse_reachability(
 
     program_archetypes = {
         classify_archetype(by_id[ex_id])
-        for prog in EQUIPMENT_PROGRAMS.values()
+        for prog in programs_cfg["equipment_programs"].values()
         for _rname, specs in prog["routines"]
         for ex_id, _reps, _weight in specs
     }
     assert program_archetypes == set(ARCHETYPE_SPECS.keys())
 
-    plank = by_id["Plank"]
-    expected_hold_reps = {"light": 24, "moderate": 30, "intense": 36}
-    for intensity, exp_sec in expected_hold_reps.items():
-        user = User(
-            name="HoldTester", equipment="full_gym", starting_intensity=intensity
-        )
-        sets, reps, weight = default_prescription_for_exercise(user, plank)
-        assert reps == exp_sec >= 24
-        assert weight is None
-        item = RoutineExercise(
-            routine_id=1,
-            exercise_id=plank.id,
-            sets=sets,
-            base_reps=reps,
-            base_weight_kg=weight,
-        )
-        assert compute_scaled_target(item, 0, exercise=plank).formatted == (
-            f"{sets} \u00d7 {exp_sec} sec"
-        )
+    node_bin = find_node_binary()
+    assert node_bin is not None, "Node.js binary is required for customizer E2E test"
 
-    weighted_plank = RoutineExercise(
-        routine_id=1,
-        exercise_id=plank.id,
-        sets=3,
-        base_reps=30,
-        base_weight_kg=10.0,
+    proc = subprocess.run(  # noqa: S603
+        [node_bin, "-e", _HOLD_AND_CUSTOMIZER_HARNESS],
+        env={**os.environ, "TA_DIST_DIR": str(built_pwa_dir)},
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=20,
     )
-    weighted_fmt = compute_scaled_target(weighted_plank, 0, exercise=plank).formatted
-    assert "sec" in weighted_fmt
-    assert "10 kg" in weighted_fmt
-
-    full_gym_rows = search_exercises_for_user(
-        session, User(name="Gym", equipment="full_gym"), q="", limit=1000
-    )
-    assert len(full_gym_rows) == 876
-
-    body_rows = search_exercises_for_user(
-        session, User(name="BW", equipment="body_only"), q="", limit=1000
-    )
-    body_equips = {r["exercise"].equipment for r in body_rows}
-    assert body_equips == {"body only", "foam roll", "exercise ball", "other"}
-
-
-def test_http_e2e_customizer_live_how_to_and_workout_session(
-    client: TestClient,
-    session: Session,
-) -> None:
-    """Verify full HTTP flow from setup -> customizer -> workout live coaching HUD."""
-    setup_res = client.post(
-        "/setup",
-        data={
-            "name": "E2EAthlete",
-            "equipment": "full_gym",
-            "starting_intensity": "moderate",
-            "days_per_week": "2",
-        },
-        follow_redirects=True,
-    )
-    assert setup_res.status_code == 200
-
-    plan = session.exec(select(TrainingPlan)).one()
-    add_day_res = client.post(f"/plans/{plan.id}/add-day", follow_redirects=False)
-    assert add_day_res.status_code == 303
-    routine_id = int(add_day_res.headers["location"].rstrip("/").split("/")[-2])
-
-    for ex_id in ("Barbell_Glute_Bridge", "Goblet_Squat", "Side_Bridge"):
-        ex = session.get(Exercise, ex_id)
-        assert ex is not None
-        s_res = client.get(f"/routines/{routine_id}/search", params={"q": ex.name})
-        assert s_res.status_code == 200
-        assert f'value="{ex_id}"' in s_res.text
-
-        post_res = client.post(
-            f"/routines/{routine_id}/add-exercise",
-            data={"exercise_id": ex_id},
-            follow_redirects=False,
-        )
-        assert post_res.status_code == 303
-
-    edit_res = client.get(f"/routines/{routine_id}/edit")
-    assert edit_res.status_code == 200
-    assert "3 \u00d7 30 sec" in edit_res.text
-    assert "/svgs/squat.svg?equipment=kettlebells" in edit_res.text
-
-    ws = client.get(f"/workouts/{routine_id}")
-    assert ws.status_code == 200
-    assert "What to do:" not in ws.text
-
-    dom_before_script, _, script_part = ws.text.partition("<script>")
-    playlist_match = re.search(
-        r"const\s+PLAYLIST\s*=\s*(\[.*?\]);\s*\n",
-        ws.text,
-        flags=re.DOTALL,
-    )
-    assert playlist_match is not None
-    playlist = json.loads(playlist_match.group(1))
-    assert len(playlist) == 3
-
-    assert playlist[0]["how_to"] in html.unescape(dom_before_script)
-    assert ".how_to" in script_part
-    for item in playlist:
-        assert item["instructions"]
-        assert 'data-bar-mode="shoulder"' not in item["svg_markup"]
-    assert playlist[2]["is_hold"] is True
-    assert playlist[2]["reps"] == 30
-
-    done = client.post(
-        f"/workouts/{routine_id}/complete",
-        data={"next_intensity_choice": "keep", "duration_minutes": "20"},
-        follow_redirects=True,
-    )
-    assert done.status_code == 200
+    assert proc.returncode == 0, f"Node harness failed:\n{proc.stdout}\n{proc.stderr}"
+    assert json.loads(proc.stdout) == {"ok": True}
