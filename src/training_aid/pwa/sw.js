@@ -1,74 +1,15 @@
 /* Offline-first Service Worker for Training Aid static PWA */
-(function () {
-  "use strict";
+"use strict";
 
-  var CACHE_PREFIX = "training-aid-pwa-";
-  var CACHE_VERSION = "v1";
-  var CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
-
-  var APP_SHELL_ASSETS = [
-    "./",
-    "./index.html",
-    "./manifest.webmanifest",
-    "./icon.svg",
-    "./static/style.css",
-    "./static/motion.js",
-    "./static/sound-presets.js",
-    "./static/sound-pattern.js",
-    "./static/sound-synth.js",
-    "./static/sound.js",
-    "./domain.js",
-    "./recommender.js",
-    "./codec.js",
-    "./store.js",
-    "./qr.js",
-    "./dom.js",
-    "./views/setup.js",
-    "./views/plan.js",
-    "./views/quick.js",
-    "./views/edit.js",
-    "./views/workout.js",
-    "./views/progress.js",
-    "./app.js",
-    "./data/catalog.json",
-  ];
-
-  self.addEventListener("install", function (event) {
-    event.waitUntil(
-      caches
-        .open(CACHE_NAME)
-        .then(function (cache) {
-          return cache.addAll(APP_SHELL_ASSETS);
-        })
-        .then(function () {
-          return self.skipWaiting();
-        })
-    );
-  });
-
-  self.addEventListener("activate", function (event) {
-    event.waitUntil(
-      caches
-        .keys()
-        .then(function (keys) {
-          return Promise.all(
-            keys.map(function (key) {
-              if (key !== CACHE_NAME && key.indexOf(CACHE_PREFIX) === 0) {
-                return caches.delete(key);
-              }
-              return Promise.resolve(false);
-            })
-          );
-        })
-        .then(function () {
-          return self.clients.claim();
-        })
-    );
-  });
+{
+  const CACHE_PREFIX = "training-aid-pwa-";
+  const CACHE_VERSION = "v1";
+  const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
+  const APP_SHELL_ASSETS = ["./", "./index.html"];
 
   function isRuntimeCacheable(pathname) {
     return (
-      pathname.indexOf("/svgs/thumbs/") !== -1 ||
+      pathname.includes("/svgs/thumbs/") ||
       pathname.endsWith(".svg") ||
       pathname.endsWith(".css") ||
       pathname.endsWith(".js") ||
@@ -77,43 +18,56 @@
     );
   }
 
-  self.addEventListener("fetch", function (event) {
-    var request = event.request;
-    if (!request || request.method !== "GET") {
-      return;
-    }
+  self.addEventListener("install", (event) => {
+    event.waitUntil(
+      caches
+        .open(CACHE_NAME)
+        .then((cache) => cache.addAll(APP_SHELL_ASSETS))
+        .then(() => self.skipWaiting())
+    );
+  });
 
-    var url;
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys.map((key) =>
+              key !== CACHE_NAME && key.startsWith(CACHE_PREFIX)
+                ? caches.delete(key)
+                : Promise.resolve(false)
+            )
+          )
+        )
+        .then(() => self.clients.claim())
+    );
+  });
+
+  self.addEventListener("fetch", (event) => {
+    const request = event.request;
+    if (!request || request.method !== "GET") return;
+
+    let url;
     try {
       url = new URL(request.url);
-    } catch (e) {
+    } catch {
       return;
     }
 
-    if (url.origin !== self.location.origin) {
-      return;
-    }
+    if (url.origin !== self.location.origin) return;
 
     if (request.mode === "navigate") {
       event.respondWith(
         caches
           .match("./index.html", { ignoreSearch: true })
-          .then(function (cachedShell) {
-            if (cachedShell) {
-              return cachedShell;
-            }
-            return caches.match("./", { ignoreSearch: true });
-          })
-          .then(function (cached) {
-            if (cached) {
-              return cached;
-            }
-            return fetch(request).then(function (networkResp) {
+          .then((cachedShell) => cachedShell || caches.match("./", { ignoreSearch: true }))
+          .then((cached) => {
+            if (cached) return cached;
+            return fetch(request).then((networkResp) => {
               if (networkResp && networkResp.status === 200) {
-                var clone = networkResp.clone();
-                caches.open(CACHE_NAME).then(function (cache) {
-                  cache.put("./index.html", clone);
-                });
+                const clone = networkResp.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", clone));
               }
               return networkResp;
             });
@@ -125,30 +79,20 @@
     event.respondWith(
       caches
         .match(request, { ignoreSearch: true })
-        .then(function (cachedResp) {
-          if (cachedResp) {
-            return cachedResp;
-          }
-          return fetch(request).then(function (networkResp) {
-            if (
-              networkResp &&
-              networkResp.status === 200 &&
-              isRuntimeCacheable(url.pathname)
-            ) {
-              var responseClone = networkResp.clone();
-              caches.open(CACHE_NAME).then(function (cache) {
-                cache.put(request, responseClone);
-              });
+        .then((cachedResp) => {
+          if (cachedResp) return cachedResp;
+          return fetch(request).then((networkResp) => {
+            if (networkResp && networkResp.status === 200 && isRuntimeCacheable(url.pathname)) {
+              const responseClone = networkResp.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
             }
             return networkResp;
           });
         })
-        .catch(function () {
-          if (url.pathname.endsWith(".svg")) {
-            return caches.match("./icon.svg");
-          }
+        .catch(() => {
+          if (url.pathname.endsWith(".svg")) return caches.match("./icon.svg");
           return Response.error();
         })
     );
   });
-})();
+}

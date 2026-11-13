@@ -1,183 +1,211 @@
 /* Thin SPA router, view lifecycle, and boot controller */
-(function () {
-  "use strict";
+import { createController } from "./audio/controller.js";
+import { turnaroundForMode } from "./rig/motion.js";
+import { createStore } from "./state/store.js";
+import { el } from "./ui/dom.js";
+import { closeModal } from "./ui/modal.js";
+import { createViewScope } from "./ui/scope.js";
+import { renderEditView } from "./views/edit.js";
+import { renderPlanView } from "./views/plan.js";
+import { renderProgressView } from "./views/progress.js";
+import { renderQuickView } from "./views/quick.js";
+import { renderSetupView } from "./views/setup.js";
+import { renderWorkoutView } from "./views/workout.js";
 
-  const root = typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this;
-  const dom = root.TrainingDom || (typeof require === "function" ? require("./dom.js") : null);
+const VIEWS = {
+  setup: renderSetupView,
+  plan: renderPlanView,
+  quick: renderQuickView,
+  edit: renderEditView,
+  workout: renderWorkoutView,
+  progress: renderProgressView,
+};
 
-  function getViews() {
-    const v = root.TrainingViews || {};
-    if (typeof require === "function") {
-      for (const name of ["setup", "plan", "quick", "edit", "workout", "progress"]) {
-        if (!v[name]) {
-          try { v[name] = require(`./views/${name}.js`); } catch { /* ignore */ }
-        }
-      }
-    }
-    return v;
+export function safeDecodeRouteParam(rawSegment) {
+  if (!rawSegment) return null;
+  try {
+    return decodeURIComponent(rawSegment) || null;
+  } catch {
+    return null;
   }
+}
 
-  function safeDecodeRouteParam(rawSegment) {
-    if (!rawSegment) return null;
-    try { return decodeURIComponent(rawSegment) || null; } catch { return null; }
+export function parseRoute(rawHash) {
+  const clean = String(rawHash || "").replace(/^#+/, "");
+  if (!clean || clean === "/" || clean === "plan") {
+    return { view: "plan", param: null, invalid: false };
   }
-
-  function makeRoute(view, id, extra) {
-    return { view, name: view, route: view, id, param: id, routineId: id, invalid: false, ...extra };
+  if (clean === "setup" || clean === "progress" || clean === "quick") {
+    return { view: clean, param: null, invalid: false };
   }
-
-  function parseRoute(rawHash) {
-    const clean = String(rawHash || "").replace(/^#+/, "");
-    if (!clean || clean === "/" || clean === "plan") return makeRoute("plan", null);
-    if (clean === "setup" || clean === "progress" || clean === "quick") return makeRoute(clean, null);
-    if (clean.startsWith("edit/")) {
-      const editId = safeDecodeRouteParam(clean.slice(5));
-      if (editId !== null) return makeRoute("edit", editId);
-    }
-    if (clean.startsWith("workout/")) {
-      const workoutId = safeDecodeRouteParam(clean.slice(8));
-      if (workoutId !== null) return makeRoute("workout", workoutId);
-    }
-    return makeRoute("invalid", null, { invalid: true });
+  if (clean.startsWith("edit/")) {
+    const editId = safeDecodeRouteParam(clean.slice(5));
+    if (editId !== null) return { view: "edit", param: editId, invalid: false };
   }
-
-  let catalog = null, store = null, sound = null, activeScope = null, lastCompletedLog = null;
-
-  function teardownActiveView() {
-    if (sound) sound.stopAll();
-    if (activeScope) {
-      activeScope.dispose();
-      activeScope = null;
-    }
+  if (clean.startsWith("workout/")) {
+    const workoutId = safeDecodeRouteParam(clean.slice(8));
+    if (workoutId !== null) return { view: "workout", param: workoutId, invalid: false };
   }
+  return { view: "invalid", param: null, invalid: true };
+}
 
-  function syncTopbar(activeNav, hideTopbar) {
-    const topbar = document.getElementById("app-topbar");
-    const nav = document.getElementById("primary-nav");
-    const brandLink = document.getElementById("brand-home-link");
-    const hasPlan = Boolean(store && store.hasActivePlan());
+let catalog = null;
+let store = null;
+let sound = null;
+let activeScope = null;
+let lastCompletedLog = null;
 
-    if (topbar) topbar.hidden = Boolean(hideTopbar);
-    if (brandLink) brandLink.setAttribute("href", hasPlan ? "#plan" : "#setup");
-    if (nav) {
-      nav.hidden = !hasPlan;
-      for (const lnk of nav.querySelectorAll("a[data-nav]")) {
-        if (lnk.dataset.nav === activeNav) lnk.setAttribute("aria-current", "page");
-        else lnk.removeAttribute("aria-current");
-      }
-    }
+export function teardownActiveView() {
+  if (sound) sound.stopAll();
+  if (activeScope) {
+    activeScope.dispose();
+    activeScope = null;
   }
+}
 
-  function replaceHash(hash) {
-    const target = hash.startsWith("#") ? hash : "#" + hash;
-    window.history.replaceState(null, "", window.location.pathname + window.location.search + target);
-  }
+function syncTopbar(activeNav, hideTopbar) {
+  const topbar = document.getElementById("app-topbar");
+  const nav = document.getElementById("primary-nav");
+  const brandLink = document.getElementById("brand-home-link");
+  const hasPlan = Boolean(store && store.hasActivePlan());
 
-  function navigateTo(hash) {
-    const target = hash.startsWith("#") ? hash : "#" + hash;
-    if (window.location.hash === target) handleRoute();
-    else window.location.hash = target;
-  }
-
-  function mountView(viewName, routineId) {
-    const views = getViews();
-    teardownActiveView();
-    const scope = dom.createViewScope();
-    activeScope = scope;
-    const viewFn = views[viewName];
-    if (typeof viewFn === "function") {
-      viewFn({
-        scope, store, catalog, sound, routineId: routineId || null,
-        navigateTo, replaceHash, syncTopbar,
-        consumeCompletedLog: () => { const log = lastCompletedLog; lastCompletedLog = null; return log; },
-        onCompleteLog: (log) => { lastCompletedLog = log; },
-      });
+  if (topbar) topbar.hidden = Boolean(hideTopbar);
+  if (brandLink) brandLink.setAttribute("href", hasPlan ? "#plan" : "#setup");
+  if (nav) {
+    nav.hidden = !hasPlan;
+    for (const lnk of nav.querySelectorAll("a[data-nav]")) {
+      if (lnk.dataset.nav === activeNav) lnk.setAttribute("aria-current", "page");
+      else lnk.removeAttribute("aria-current");
     }
   }
+}
 
-  function handleRoute() {
-    if (!store || !catalog) return;
-    const parsed = parseRoute(window.location.hash || "");
+function replaceHash(hash) {
+  const target = hash.startsWith("#") ? hash : "#" + hash;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search + target);
+}
 
-    dom.closeModal();
-    if (parsed.view === "setup") { mountView("setup"); return; }
-    if (!store.hasActivePlan()) { replaceHash("#setup"); mountView("setup"); return; }
-    if (parsed.view === "plan" || parsed.view === "progress" || parsed.view === "quick") {
-      mountView(parsed.view);
+function navigateTo(hash) {
+  const target = hash.startsWith("#") ? hash : "#" + hash;
+  if (window.location.hash === target) handleRoute();
+  else window.location.hash = target;
+}
+
+function mountView(viewName, param) {
+  teardownActiveView();
+  const scope = createViewScope();
+  activeScope = scope;
+  const viewFn = VIEWS[viewName];
+  if (typeof viewFn === "function") {
+    viewFn({
+      scope,
+      store,
+      catalog,
+      sound,
+      param: param || null,
+      navigateTo,
+      replaceHash,
+      syncTopbar,
+      consumeCompletedLog: () => {
+        const log = lastCompletedLog;
+        lastCompletedLog = null;
+        return log;
+      },
+      onCompleteLog: (log) => {
+        lastCompletedLog = log;
+      },
+    });
+  }
+}
+
+export function handleRoute() {
+  if (!store || !catalog) return;
+  const parsed = parseRoute(window.location.hash || "");
+
+  closeModal();
+  if (parsed.view === "setup") {
+    mountView("setup", null);
+    return;
+  }
+  if (!store.hasActivePlan()) {
+    replaceHash("#setup");
+    mountView("setup", null);
+    return;
+  }
+  if (parsed.view === "plan" || parsed.view === "progress" || parsed.view === "quick") {
+    mountView(parsed.view, null);
+    return;
+  }
+  if (parsed.view === "edit" && store.getRoutine(parsed.param)) {
+    mountView("edit", parsed.param);
+    return;
+  }
+  if (parsed.view === "workout") {
+    if (parsed.param === "adhoc") {
+      if (!store.hasAdHocSession()) store.ensureAdHocSession();
+      mountView("workout", "adhoc");
       return;
     }
-    if (parsed.view === "edit" && store.getRoutine(parsed.id)) {
-      mountView("edit", parsed.id);
+    if (store.getRoutine(parsed.param)) {
+      mountView("workout", parsed.param);
       return;
     }
-    if (parsed.view === "workout") {
-      if (parsed.id === "adhoc") {
-        if (!store.hasAdHocSession()) store.ensureAdHocSession();
-        mountView("workout", "adhoc");
-        return;
-      }
-      if (store.getRoutine(parsed.id)) {
-        mountView("workout", parsed.id);
-        return;
-      }
-    }
-    replaceHash("#plan");
-    mountView("plan");
+  }
+  replaceHash("#plan");
+  mountView("plan", null);
+}
+
+export function boot() {
+  if (
+    typeof navigator !== "undefined" &&
+    "serviceWorker" in navigator &&
+    window.location &&
+    (window.location.protocol === "https:" || window.location.protocol === "http:")
+  ) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 
-  function boot() {
-    if (typeof navigator !== "undefined" && "serviceWorker" in navigator &&
-        (window.location.protocol === "https:" || window.location.protocol === "http:")) {
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
-    }
-
-    const catalogPromise = root.__TRAINING_CATALOG__
-      ? Promise.resolve(root.__TRAINING_CATALOG__)
-      : fetch("./data/catalog.json").then((resp) => {
-          if (!resp.ok) throw new Error(`Failed to load catalog (${resp.status})`);
-          return resp.json();
-        });
-
-    return catalogPromise
-      .then((loadedCatalog) => {
-        catalog = loadedCatalog;
-        store = root.TrainingStore.createStore({ catalog });
-        sound = root.TrainingSound.createController({
-          theme: store.getSoundTheme(),
-          turnaroundForMode: root.TrainingMotion && root.TrainingMotion.turnaroundForMode,
-        });
-        sound.setTheme(store.getSoundTheme());
-        window.removeEventListener("hashchange", handleRoute);
-        window.addEventListener("hashchange", handleRoute);
-        handleRoute();
-      })
-      .catch((err) => {
-        const appRoot = document.getElementById("app-root");
-        if (appRoot && dom) {
-          appRoot.replaceChildren(
-            dom.el("main", { className: "boot-screen" }, [
-              dom.el("div", { className: "muted", textContent: `Unable to load trainer catalog: ${err && err.message ? err.message : "offline"}` }),
-            ])
-          );
-        }
+  const catalogPromise = globalThis.__TRAINING_CATALOG__
+    ? Promise.resolve(globalThis.__TRAINING_CATALOG__)
+    : fetch("./data/catalog.json").then((resp) => {
+        if (!resp.ok) throw new Error(`Failed to load catalog (${resp.status})`);
+        return resp.json();
       });
+
+  return catalogPromise
+    .then((loadedCatalog) => {
+      catalog = loadedCatalog;
+      store = createStore({ catalog });
+      sound = createController({
+        theme: store.getSoundTheme(),
+        turnaroundForMode,
+      });
+      sound.setTheme(store.getSoundTheme());
+      window.removeEventListener("hashchange", handleRoute);
+      window.addEventListener("hashchange", handleRoute);
+      handleRoute();
+    })
+    .catch((err) => {
+      const appRoot = document.getElementById("app-root");
+      if (appRoot) {
+        appRoot.replaceChildren(
+          el("main", { className: "boot-screen" }, [
+            el("div", {
+              className: "muted",
+              textContent: `Unable to load trainer catalog: ${err && err.message ? err.message : "offline"}`,
+            }),
+          ])
+        );
+      }
+    });
+}
+
+if (typeof document !== "undefined" && typeof window !== "undefined" && !window.__TA_MANUAL_BOOT__) {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (document.getElementById("app-root")) boot();
+    });
+  } else if (document.getElementById("app-root")) {
+    boot();
   }
-
-  const viewsObj = getViews();
-  const exportedApi = {
-    parseRoute, safeDecodeRouteParam, boot, handleRoute, teardownActiveView,
-    resolveSvgMarkup: dom && dom.resolveSvgMarkup,
-    createViewScope: dom && dom.createViewScope,
-    formatLogDate: dom && dom.formatLogDate,
-    formatLogDateTime: dom && dom.formatLogDateTime,
-    buildProgressChartSvg: viewsObj.progress && viewsObj.progress.buildProgressChartSvg,
-  };
-
-  root.TrainingApp = exportedApi;
-  if (typeof module !== "undefined" && module.exports) module.exports = exportedApi;
-
-  if (typeof document !== "undefined" && typeof window !== "undefined") {
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-    else boot();
-  }
-})();
+}
