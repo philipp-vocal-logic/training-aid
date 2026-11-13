@@ -4,12 +4,8 @@ export const EQUIPMENT_OPTIONS = Object.freeze([
   Object.freeze({ id: "bands", label: "Bands", arch: "row_pull", prop: "bands" }),
   Object.freeze({ id: "barbell", label: "Barbell", arch: "bench_press", prop: "barbell" }),
   Object.freeze({ id: "pull_up_bar", label: "Pull-Up Bar", arch: "vertical_pull", prop: "body_only" }),
-  Object.freeze({ id: "bench", label: "Bench / Box", arch: "dip", prop: "body_only" }),
-  Object.freeze({ id: "cable", label: "Cable", arch: "row_pull", prop: "cable" }),
-  Object.freeze({ id: "machine", label: "Machine", arch: "leg_extension_curl", prop: "machine" }),
-  Object.freeze({ id: "medicine_ball", label: "Med Ball", arch: "squat", prop: "dumbbell" }),
-  Object.freeze({ id: "exercise_ball", label: "Swiss Ball", arch: "crunch_core", prop: "body_only" }),
-  Object.freeze({ id: "foam_roll", label: "Foam Roll", arch: "plank", prop: "body_only" }),
+  Object.freeze({ id: "bench", label: "Bench", arch: "dip", prop: "body_only" }),
+  Object.freeze({ id: "machine", label: "Machines", arch: "leg_extension_curl", prop: "machine" }),
 ]);
 
 export const VALID_EQUIPMENT_IDS = Object.freeze(EQUIPMENT_OPTIONS.map((opt) => opt.id));
@@ -68,11 +64,18 @@ export function clampInt(val, minVal, maxVal, fallback) {
     : fallback;
 }
 
+const EQUIPMENT_ALIASES = Object.freeze({
+  cable: "machine",
+  cables: "machine",
+  machines: "machine",
+});
+
 export function normalizeEquipmentList(input) {
   if (!Array.isArray(input)) return [];
   const picked = new Set();
   for (const raw of input) {
-    const key = String(raw || "").trim().toLowerCase();
+    const rawKey = String(raw || "").trim().toLowerCase();
+    const key = EQUIPMENT_ALIASES[rawKey] || rawKey;
     if (VALID_EQUIP_SET.has(key)) picked.add(key);
   }
   return VALID_EQUIPMENT_IDS.filter((id) => picked.has(id));

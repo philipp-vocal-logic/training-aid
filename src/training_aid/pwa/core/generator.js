@@ -176,7 +176,7 @@ export function generateBalancedSession(exerciseList, availableEquip, profile, o
 
 export function selectProgramKeyForEquipment(availableEquip) {
   const availSet = toAvailableSet(availableEquip);
-  if (availSet.has("barbell") && (availSet.has("cable") || availSet.has("machine") || availSet.has("pull_up_bar"))) {
+  if (availSet.has("barbell") && (availSet.has("machine") || availSet.has("cable") || availSet.has("pull_up_bar"))) {
     return "full_gym";
   }
   if (availSet.has("dumbbell")) return "dumbbells";

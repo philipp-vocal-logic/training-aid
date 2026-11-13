@@ -23,20 +23,20 @@ DEFAULT_ANIMATIONS_JSON = DATA_DIR / "animations.json"
 
 CATALOG_SCHEMA_VERSION = 2
 
+_OTHER_EQ: frozenset[str] = frozenset(
+    {"other", "medicine ball", "exercise ball", "foam roll"}
+)
 _EQUIPMENT_MAP: dict[str, str] = {
     "dumbbell": "dumbbell",
     "kettlebells": "kettlebells",
     "bands": "bands",
     "barbell": "barbell",
     "e-z curl bar": "barbell",
-    "cable": "cable",
+    "cable": "machine",
     "machine": "machine",
-    "medicine ball": "medicine_ball",
-    "exercise ball": "exercise_ball",
-    "foam roll": "foam_roll",
 }
 _PULL_UP_BAR_RE = re.compile(r"pull-?ups?|chin-?ups?|inverted row", re.IGNORECASE)
-_BENCH_FREE_EQ = frozenset({"machine", "medicine ball", "exercise ball"})
+_BENCH_FREE_EQ: frozenset[str] = frozenset({"machine"})
 _EXPLICIT_BENCH_RE = re.compile(r"\b(?:bench|incline|decline)\b", re.IGNORECASE)
 _BENCH_RE = re.compile(
     r"\bbench\b|\b(?:dumbbell|incline|decline)\s+flye?s?\b|\baround the worlds\b",
@@ -60,7 +60,7 @@ __all__ = [
 def compute_required_equipment(exercise: CatalogExercise) -> list[str]:
     """Derive canonical required equipment IDs (plus fixture props) for an exercise."""
     raw_eq = exercise.equipment.strip().lower()
-    if raw_eq == "other":
+    if raw_eq in _OTHER_EQ:
         return ["__other__"]
 
     required: list[str] = []

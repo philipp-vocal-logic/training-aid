@@ -20,6 +20,10 @@ from training_aid.audit import (
     EXPECTED_CATALOG_COUNT,
     REPO_ROOT,
 )
+from training_aid.audit.catalog_checks import (
+    VALID_REQUIRED_EQUIPMENT_IDS,
+    _check_compiled_exercise_entry,
+)
 from training_aid.compiler import (
     CATALOG_SCHEMA_VERSION,
     build_exercise_metadata,
@@ -435,21 +439,23 @@ def test_front_view_svg_and_props() -> None:
     assert f'x2="{joints_b["shoulder_f"][0]:.2f}"' in sh_front
 
 
-def test_compute_required_equipment_chest_fly_bench_rules() -> None:
-    """Verify equipment-aware 'bench' inference across catalog exercises."""
+def test_compute_required_equipment_chest_fly_bench_rules(tmp_path: Path) -> None:
+    """Verify equipment-aware 'bench' inference, consolidation, and ID checks."""
     by_id = {ex.id: ex for ex in load_catalog_exercises()}
     expected_by_id: dict[str, list[str]] = {
-        "Standing_Cable_Chest_Press": ["cable"],
-        "Cable_Chest_Press": ["cable"],
-        "Cable_Crossover": ["cable"],
+        "Standing_Cable_Chest_Press": ["machine"],
+        "Cable_Chest_Press": ["machine"],
+        "Cable_Crossover": ["machine"],
         "Cross_Over_-_With_Bands": ["bands"],
         "Leverage_Chest_Press": ["machine"],
         "Machine_Bench_Press": ["machine"],
         "Dip_Machine": ["machine"],
         "Butterfly": ["machine"],
-        "Medicine_Ball_Chest_Pass": ["medicine_ball"],
-        "Supine_Chest_Throw": ["medicine_ball"],
-        "Chest_Stretch_on_Stability_Ball": ["exercise_ball"],
+        "Medicine_Ball_Chest_Pass": ["__other__"],
+        "Supine_Chest_Throw": ["__other__"],
+        "Chest_Stretch_on_Stability_Ball": ["__other__"],
+        "Adductor": ["__other__"],
+        "Ab_Roller": ["__other__"],
         "Jerk_Dip_Squat": ["barbell"],
         "Dumbbell_Floor_Press": ["dumbbell"],
         "Bench_Dips": ["bench"],
@@ -460,10 +466,39 @@ def test_compute_required_equipment_chest_fly_bench_rules() -> None:
         "Incline_Dumbbell_Flyes": ["dumbbell", "bench"],
         "Decline_Dumbbell_Flyes": ["dumbbell", "bench"],
         "Around_The_Worlds": ["dumbbell", "bench"],
-        "Incline_Cable_Chest_Press": ["cable", "bench"],
-        "Flat_Bench_Cable_Flyes": ["cable", "bench"],
+        "Incline_Cable_Chest_Press": ["machine", "bench"],
+        "Flat_Bench_Cable_Flyes": ["machine", "bench"],
         "Bench_Press_-_With_Bands": ["bands", "bench"],
     }
     for ex_id, expected in expected_by_id.items():
         assert ex_id in by_id, f"Missing catalog exercise: {ex_id}"
         assert compute_required_equipment(by_id[ex_id]) == expected, ex_id
+        assert set(expected) <= VALID_REQUIRED_EQUIPMENT_IDS
+
+    thumb = tmp_path / "svgs" / "thumbs" / "squat__body_only.svg"
+    thumb.parent.mkdir(parents=True, exist_ok=True)
+    thumb.write_text("<svg/>", encoding="utf-8")
+    bad_entry = {
+        "id": "Bad_Ex",
+        "name": "Bad Ex",
+        "category": "strength",
+        "equipment": "medicine ball",
+        "primary_muscle": "chest",
+        "archetype": "squat",
+        "eq_mode": "body_only",
+        "svg_key": "squat:body_only",
+        "thumb_url": "./svgs/thumbs/squat__body_only.svg",
+        "rep_seconds": 2.0,
+        "is_hold": False,
+        "unit": "reps",
+        "how_to": "Move",
+        "cue_work": "Work",
+        "cue_return": "Return",
+        "tempo_mode": "standard",
+        "is_alternating": False,
+        "required_equipment": ["medicine_ball"],
+    }
+    errs = _check_compiled_exercise_entry(
+        bad_entry, {"squat:body_only": "<svg/>"}, tmp_path
+    )
+    assert any("invalid required_equipment IDs" in err for err in errs)

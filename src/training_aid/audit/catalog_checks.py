@@ -32,6 +32,7 @@ __all__ = [
     "EXPECTED_COMPILED_EXERCISE_KEYS",
     "EXPECTED_METADATA_KEYS",
     "EXPECTED_RAW_EXERCISE_KEYS",
+    "VALID_REQUIRED_EQUIPMENT_IDS",
     "audit_catalog_and_pwa_bundle",
     "audit_coaching_integration",
     "audit_programs_config",
@@ -83,12 +84,22 @@ MIN_HOLD_REPS, MIN_WEIGHT_KG, MAX_WEIGHT_KG = 20, 2.0, 250.0
 WEIGHTED_EQUIPMENT: frozenset[str] = frozenset(
     {"barbell", "dumbbell", "kettlebells", "cable", "machine", "e-z curl bar"}
 )
-_BASE_BODY_EQ: frozenset[str] = frozenset(
-    {"body only", "foam roll", "exercise ball", "other"}
+VALID_REQUIRED_EQUIPMENT_IDS: frozenset[str] = frozenset(
+    {
+        "dumbbell",
+        "kettlebells",
+        "bands",
+        "barbell",
+        "pull_up_bar",
+        "bench",
+        "machine",
+        "__other__",
+    }
 )
+_BASE_BODY_EQ: frozenset[str] = frozenset({"body only"})
 TIER_ALLOWED_EQUIPMENT: dict[str, frozenset[str] | None] = {
     "body_only": _BASE_BODY_EQ,
-    "dumbbells": _BASE_BODY_EQ | {"dumbbell", "medicine ball"},
+    "dumbbells": _BASE_BODY_EQ | {"dumbbell"},
     "kettlebell_bands": _BASE_BODY_EQ | {"kettlebells", "bands"},
     "full_gym": None,
 }
@@ -126,6 +137,8 @@ def _check_compiled_exercise_entry(
     req_eq = item.get("required_equipment")
     if not isinstance(req_eq, list) or not all(isinstance(x, str) for x in req_eq):
         errs.append(f"{ex_id}: required_equipment must be a list[str]")
+    elif invalid_eq := [x for x in req_eq if x not in VALID_REQUIRED_EQUIPMENT_IDS]:
+        errs.append(f"{ex_id}: invalid required_equipment IDs: {invalid_eq}")
     if str(item.get("svg_key") or "") not in svgs:
         errs.append(f"{ex_id}: svg_key missing from catalog.svgs")
     thumb_rel = str(item.get("thumb_url") or "").removeprefix("./")

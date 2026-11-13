@@ -36,11 +36,54 @@ after(() => {
 
 test("catalog equipment hygiene: pre-baked required_equipment, 'other' isolation, and fixture rules", () => {
   assert.equal(catalog.schema_version, 2);
+  assert.deepEqual(constantsMod.EQUIPMENT_OPTIONS, [
+    { id: "dumbbell", label: "Dumbbells", arch: "curl", prop: "dumbbell" },
+    { id: "kettlebells", label: "Kettlebells", arch: "hinge", prop: "kettlebells" },
+    { id: "bands", label: "Bands", arch: "row_pull", prop: "bands" },
+    { id: "barbell", label: "Barbell", arch: "bench_press", prop: "barbell" },
+    { id: "pull_up_bar", label: "Pull-Up Bar", arch: "vertical_pull", prop: "body_only" },
+    { id: "bench", label: "Bench", arch: "dip", prop: "body_only" },
+    { id: "machine", label: "Machines", arch: "leg_extension_curl", prop: "machine" },
+  ]);
   assert.deepEqual(constantsMod.normalizeEquipmentList("dumbbells"), []);
   assert.deepEqual(constantsMod.normalizeEquipmentList(["bands", "dumbbell", "bands"]), [
     "dumbbell",
     "bands",
   ]);
+  assert.deepEqual(
+    constantsMod.normalizeEquipmentList([
+      "cable",
+      "cables",
+      "machines",
+      "medicine_ball",
+      "exercise_ball",
+      "foam_roll",
+      "dumbbell",
+      "unknown_gear",
+    ]),
+    ["dumbbell", "machine"]
+  );
+  assert.equal(constantsMod.isWeightedCatalogEquipment("cable"), true);
+  assert.equal(generatorMod.selectProgramKeyForEquipment(["barbell", "cable"]), "full_gym");
+  assert.equal(generatorMod.selectProgramKeyForEquipment(["barbell", "machine"]), "full_gym");
+
+  const legacyState = codecMod.validateAndNormalizeState(
+    {
+      schema_version: 2,
+      profile: {
+        name: "Legacy",
+        equipment_list: ["cable", "medicine_ball", "foam_roll", "dumbbell", "exercise_ball"],
+      },
+      plan: {
+        days_per_week: 3,
+        routines: [{ id: "r1", name: "Day 1", intensity_level: 0, exercises: [] }],
+      },
+      adhoc_session: null,
+      logs: [],
+    },
+    catalog
+  );
+  assert.deepEqual(legacyState.profile.equipment_list, ["dumbbell", "machine"]);
 
   const byId = new Map(catalog.exercises.map((ex) => [ex.id, ex]));
 
@@ -73,8 +116,17 @@ test("catalog equipment hygiene: pre-baked required_equipment, 'other' isolation
     true
   );
 
+  assert.deepEqual(catalogMod.getRequiredEquipment(byId.get("Standing_Cable_Chest_Press")), [
+    "machine",
+  ]);
+  assert.deepEqual(catalogMod.getRequiredEquipment(byId.get("Incline_Cable_Chest_Press")), [
+    "machine",
+    "bench",
+  ]);
+
+  const retiredOtherRaw = new Set(["other", "medicine ball", "exercise ball", "foam roll"]);
   for (const ex of catalog.exercises) {
-    if (ex.equipment.toLowerCase() === "other") {
+    if (retiredOtherRaw.has(ex.equipment.toLowerCase())) {
       assert.deepEqual(catalogMod.getRequiredEquipment(ex), ["__other__"]);
       assert.equal(
         catalogMod.isExerciseCompatible(ex, constantsMod.VALID_EQUIPMENT_IDS),
