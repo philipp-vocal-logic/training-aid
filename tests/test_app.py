@@ -31,9 +31,7 @@ from training_aid.builder import (
 )
 from training_aid.coaching import (
     build_exercise_metadata,
-    classify_archetype,
     load_archetype_coaching,
-    load_exercise_coaching,
 )
 from training_aid.svg_assets import (
     compute_shadow,
@@ -226,9 +224,8 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
     assert len(specs) == EXPECTED_ARCHETYPE_COUNT
 
     arch_coaching = load_archetype_coaching()
-    ex_coaching = load_exercise_coaching()
     assert set(arch_coaching.keys()) == set(specs.keys())
-    assert 0 < len(ex_coaching) < 80
+    assert not (REPO_ROOT / "data" / "exercise_coaching.json").exists()
 
     catalog = load_catalog_exercises()
     assert len(catalog) == EXPECTED_CATALOG_COUNT
@@ -237,13 +234,11 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
     assert "setup_equipment_props" in programs
 
     sample = catalog[0]
-    arch = classify_archetype(sample)
     meta = build_exercise_metadata(
         sample,
-        coaching_map=ex_coaching,
         archetype_coaching=arch_coaching,
     )
-    assert meta["archetype"] == arch
+    assert meta["archetype"] == sample.archetype
     assert meta["how_to"]
     assert meta["cue_work"]
     assert meta["cue_return"]

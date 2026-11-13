@@ -25,11 +25,7 @@ from training_aid.builder import (
 )
 from training_aid.coaching import (
     build_exercise_metadata,
-    classify_archetype,
-    classify_archetype_fallback,
-    is_hold_exercise,
     load_archetype_coaching,
-    load_exercise_coaching,
 )
 from training_aid.svg_assets import (
     lerp_pose,
@@ -43,24 +39,30 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR, STATIC_DIR, PWA_DIR = REPO_ROOT / "data", STATIC_SRC_DIR, PWA_SRC_DIR
 EXPECTED_CATALOG_COUNT, EXPECTED_ARCHETYPE_COUNT = 876, 18
 EXPECTED_SVG_COMBO_COUNT = EXPECTED_ARCHETYPE_COUNT * len(CANONICAL_EQUIPMENT_MODES)
-MAX_SPARSE_COACHING_OVERRIDES, MIN_HOLD_REPS = 80, 20
+MIN_HOLD_REPS = 20
 MIN_WEIGHT_KG, MAX_WEIGHT_KG = 2.0, 250.0
 VIEWPORT_MIN, VIEWPORT_MAX_X, VIEWPORT_MAX_JOINT_Y, FLOOR_Y = 0.0, 240.0, 174.0, 175.0
 HEAD_RADIUS, MAX_KB_HANDLE_DIST, MAX_RACK_HAND_SHOULDER_DIST = 11.5, 3.0, 28.0
 SVG_COORD_TOL, BONE_LEN_TOL = 0.03, 1e-6
 
 SAMPLE_TS = (0.0, 0.25, 0.5, 0.75, 1.0)
-_CAT_1 = ("id", "name", "force", "level", "mechanic", "equipment", "category")
-_CAT_2 = ("primaryMuscles", "secondaryMuscles", "instructions", "images")
-EXPECTED_CATALOG_KEYS = frozenset(_CAT_1 + _CAT_2)
+_CAT_STR_KEYS = (
+    "id",
+    "name",
+    "category",
+    "equipment",
+    "primary_muscle",
+    "archetype",
+    "tempo_mode",
+)
+_CAT_BOOL_KEYS = ("is_hold", "is_alternating")
+EXPECTED_CATALOG_KEYS = frozenset(_CAT_STR_KEYS + _CAT_BOOL_KEYS)
 _META_1 = ("archetype", "rep_seconds", "is_hold", "unit", "how_to")
 _META_2 = ("cue_work", "cue_return", "tempo_mode", "is_alternating")
 EXPECTED_METADATA_KEYS = frozenset(_META_1 + _META_2)
 _COMP_1 = ("id", "name", "category", "equipment", "primary_muscle")
 _COMP_2 = ("eq_mode", "svg_key", "thumb_url")
 EXPECTED_COMPILED_EXERCISE_KEYS = EXPECTED_METADATA_KEYS | frozenset(_COMP_1 + _COMP_2)
-_OV_KEYS = ("archetype", "is_hold", "tempo_mode", "is_alternating")
-ALLOWED_OVERRIDE_KEYS = frozenset(_OV_KEYS)
 _SCAN_1 = ("index.html", "manifest.webmanifest", "icon.svg", "sw.js", "app.js")
 _SCAN_2 = ("domain.js", "codec.js", "store.js", "qr.js", "dom.js", "static/style.css")
 _SCAN_3 = ("views/setup.js", "views/plan.js", "views/edit.js", "views/workout.js")
@@ -113,7 +115,6 @@ class AuditConfig:
     """File-path configuration for the end-to-end static PWA audit."""
 
     exercises_path: Path = DATA_DIR / "exercises.json"
-    coaching_path: Path = DATA_DIR / "exercise_coaching.json"
     animations_path: Path = DATA_DIR / "animations.json"
     programs_path: Path = DATA_DIR / "programs.json"
     motion_js_path: Path = STATIC_DIR / "motion.js"
@@ -257,6 +258,16 @@ def _check_shell_and_privacy(dist_dir: Path, errors: list[str]) -> None:
             errors.append(f"{rel_file}: contains forbidden CDN or external URL")
 
 
+def _is_valid_raw_exercise(item: object) -> bool:
+    if not isinstance(item, dict) or set(item.keys()) != EXPECTED_CATALOG_KEYS:
+        return False
+    str_ok = all(
+        isinstance(item.get(k), str) and bool(item[k].strip()) for k in _CAT_STR_KEYS
+    )
+    bool_ok = all(isinstance(item.get(k), bool) for k in _CAT_BOOL_KEYS)
+    return str_ok and bool_ok
+
+
 def _audit_catalog_and_pwa_bundle(
     cfg: AuditConfig, dist_dir: Path, *, reuse: bool
 ) -> tuple[AuditSectionResult, list[CatalogExercise], set[str], dict[str, Any]]:
@@ -268,15 +279,13 @@ def _audit_catalog_and_pwa_bundle(
     if len(raw) != cfg.expected_count:
         errors.append(f"exercises.json count {len(raw)} != {cfg.expected_count}")
     for i, it in enumerate(raw):
-        is_valid = isinstance(it, dict) and set(it.keys()) == EXPECTED_CATALOG_KEYS
-        if not is_valid or not it.get("instructions"):
-            errors.append(f"exercises.json[{i}] invalid schema or empty instructions")
+        if not _is_valid_raw_exercise(it):
+            errors.append(f"exercises.json[{i}] invalid schema or field types")
     r_ids = {str(it.get("id") or "").strip() for it in raw if isinstance(it, dict)}
     if len(r_ids) != len(raw):
         errors.append("Duplicate exercise IDs in exercises.json")
     exs = load_catalog_exercises(cfg.exercises_path)
-    req_f = ("id", "name", "category", "equipment", "primary_muscle")
-    f_ok = all(getattr(ex, f, "").strip() for ex in exs for f in req_f)
+    f_ok = all(getattr(ex, f, "").strip() for ex in exs for f in _CAT_STR_KEYS)
     if {ex.id for ex in exs} != r_ids or not f_ok:
         errors.append("load_catalog_exercises mismatch or empty required field")
     if reuse:
@@ -292,53 +301,42 @@ def _audit_catalog_and_pwa_bundle(
 
 
 def _check_single_exercise_coaching(
-    ex: CatalogExercise, meta: JsonMap, specs: JsonMap, ov: JsonMap | None
+    ex: CatalogExercise, meta: JsonMap, specs: JsonMap, comp: JsonMap | None
 ) -> list[str]:
     arch = str(meta.get("archetype") or "")
     tempo, is_hold = str(meta.get("tempo_mode") or ""), bool(meta.get("is_hold"))
     s_ok = set(meta.keys()) == EXPECTED_METADATA_KEYS and arch in specs
+    e_ok = ex.archetype == arch and ex.is_hold == is_hold and ex.tempo_mode == tempo
     t_ok = tempo in VALID_TEMPO_MODES and is_hold == (tempo == "hold")
     h_ok = ex.category.lower() != "stretching" or is_hold
-    c_ok = is_hold == is_hold_exercise(ex) == is_hold_exercise(ex.id)
-    a_ok = classify_archetype(ex) == arch
-    fb_ok = bool(ov and "archetype" in ov) or classify_archetype_fallback(ex) == arch
     cues = ("how_to", "cue_work", "cue_return")
     cues_ok = all(str(meta.get(k) or "").strip() for k in cues)
-    if not (s_ok and t_ok and h_ok and c_ok and a_ok and fb_ok and cues_ok):
-        return [f"{ex.id}: coaching metadata or classifier invariant failed"]
+    comp_ok = comp is None or all(
+        comp.get(k) == meta[k] for k in EXPECTED_METADATA_KEYS
+    )
+    if not (s_ok and e_ok and t_ok and h_ok and cues_ok and comp_ok):
+        return [f"{ex.id}: coaching metadata invariant failed"]
     return []
 
 
 def _audit_coaching_integration(
     cfg: AuditConfig,
     exs: list[CatalogExercise],
-    r_ids: set[str],
     cat: JsonMap,
     sp: JsonMap,
 ) -> tuple[AuditSectionResult, dict[str, JsonMap]]:
     metas: dict[str, JsonMap] = {}
-    if not cfg.coaching_path.is_file():
-        msg = f"Missing exercise_coaching.json: {cfg.coaching_path}"
-        return (AuditSectionResult("coaching_integration", 0, (msg,)), metas)
     errors: list[str] = []
-    c_map = load_exercise_coaching(cfg.coaching_path)
     a_coach = load_archetype_coaching(cfg.animations_path)
-    cnt_ok = 0 < len(c_map) < MAX_SPARSE_COACHING_OVERRIDES
-    ov_ok = cnt_ok and not (set(c_map.keys()) - r_ids)
-    k_ok = all(bool(ov) and set(ov) <= ALLOWED_OVERRIDE_KEYS for ov in c_map.values())
-    a_ok = len(sp) == EXPECTED_ARCHETYPE_COUNT and set(a_coach) == set(sp)
-    if not (ov_ok and k_ok and a_ok):
-        errors.append("exercise_coaching.json or archetype_coaching validation failed")
+    if len(sp) != EXPECTED_ARCHETYPE_COUNT or set(a_coach) != set(sp):
+        errors.append("archetype_coaching validation failed")
     cat_ex = cat.get("exercises", [])
     comp_map = {str(x["id"]): x for x in cat_ex if isinstance(x, dict) and "id" in x}
     for ex in exs:
-        kw = {"coaching_map": c_map, "archetype_coaching": a_coach}
-        meta = build_exercise_metadata(ex, **kw)
+        meta = build_exercise_metadata(ex, archetype_coaching=a_coach)
         metas[ex.id] = meta
-        errors.extend(_check_single_exercise_coaching(ex, meta, sp, c_map.get(ex.id)))
         comp = comp_map.get(ex.id)
-        if comp is not None and comp.get("archetype") != meta["archetype"]:
-            errors.append(f"{ex.id}: compiled catalog archetype diverges")
+        errors.extend(_check_single_exercise_coaching(ex, meta, sp, comp))
     sec = AuditSectionResult("coaching_integration", len(exs), tuple(errors))
     return (sec, metas)
 
@@ -480,7 +478,7 @@ def _audit_animations_and_safe_grip(
     for combo in all_combos:
         _check_combo_svg_and_thumb(combo, specs[combo[0]], svgs, dist, errors)
     for ex in exs:
-        arch = str((metas.get(ex.id) or {}).get("archetype") or classify_archetype(ex))
+        arch = str((metas.get(ex.id) or {}).get("archetype") or ex.archetype)
         if (arch, normalize_equipment(ex.equipment, arch)) not in all_combos:
             errors.append(f"{ex.id}: unexpected combo")
     errors.extend(verify_motion_js_safe_grip(cfg.motion_js_path, all_combos))
@@ -505,8 +503,8 @@ def _audit_programs_config(
                 if ex is None:
                     errors.append(f"programs.json[{tier}]: missing exercise '{ex_id}'")
                     continue
-                covered.add(classify_archetype(ex))
-                hold = is_hold_exercise(ex)
+                covered.add(ex.archetype)
+                hold = ex.is_hold
                 eq_ok = allowed_eq is None or ex.equipment in allowed_eq
                 rep_ok = not hold or int(reps) >= MIN_HOLD_REPS
                 w_in = weight is None or MIN_WEIGHT_KG <= float(weight) <= MAX_WEIGHT_KG
@@ -543,8 +541,10 @@ def run_catalog_audit(
     with tempfile.TemporaryDirectory(prefix="training_aid_audit_") as tmp_str:
         reuse = res is not None and (res / "data" / "catalog.json").is_file()
         target = res if (reuse and res is not None) else Path(tmp_str) / "dist"
-        sec_b, exs, r_ids, cat = _audit_catalog_and_pwa_bundle(cfg, target, reuse=reuse)
-        sec_c, metas = _audit_coaching_integration(cfg, exs, r_ids, cat, specs)
+        sec_b, exs, _r_ids, cat = _audit_catalog_and_pwa_bundle(
+            cfg, target, reuse=reuse
+        )
+        sec_c, metas = _audit_coaching_integration(cfg, exs, cat, specs)
         sec_r = _audit_animations_and_safe_grip(cfg, exs, metas, target, cat)
         pwa_errs = _audit_programs_config(cfg, {ex.id: ex for ex in exs}, specs)
         pwa_errs.extend(verify_pwa_bundle_with_node(target))

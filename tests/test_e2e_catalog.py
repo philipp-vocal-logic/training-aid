@@ -32,11 +32,7 @@ from training_aid.builder import (
 )
 from training_aid.coaching import (
     build_exercise_metadata,
-    classify_archetype,
-    classify_archetype_fallback,
-    is_hold_exercise,
     load_archetype_coaching,
-    load_exercise_coaching,
 )
 from training_aid.svg_assets import (
     lerp_pose,
@@ -91,7 +87,6 @@ def test_audit_cli_and_motion_safe_grip_failure_detection(
 
     bad_cfg = AuditConfig(
         exercises_path=tmp_path / "missing_exercises.json",
-        coaching_path=DATA_DIR / "exercise_coaching.json",
         animations_path=DATA_DIR / "animations.json",
         programs_path=DATA_DIR / "programs.json",
         motion_js_path=STATIC_DIR / "motion.js",
@@ -119,8 +114,8 @@ def test_catalog_safe_grip_and_floor_bounds() -> None:
 
     combos = {
         (
-            classify_archetype(ex),
-            normalize_equipment(ex.equipment, classify_archetype(ex)),
+            ex.archetype,
+            normalize_equipment(ex.equipment, ex.archetype),
         )
         for ex in catalog
     }
@@ -142,34 +137,37 @@ def test_catalog_safe_grip_and_floor_bounds() -> None:
                 assert span <= 145.0, f"{arch}:{eq_mode} excessive hand span: {span}"
 
 
-def test_sparse_exercise_coaching_overrides_and_archetypes() -> None:
-    """Verify sparse exercise_coaching.json overrides and archetype coverage."""
+def test_baked_exercise_coaching_and_archetypes() -> None:
+    """Verify pre-baked exercises.json coaching attributes and archetype coverage."""
     _std_bones, _aliases, specs = load_animation_registry()
     arch_coaching = load_archetype_coaching()
-    ex_coaching = load_exercise_coaching()
     assert set(arch_coaching.keys()) == set(specs.keys())
-    assert 0 < len(ex_coaching) < 80
+    assert not (DATA_DIR / "exercise_coaching.json").exists()
 
     catalog = load_catalog_exercises()
     by_id = {ex.id: ex for ex in catalog}
-    for ex_id, override in ex_coaching.items():
-        assert ex_id in by_id, f"Unknown exercise override ID: {ex_id}"
-        ex = by_id[ex_id]
-        meta = build_exercise_metadata(
-            ex, coaching_map=ex_coaching, archetype_coaching=arch_coaching
-        )
-        if "archetype" in override:
-            assert meta["archetype"] == override["archetype"]
-        if "is_hold" in override and ex.category.lower() != "stretching":
-            assert meta["is_hold"] == bool(override["is_hold"])
+    assert set(specs.keys()) == {ex.archetype for ex in catalog}
 
-    plank = CatalogExercise(id="Plank", name="Plank", category="strength")
-    squat = CatalogExercise(
-        id="Barbell_Squat", name="Barbell Squat", category="strength"
+    assert by_id["Plank"].is_hold is True
+    assert by_id["Plank"].archetype == "plank"
+    assert by_id["Plank"].tempo_mode == "hold"
+    assert by_id["Plate_Pinch"].is_hold is True
+    assert by_id["Lateral_Bound"].tempo_mode == "explosive"
+    assert by_id["Lateral_Bound"].is_alternating is True
+    assert by_id["Barbell_Squat"].is_hold is False
+
+    stretch = CatalogExercise(
+        id="Test_Stretch",
+        name="Test Stretch",
+        category="stretching",
+        archetype="hinge",
     )
-    assert is_hold_exercise(plank) is True
-    assert is_hold_exercise(squat) is False
-    assert classify_archetype_fallback(plank) == "plank"
+    stretch_meta = build_exercise_metadata(stretch, archetype_coaching=arch_coaching)
+    assert stretch_meta["is_hold"] is True
+    assert stretch_meta["tempo_mode"] == "hold"
+    assert stretch_meta["unit"] == "sec"
+    assert stretch_meta["cue_work"] == "Hold"
+    assert stretch_meta["cue_return"] == "Breathe"
 
 
 def test_programs_config_18_archetype_coverage_and_setup_props() -> None:
@@ -185,7 +183,7 @@ def test_programs_config_18_archetype_coverage_and_setup_props() -> None:
         for _routine_name, slot_specs in prog["routines"]:
             for ex_id, _reps, _weight in slot_specs:
                 assert ex_id in by_id
-                covered_archetypes.add(classify_archetype(by_id[ex_id]))
+                covered_archetypes.add(by_id[ex_id].archetype)
 
     assert covered_archetypes == set(specs.keys())
 

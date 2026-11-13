@@ -12,7 +12,6 @@ from training_aid.coaching import (
     CatalogExercise,
     build_exercise_metadata,
     load_archetype_coaching,
-    load_exercise_coaching,
 )
 from training_aid.svg_assets import (
     CANONICAL_EQUIPMENT_MODES,
@@ -31,7 +30,6 @@ DEFAULT_DIST_DIR = REPO_ROOT / "dist"
 DEFAULT_EXERCISES_JSON = DATA_DIR / "exercises.json"
 DEFAULT_PROGRAMS_JSON = DATA_DIR / "programs.json"
 DEFAULT_ANIMATIONS_JSON = DATA_DIR / "animations.json"
-DEFAULT_EXERCISE_COACHING_JSON = DATA_DIR / "exercise_coaching.json"
 
 CATALOG_SCHEMA_VERSION = 1
 _SW_CACHE_VERSION_RE = re.compile(r'(CACHE_VERSION\s*=\s*")v1(?:-[0-9a-f]{12})?(")')
@@ -56,21 +54,22 @@ __all__ = [
 def load_catalog_exercises(
     exercises_path: Path = DEFAULT_EXERCISES_JSON,
 ) -> list[CatalogExercise]:
-    """Load and normalize all catalog exercises from exercises.json."""
+    """Load all catalog exercises from exercises.json."""
     raw_items = json.loads(exercises_path.read_text(encoding="utf-8"))
-    exercises: list[CatalogExercise] = []
-    for item in raw_items:
-        primary_list = item.get("primaryMuscles") or []
-        exercises.append(
-            CatalogExercise(
-                id=str(item["id"]),
-                name=str(item["name"]),
-                category=str(item.get("category") or "strength"),
-                equipment=str(item.get("equipment") or "body only"),
-                primary_muscle=str(primary_list[0]) if primary_list else "other",
-            )
+    return [
+        CatalogExercise(
+            id=str(item["id"]),
+            name=str(item["name"]),
+            category=str(item.get("category") or "strength"),
+            equipment=str(item.get("equipment") or "body only"),
+            primary_muscle=str(item.get("primary_muscle") or "other"),
+            archetype=str(item.get("archetype") or "squat"),
+            is_hold=bool(item.get("is_hold", False)),
+            tempo_mode=str(item.get("tempo_mode") or "standard"),
+            is_alternating=bool(item.get("is_alternating", False)),
         )
-    return exercises
+        for item in raw_items
+    ]
 
 
 def load_programs_config(
@@ -117,12 +116,10 @@ def _compile_exercise_record(
     exercise: CatalogExercise,
     *,
     archetype_specs: dict[str, dict[str, Any]],
-    coaching_map: dict[str, dict[str, Any]],
     archetype_coaching: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     meta = build_exercise_metadata(
         exercise,
-        coaching_map=coaching_map,
         archetype_coaching=archetype_coaching,
     )
     raw_arch = str(meta["archetype"])
@@ -183,13 +180,11 @@ def _write_equipment_thumbnails(
 def build_catalog_payload(data_dir: Path = DATA_DIR) -> dict[str, Any]:
     """Compile exercises, programs, and animated SVGs into the catalog JSON dict."""
     animations_path = data_dir / "animations.json"
-    coaching_path = data_dir / "exercise_coaching.json"
     exercises_path = data_dir / "exercises.json"
     programs_path = data_dir / "programs.json"
 
     _std_bones, _aliases, archetype_specs = load_animation_registry(animations_path)
     archetype_coaching = load_archetype_coaching(animations_path)
-    coaching_map = load_exercise_coaching(coaching_path)
     exercises = load_catalog_exercises(exercises_path)
     programs = load_programs_config(programs_path)
 
@@ -197,7 +192,6 @@ def build_catalog_payload(data_dir: Path = DATA_DIR) -> dict[str, Any]:
         _compile_exercise_record(
             exercise,
             archetype_specs=archetype_specs,
-            coaching_map=coaching_map,
             archetype_coaching=archetype_coaching,
         )
         for exercise in exercises
