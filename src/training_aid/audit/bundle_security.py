@@ -193,7 +193,10 @@ def check_shell_and_privacy(dist_dir: Path) -> list[str]:
         errors.extend(
             f"{rel_posix}: contains forbidden CDN token '{token}'"
             for token in FORBIDDEN_CDN_TOKENS
-            if token in text_lower
+            if re.search(
+                rf"(?<![a-z0-9_-]){re.escape(token)}(?![a-z0-9_-])",
+                text_lower,
+            )
         )
         urls = [u.rstrip(".,;:'\"`") for u in _URL_RE.findall(text)]
         errors.extend(
