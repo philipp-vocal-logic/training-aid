@@ -134,18 +134,22 @@ def test_catalog_safe_grip_and_floor_bounds() -> None:
 
     for arch, eq_mode in sorted(combos):
         spec = specs[arch]
-        for alpha in (0.0, 0.25, 0.5, 0.75, 1.0):
-            pose = lerp_pose(spec["pose_a"], spec["pose_b"], alpha)
-            joints = solve_fk(spec["bones"], pose)
-            for j_name, (jx, jy) in joints.items():
-                assert math.isfinite(jx)
-                assert math.isfinite(jy)
-                assert jy <= 175.0, f"{arch}:{eq_mode} {j_name} below floor: {jy}"
-            if eq_mode in {"barbell", "dumbbell", "kettlebells", "cable", "bands"}:
-                hf = joints["hand_f"]
-                hb = joints["hand_b"]
-                span = math.hypot(hf[0] - hb[0], hf[1] - hb[1])
-                assert span <= 145.0, f"{arch}:{eq_mode} excessive hand span: {span}"
+        view = str(spec.get("view", "side"))
+        for swap in (False, True):
+            for alpha in (0.0, 0.25, 0.5, 0.75, 1.0):
+                pose = lerp_pose(spec["pose_a"], spec["pose_b"], alpha)
+                joints = solve_fk(spec["bones"], pose, swap_sides=swap, view=view)
+                for j_name, (jx, jy) in joints.items():
+                    assert math.isfinite(jx)
+                    assert math.isfinite(jy)
+                    assert jy <= 175.0, f"{arch}:{eq_mode} {j_name} below floor: {jy}"
+                if eq_mode in {"barbell", "dumbbell", "kettlebells", "cable", "bands"}:
+                    hf = joints["hand_f"]
+                    hb = joints["hand_b"]
+                    span = math.hypot(hf[0] - hb[0], hf[1] - hb[1])
+                    assert span <= 145.0, (
+                        f"{arch}:{eq_mode} excessive hand span: {span}"
+                    )
 
 
 def test_baked_exercise_coaching_and_archetypes() -> None:
@@ -166,6 +170,12 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
     assert by_id["Plate_Pinch"].is_hold is True
     assert by_id["Lateral_Bound"].tempo_mode == "explosive"
     assert by_id["Lateral_Bound"].is_alternating is True
+    assert by_id["Lateral_Bound"].archetype == "side_lunge"
+    assert by_id["Side_Lateral_Raise"].archetype == "lateral_raise"
+    assert by_id["Dumbbell_Flyes"].archetype == "chest_fly"
+    assert by_id["Band_Pull_Apart"].archetype == "rear_fly"
+    assert by_id["Barbell_Shrug"].archetype == "upright_row"
+    assert by_id["Dumbbell_Side_Bend"].archetype == "side_bend"
     assert by_id["Barbell_Squat"].is_hold is False
 
     stretch = CatalogExercise(
@@ -183,7 +193,7 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
 
 
 def test_programs_config_18_archetype_coverage() -> None:
-    """Verify preset programs cover all 18 archetypes and omit legacy keys."""
+    """Verify preset programs cover all 24 archetypes and omit legacy keys."""
     registry = load_animation_registry()
     specs = registry.specs
     programs_cfg = load_programs_config()

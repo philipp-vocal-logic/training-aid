@@ -163,7 +163,9 @@ def _check_compiled_catalog_payload(
     if len(svgs) != EXPECTED_SVG_COMBO_COUNT or not all(":" in str(k) for k in svgs):
         errors.append("catalog.json svgs count or 'arch:eq_mode' keys invalid")
     if len(thumbs) != EXPECTED_SVG_COMBO_COUNT:
-        errors.append(f"dist/svgs/thumbs count {len(thumbs)} != 126")
+        errors.append(
+            f"dist/svgs/thumbs count {len(thumbs)} != {EXPECTED_SVG_COMBO_COUNT}"
+        )
 
     compiled_ids = {str(it.get("id") or "") for it in compiled if isinstance(it, dict)}
     if compiled_ids != expected_ids:

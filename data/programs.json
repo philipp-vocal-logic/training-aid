@@ -82,8 +82,8 @@
           "Day 4: Total Body Finish",
           [
             [
-              "Bodyweight_Squat",
-              15,
+              "Lateral_Bound",
+              12,
               null
             ],
             [
@@ -152,9 +152,9 @@
               8.0
             ],
             [
-              "Crunches",
-              15,
-              null
+              "Dumbbell_Side_Bend",
+              12,
+              10.0
             ]
           ]
         ],
@@ -187,9 +187,9 @@
           "Day 4: Upper & Core Focus",
           [
             [
-              "Dumbbell_Bench_Press",
-              10,
-              12.0
+              "Side_Lateral_Raise",
+              12,
+              6.0
             ],
             [
               "Alternate_Incline_Dumbbell_Curl",
@@ -297,9 +297,9 @@
               null
             ],
             [
-              "Alternating_Kettlebell_Row",
-              10,
-              12.0
+              "Upright_Row_-_With_Bands",
+              12,
+              null
             ],
             [
               "Calf_Raises_-_With_Bands",
@@ -407,9 +407,9 @@
               40.0
             ],
             [
-              "Cable_Chest_Press",
+              "Cable_Crossover",
               12,
-              25.0
+              15.0
             ],
             [
               "Cable_Crunch",
