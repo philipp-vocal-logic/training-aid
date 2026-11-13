@@ -5,16 +5,40 @@ import inspect
 import json
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from training_aid import svg_assets
-from training_aid.models import Exercise
 from training_aid.svg_assets import load_svg_markup
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 DEFAULT_ANIMATIONS_JSON = DATA_DIR / "animations.json"
 DEFAULT_EXERCISE_COACHING_JSON = DATA_DIR / "exercise_coaching.json"
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogExercise:
+    """Immutable catalog exercise record loaded from free-exercise-db JSON."""
+
+    id: str
+    name: str
+    category: str = "strength"
+    level: str = "beginner"
+    equipment: str = "body only"
+    primary_muscle: str = "other"
+    secondary_muscles: str = ""
+    instructions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Normalize instructions into an immutable tuple of strings."""
+        if not isinstance(self.instructions, tuple):
+            object.__setattr__(
+                self,
+                "instructions",
+                tuple(str(step) for step in self.instructions),
+            )
+
 
 _ROW_WORD_RE = re.compile(r"\b(?:rows?|rowing)\b")
 _CHIN_WORD_RE = re.compile(r"\bchins?\b")
@@ -64,9 +88,10 @@ _DEFAULT_COACHING_META: dict[str, Any] = {
 }
 
 
-def _load_archetype_coaching(
+def load_archetype_coaching(
     animations_path: Path = DEFAULT_ANIMATIONS_JSON,
 ) -> dict[str, dict[str, Any]]:
+    """Load archetype tempo, hold, and movement cue metadata from animations.json."""
     if not animations_path.exists():
         return {"squat": dict(_DEFAULT_COACHING_META)}
     try:
@@ -84,9 +109,10 @@ def _load_archetype_coaching(
     return loaded or {"squat": dict(_DEFAULT_COACHING_META)}
 
 
-def _load_exercise_coaching(
+def load_exercise_coaching(
     coaching_path: Path = DEFAULT_EXERCISE_COACHING_JSON,
 ) -> dict[str, dict[str, Any]]:
+    """Load per-exercise archetype, hold, tempo, and alternating overrides."""
     if not coaching_path.exists():
         return {}
     try:
@@ -100,14 +126,26 @@ def _load_exercise_coaching(
     }
 
 
-ARCHETYPE_COACHING: dict[str, dict[str, Any]] = _load_archetype_coaching()
-EXERCISE_COACHING: dict[str, dict[str, Any]] = _load_exercise_coaching()
+ARCHETYPE_COACHING: dict[str, dict[str, Any]] = load_archetype_coaching()
+EXERCISE_COACHING: dict[str, dict[str, Any]] = load_exercise_coaching()
 _EXERCISE_COACHING_LOWER: dict[str, dict[str, Any]] = {
     ex_id.lower(): meta for ex_id, meta in EXERCISE_COACHING.items()
 }
 
 
-def _lookup_exercise_coaching(exercise_id: str) -> dict[str, Any] | None:
+def _lookup_exercise_coaching(
+    exercise_id: str,
+    coaching_map: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    if coaching_map is not None:
+        entry = coaching_map.get(exercise_id)
+        if entry is not None:
+            return entry
+        target = exercise_id.lower()
+        for ex_id, meta in coaching_map.items():
+            if ex_id.lower() == target:
+                return meta
+        return None
     entry = EXERCISE_COACHING.get(exercise_id)
     if entry is not None:
         return entry
@@ -119,9 +157,9 @@ def _normalized_text(exercise_id: str, name: str = "") -> str:
     return f"{raw} {raw.replace('_', ' ')}"
 
 
-def is_hold_exercise(exercise_or_id: Exercise | str) -> bool:
+def is_hold_exercise(exercise_or_id: CatalogExercise | str) -> bool:
     """Return True if an exercise or exercise ID is an isometric hold or stretch."""
-    if isinstance(exercise_or_id, Exercise):
+    if isinstance(exercise_or_id, CatalogExercise):
         if (exercise_or_id.category or "").lower() == "stretching":
             return True
         entry = _lookup_exercise_coaching(exercise_or_id.id)
@@ -147,13 +185,10 @@ def _load_svg(archetype: str, equipment: str | None = None) -> str:
 
 
 def exercise_svg_url(archetype: str, equipment: str | None = None) -> str:
-    """Return static or equipment-parameterized SVG thumbnail URL for an archetype."""
+    """Return relative static SVG thumbnail path for an archetype and equipment."""
     effective_arch = archetype if archetype in svg_assets.ARCHETYPE_SPECS else "squat"
-    spec = svg_assets.ARCHETYPE_SPECS[effective_arch]
     eq_mode = svg_assets.normalize_equipment(equipment, effective_arch)
-    if eq_mode == str(spec["default_equipment"]):
-        return f"/static/svgs/{effective_arch}.svg"
-    return f"/svgs/{effective_arch}.svg?equipment={eq_mode}"
+    return f"./svgs/thumbs/{effective_arch}__{eq_mode}.svg"
 
 
 def _matches_chin_pull(n: str, pm: str, _cat: str) -> bool:
@@ -380,7 +415,7 @@ def _fallback_muscle_archetype(pm: str, equipment: str | None) -> str:
     return _MUSCLE_ARCHETYPE_MAP.get(pm, "squat")
 
 
-def classify_archetype_fallback(exercise: Exercise) -> str:
+def classify_archetype_fallback(exercise: CatalogExercise) -> str:
     """Classify an exercise into one of the 18 archetypes via rule-based heuristics."""
     n = _normalized_text(exercise.id, exercise.name)
     pm = (exercise.primary_muscle or "").lower()
@@ -395,7 +430,7 @@ def classify_archetype_fallback(exercise: Exercise) -> str:
     return _fallback_muscle_archetype(pm, exercise.equipment)
 
 
-def classify_archetype(exercise: Exercise) -> str:
+def classify_archetype(exercise: CatalogExercise) -> str:
     """Classify an exercise into one of the 18 movement archetypes."""
     entry = _lookup_exercise_coaching(exercise.id)
     if entry is not None:
@@ -407,24 +442,32 @@ def _resolve_non_hold_tempo(raw_tempo: str) -> str:
     return "standard" if raw_tempo == "hold" else raw_tempo
 
 
-def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
-    """Build SVG markup, tempo pacing, and movement cues for an exercise."""
-    entry = _lookup_exercise_coaching(exercise.id)
+def build_exercise_metadata(
+    exercise: CatalogExercise,
+    *,
+    coaching_map: dict[str, dict[str, Any]] | None = None,
+    archetype_coaching: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Compute archetype, tempo pacing, cues, and thumbnail URL for an exercise."""
+    arch_meta_map = (
+        archetype_coaching if archetype_coaching is not None else ARCHETYPE_COACHING
+    )
+    entry = _lookup_exercise_coaching(exercise.id, coaching_map)
     is_stretch = (exercise.category or "").lower() == "stretching"
 
     if entry is not None:
         archetype = str(entry["archetype"])
-        meta = ARCHETYPE_COACHING.get(archetype, _DEFAULT_COACHING_META)
+        meta = arch_meta_map.get(archetype, _DEFAULT_COACHING_META)
         is_hold = True if is_stretch else bool(entry["is_hold"])
         tempo_mode = (
             "hold" if is_hold else _resolve_non_hold_tempo(str(entry["tempo_mode"]))
         )
         is_alternating = bool(entry["is_alternating"])
     else:
-        archetype = classify_archetype(exercise)
-        meta = ARCHETYPE_COACHING.get(archetype, _DEFAULT_COACHING_META)
+        archetype = classify_archetype_fallback(exercise)
+        meta = arch_meta_map.get(archetype, _DEFAULT_COACHING_META)
         n = _normalized_text(exercise.id, exercise.name)
-        is_hold = is_hold_exercise(exercise)
+        is_hold = is_stretch or any(k in n for k in HOLD_KEYWORDS) or "stretch" in n
         if is_hold:
             tempo_mode = "hold"
         elif any(k in n for k in EXPLOSIVE_KEYWORDS):
@@ -443,7 +486,6 @@ def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
     return {
         "archetype": archetype,
         "svg_url": exercise_svg_url(archetype, exercise.equipment),
-        "svg_markup": _load_svg(archetype, equipment=exercise.equipment),
         "rep_seconds": 1.0 if is_hold else meta["rep_seconds"],
         "is_hold": is_hold,
         "unit": "sec" if is_hold else "reps",
@@ -453,4 +495,15 @@ def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
         "cue_return": "Breathe" if is_hold else meta["cue_return"],
         "tempo_mode": tempo_mode,
         "is_alternating": is_alternating,
+    }
+
+
+def build_exercise_guidance(exercise: CatalogExercise) -> dict[str, Any]:
+    """Build SVG markup, tempo pacing, and movement cues for an exercise."""
+    metadata = build_exercise_metadata(exercise)
+    return {
+        **metadata,
+        "svg_markup": _load_svg(
+            str(metadata["archetype"]), equipment=exercise.equipment
+        ),
     }

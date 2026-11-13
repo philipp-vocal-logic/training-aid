@@ -6,13 +6,7 @@ authors = [
     { name = "Philipp Kaaden", email = "274027022+philipp-vocal-logic@users.noreply.github.com" }
 ]
 requires-python = ">=3.13"
-dependencies = [
-    "fastapi>=0.162.5",
-    "jinja2>=3.1.6",
-    "python-multipart>=0.0.33",
-    "sqlmodel>=0.0.49",
-    "uvicorn[standard]>=0.54.0",
-]
+dependencies = []
 
 [project.scripts]
 training-aid = "training_aid:main"
@@ -24,7 +18,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pytest>=9.2.0",
     "ruff>=0.17.5",
 ]

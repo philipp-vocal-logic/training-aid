@@ -46,6 +46,16 @@ BONE_KEYS: tuple[str, ...] = (
     "back_dy",
 )
 
+CANONICAL_EQUIPMENT_MODES: tuple[str, ...] = (
+    "body_only",
+    "barbell",
+    "dumbbell",
+    "kettlebells",
+    "bands",
+    "cable",
+    "machine",
+)
+
 _STATIC_FIXTURES: dict[str, str] = {
     "bench": (
         '<rect x="50" y="136" width="96" height="8" rx="4" fill="#334155" '
@@ -271,9 +281,10 @@ def compile_animation_spec(
     return spec
 
 
-def _load_animation_registry(
+def load_animation_registry(
     path: Path = ANIMATIONS_JSON,
 ) -> tuple[dict[str, float], dict[str, str], dict[str, dict[str, Any]]]:
+    """Load standard bone lengths, equipment aliases, and compiled rig specs."""
     raw = json.loads(path.read_text(encoding="utf-8"))
     std_bones = {str(k): float(v) for k, v in raw["std_bones"].items()}
     aliases = {str(k): str(v) for k, v in raw["equipment_aliases"].items()}
@@ -284,7 +295,7 @@ def _load_animation_registry(
     return (std_bones, aliases, specs)
 
 
-STD_BONES, _EQUIPMENT_ALIASES, ARCHETYPE_SPECS = _load_animation_registry()
+STD_BONES, _EQUIPMENT_ALIASES, ARCHETYPE_SPECS = load_animation_registry()
 
 
 def lerp_pose(
