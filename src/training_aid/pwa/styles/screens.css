@@ -100,6 +100,13 @@
   white-space: nowrap;
 }
 
+.picker-filter-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 .picker-meta {
   margin-bottom: 0.4rem;
 }
@@ -125,6 +132,49 @@
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: 1px solid var(--border);
+}
+
+button.catalog-card,
+.catalog-card-btn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+button.catalog-card:hover,
+button.catalog-card:focus-visible,
+.catalog-card-btn:hover,
+.catalog-card-btn:focus-visible {
+  border-color: var(--brand-bright);
+  background: var(--bg-card-hover);
+  outline: none;
+}
+
+.catalog-card-btn.is-added {
+  border-color: var(--border-strong);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.catalog-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.catalog-card-btn.is-added .catalog-card-badge {
+  background: var(--brand-soft);
+  border-color: var(--border-strong);
+  color: var(--brand-bright);
 }
 
 .rx-inline-controls {

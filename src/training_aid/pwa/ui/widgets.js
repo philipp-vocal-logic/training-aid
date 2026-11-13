@@ -8,6 +8,8 @@ import {
 } from "../core/constants.js";
 import { el, makeEquipmentIcon } from "./dom.js";
 
+export { renderCatalogPicker } from "./catalog-picker.js";
+
 export function renderEquipmentChipBar(scope, selectedList, onChange, extraNode) {
   const activeSet = new Set(Array.isArray(selectedList) ? selectedList : []);
 
@@ -153,119 +155,4 @@ export function renderEditableExerciseRow(scope, row, handlers) {
     ]),
     el("div", { className: "rx-row-actions" }, [swapBtn, removeBtn]),
   ]);
-}
-
-export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
-  const isObjCall = scopeOrOpts && typeof scopeOrOpts.on !== "function" && typeof scopeOrOpts === "object";
-  const opts = isObjCall ? scopeOrOpts : maybeOpts || {};
-  const scope = isObjCall ? opts.scope : scopeOrOpts;
-  const store = isObjCall ? opts.store : maybeStore;
-
-  const placeholder = opts.placeholder || "Search name, muscle, gear, or category...";
-  const ariaLabel = opts.ariaLabel || placeholder.replace(/\.+$/, "");
-  const resultsId = opts.resultsId || "search-results";
-  const emptyText = opts.emptyText || "No matching exercises.";
-  const pageSize = Number(opts.limit) > 0 ? Math.trunc(Number(opts.limit)) : 48;
-  const compatibleOnly = Boolean(opts.compatibleOnly);
-  const showEquipment = opts.showEquipment !== false;
-  const fetchLimit = 1000;
-  const onSelect = opts.onAdd || opts.onSelect || (() => {});
-
-  const searchInput = el("input", {
-    type: "search",
-    name: "q",
-    className: "minimal-input",
-    placeholder,
-    "aria-label": ariaLabel,
-  });
-  const resultsWrap = el("div", { id: resultsId });
-  const pane = el("section", { className: "editor-pane" }, [searchInput, resultsWrap]);
-
-  let visibleCount = pageSize;
-  let lastQuery = searchInput.value;
-
-  function renderSlice(results) {
-    if (results.length === 0) {
-      resultsWrap.replaceChildren(el("div", { className: "muted", textContent: emptyText }));
-      return;
-    }
-
-    const shown = results.slice(0, visibleCount);
-    const metaRow = el("div", {
-      className: "picker-meta muted text-xs",
-      textContent:
-        results.length > shown.length
-          ? `Showing ${shown.length} of ${results.length} exercises`
-          : `${results.length} ${results.length === 1 ? "exercise" : "exercises"}`,
-    });
-
-    const grid = el(
-      "div",
-      { className: "catalog-grid" },
-      shown.map((ex) => {
-        const thumbSrc = ex.thumb_url || "./svgs/thumbs/squat__body_only.svg";
-        const addBtn = el("button", {
-          type: "button",
-          className: "btn-ghost btn-icon-sm",
-          "aria-label": `Add ${ex.name}`,
-          textContent: "+",
-        });
-        scope.on(addBtn, "click", () => onSelect(ex.id, ex));
-
-        const subText = showEquipment
-          ? `${ex.primary_muscle || ""} \u00b7 ${ex.equipment || "body only"}`
-          : ex.primary_muscle || "";
-
-        return el("div", { className: "catalog-card" }, [
-          el("div", { className: "ex-row-left" }, [
-            el("img", {
-              src: thumbSrc,
-              alt: "",
-              className: "svg-thumb",
-              loading: "lazy",
-              decoding: "async",
-            }),
-            el("div", { className: "min-w-0" }, [
-              el("div", { className: "ex-row-name", textContent: ex.name }),
-              el("div", { className: "muted text-xs text-cap", textContent: subText }),
-            ]),
-          ]),
-          addBtn,
-        ]);
-      })
-    );
-
-    if (results.length > shown.length) {
-      const moreBtn = el("button", {
-        type: "button",
-        className: "btn-ghost btn-compact picker-more-btn",
-        textContent: `Show more (${results.length - shown.length} remaining)`,
-      });
-      scope.on(moreBtn, "click", () => {
-        visibleCount += pageSize;
-        renderSlice(results);
-      });
-      resultsWrap.replaceChildren(metaRow, grid, moreBtn);
-    } else {
-      resultsWrap.replaceChildren(metaRow, grid);
-    }
-  }
-
-  function refresh() {
-    if (searchInput.value !== lastQuery) {
-      visibleCount = pageSize;
-      lastQuery = searchInput.value;
-    }
-    const results = store.searchCatalog(searchInput.value, fetchLimit, { compatibleOnly }) || [];
-    renderSlice(results);
-  }
-
-  scope.on(searchInput, "input", refresh);
-  scope.on(searchInput, "search", refresh);
-  refresh();
-
-  pane.refresh = refresh;
-  pane.searchInput = searchInput;
-  pane.resultsWrap = resultsWrap;
-  return pane;
 }
