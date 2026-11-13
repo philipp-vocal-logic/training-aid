@@ -11,6 +11,15 @@ const SETUP_PRESCRIPTIONS = {
   intense: "4 sets \u00b7 +20% load",
 };
 const PREVIEW_SPEED_BY_MODE = { slow: 0.29, normal: 0.39, fast: 0.49 };
+const SPEED_SUMMARY_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" };
+
+function setDetailsOpen(detailsEl, isOpen) {
+  const open = Boolean(isOpen);
+  detailsEl.open = open;
+  if (open) detailsEl.setAttribute("open", "");
+  else detailsEl.removeAttribute("open");
+  return detailsEl;
+}
 
 export function triggerStateExportDownload(store, nowDate) {
   const json = store && typeof store.exportStateJson === "function" ? store.exportStateJson() : null;
@@ -101,25 +110,19 @@ export function renderSetupView(ctx) {
   const svgWrap = el("div", { id: "setup-svg-wrap", className: "stage-svg-wrap" });
   setTrustedSvg(svgWrap, pickPreviewSvgMarkup(curEquipSet));
 
-  const stageSection = el("section", { className: "graphic-stage", "aria-label": "Exercise preview" }, [
-    el("div", { className: "stage-hud-top" }, [
-      el("div", { className: "row-cluster" }, [
-        el("span", { className: "pill pill-brand", textContent: "Setup" }),
-        prescriptionPill,
+  const stageSection = el(
+    "section",
+    { className: "graphic-stage setup-stage", "aria-label": "Exercise preview" },
+    [
+      el("div", { className: "stage-hud-top" }, [
+        el("div", { className: "row-cluster" }, [
+          el("span", { className: "pill pill-brand", textContent: "Setup" }),
+          prescriptionPill,
+        ]),
       ]),
-    ]),
-    svgWrap,
-  ]);
-
-  const nameInput = el("input", {
-    type: "text",
-    name: "name",
-    className: "minimal-input",
-    value: curName,
-    placeholder: "Athlete name",
-    required: true,
-    maxlength: "50",
-  });
+      svgWrap,
+    ]
+  );
 
   function makeRadioTile(groupName, val, labelText, isChecked) {
     const radio = el("input", { type: "radio", name: groupName, value: String(val), checked: isChecked });
@@ -163,11 +166,34 @@ export function renderSetupView(ctx) {
   const activeRest = REST_PRESETS.includes(curRest) ? curRest : 30;
   const restTiles = REST_PRESETS.map((sec) => makeRadioTile("rest_seconds", sec, `${sec}s`, activeRest === sec));
 
-  const setupForm = el("form", { className: "setup-form" }, [
-    el("label", { className: "field-group" }, [
-      el("span", { className: "field-label", textContent: "Name" }),
-      nameInput,
+  let summarySpeedMode = curSpeed;
+  let summaryRestSec = activeRest;
+  const pacingSummaryPill = el("span", {
+    className: "pill",
+    textContent: `${SPEED_SUMMARY_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`,
+  });
+
+  const setupPacingDisclosure = setDetailsOpen(
+    el("details", { className: "disclosure-card setup-pacing-disclosure" }, [
+      el("summary", { className: "disclosure-summary" }, [
+        el("span", { className: "field-label", textContent: "Tempo & Rest" }),
+        pacingSummaryPill,
+      ]),
+      el("div", { className: "disclosure-body" }, [
+        el("div", { className: "field-group" }, [
+          el("span", { className: "field-label", textContent: "Exercise Speed (Tempo)" }),
+          el("div", { className: "tile-grid-3" }, speedTiles.map((t) => t.label)),
+        ]),
+        el("div", { className: "field-group" }, [
+          el("span", { className: "field-label", textContent: "Pause / Rest Interval" }),
+          el("div", { className: "tile-grid-5" }, restTiles.map((t) => t.label)),
+        ]),
+      ]),
     ]),
+    false
+  );
+
+  const setupForm = el("form", { className: "setup-form" }, [
     el("div", { className: "field-group" }, [
       el("div", { className: "field-label-row" }, [
         el("span", { className: "field-label", textContent: "Available Equipment (Multiselect)" }),
@@ -184,14 +210,7 @@ export function renderSetupView(ctx) {
       el("span", { className: "field-label", textContent: "Weekly Workout Schedule" }),
       el("div", { className: "tile-grid-4" }, dayTiles.map((t) => t.label)),
     ]),
-    el("div", { className: "field-group" }, [
-      el("span", { className: "field-label", textContent: "Exercise Speed (Tempo)" }),
-      el("div", { className: "tile-grid-3" }, speedTiles.map((t) => t.label)),
-    ]),
-    el("div", { className: "field-group" }, [
-      el("span", { className: "field-label", textContent: "Pause / Rest Interval" }),
-      el("div", { className: "tile-grid-5" }, restTiles.map((t) => t.label)),
-    ]),
+    setupPacingDisclosure,
     el("button", { type: "submit", className: "btn-primary btn-block", textContent: "Save Plan \u2192" }),
   ]);
 
@@ -238,11 +257,25 @@ export function renderSetupView(ctx) {
     statusMsg,
   ]);
 
+  const backupDisclosure = setDetailsOpen(
+    el("details", { className: "disclosure-card backup-disclosure" }, [
+      el("summary", { className: "disclosure-summary" }, [
+        el("span", { className: "field-label", textContent: "Backup & Restore JSON" }),
+      ]),
+      backupBar,
+    ]),
+    hasStorageErr
+  );
+
   function syncBackupUi() {
     const active = Boolean(store && store.hasActivePlan());
+    const storageErr = Boolean(
+      store && typeof store.hasStorageError === "function" && store.hasStorageError()
+    );
     exportBtn.hidden = !active;
     exportBtn.disabled = !active;
-    storageErrorPill.hidden = !(store && typeof store.hasStorageError === "function" && store.hasStorageError());
+    storageErrorPill.hidden = !storageErr;
+    if (storageErr) setDetailsOpen(backupDisclosure, true);
   }
 
   document
@@ -250,7 +283,7 @@ export function renderSetupView(ctx) {
     .replaceChildren(
       el("main", { className: "split-screen" }, [
         stageSection,
-        el("section", { className: "side-pane" }, [setupForm, backupBar]),
+        el("section", { className: "side-pane" }, [setupForm, backupDisclosure]),
       ])
     );
 
@@ -286,7 +319,16 @@ export function renderSetupView(ctx) {
   for (const tile of speedTiles) {
     scope.on(tile.input, "change", () => {
       if (!tile.input.checked) return;
-      speed = PREVIEW_SPEED_BY_MODE[tile.input.value] || PREVIEW_SPEED_BY_MODE.normal;
+      summarySpeedMode = tile.input.value;
+      speed = PREVIEW_SPEED_BY_MODE[summarySpeedMode] || PREVIEW_SPEED_BY_MODE.normal;
+      pacingSummaryPill.textContent = `${SPEED_SUMMARY_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`;
+    });
+  }
+  for (const tile of restTiles) {
+    scope.on(tile.input, "change", () => {
+      if (!tile.input.checked) return;
+      summaryRestSec = Number(tile.input.value) || 30;
+      pacingSummaryPill.textContent = `${SPEED_SUMMARY_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`;
     });
   }
 
@@ -343,8 +385,11 @@ export function renderSetupView(ctx) {
     let chosenRest = 30;
     for (const t of restTiles) if (t.input.checked) chosenRest = Number(t.input.value);
 
+    const latestState = store.getState();
+    const latestName = (latestState && latestState.profile && latestState.profile.name) || curName;
+
     store.setupPlan({
-      name: nameInput.value.trim() || "Athlete",
+      name: latestName || "Athlete",
       equipment_list: chosenEq,
       starting_intensity: chosenInt,
       days_per_week: chosenDays,

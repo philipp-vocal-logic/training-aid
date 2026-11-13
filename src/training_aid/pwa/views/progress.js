@@ -1,10 +1,16 @@
 /* Screen 5: Stats, Weekly Adherence, Inline SVG Chart & Completed Exercise History (#progress) */
 import { formatWeight, stepToIntensityPercent } from "../core/prescription.js";
-import { el, formatLogDateTime, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
-import { bindPreviewLoop } from "../ui/preview-loop.js";
+import { el, formatLogDateTime } from "../ui/dom.js";
 import { buildProgressChartSvg } from "../ui/progress-chart.js";
 import { createViewScope } from "../ui/scope.js";
-import { triggerStateExportDownload } from "./setup.js";
+
+function setDetailsOpen(detailsEl, isOpen) {
+  const open = Boolean(isOpen);
+  detailsEl.open = open;
+  if (open) detailsEl.setAttribute("open", "");
+  else detailsEl.removeAttribute("open");
+  return detailsEl;
+}
 
 function formatLoggedExerciseLine(ex) {
   const unit = ex.unit === "sec" ? "s" : "";
@@ -14,7 +20,7 @@ function formatLoggedExerciseLine(ex) {
 
 export function renderProgressView(ctx) {
   const scope = (ctx && ctx.scope) || createViewScope();
-  const { store, catalog } = ctx;
+  const { store } = ctx;
   const syncTopbar = ctx.syncTopbar || (() => {});
 
   document.title = "Stats";
@@ -24,21 +30,6 @@ export function renderProgressView(ctx) {
   const logs = store.getLogsDesc() || [];
   const series = store.getProgressSeries() || { labels: [], values: [] };
   const hasLogs = logs.length > 0 && series.values && series.values.length > 0;
-  const hasPlan = Boolean(store && typeof store.hasActivePlan === "function" && store.hasActivePlan());
-
-  const exportBtn = hasPlan
-    ? el("button", {
-        type: "button",
-        id: "progress-export-btn",
-        className: "btn-ghost btn-xs",
-        textContent: "Export JSON",
-      })
-    : null;
-  if (exportBtn) {
-    scope.on(exportBtn, "click", () => {
-      triggerStateExportDownload(store);
-    });
-  }
 
   const kpiStrip = el("section", { className: "kpi-strip" }, [
     el("div", { className: "kpi-cell" }, [
@@ -56,27 +47,26 @@ export function renderProgressView(ctx) {
     el("div", { className: "kpi-cell" }, [
       el("span", { className: "kpi-num", textContent: `${stats.avg_plan_intensity || 100}%` }),
       el("span", { className: "kpi-label", textContent: "Plan Load" }),
-      exportBtn,
     ]),
   ]);
 
   const chartStage = el("div", { className: "chart-stage" });
-  let emptySvgWrap = null;
 
   if (hasLogs) {
     const chartSvg = buildProgressChartSvg(series);
     if (chartSvg) chartStage.appendChild(chartSvg);
   } else {
-    emptySvgWrap = el("div", {
-      id: "empty-progress-svg",
-      className: "stage-svg-wrap",
-      style: { opacity: "0.72" },
-    });
-    setTrustedSvg(emptySvgWrap, resolveSvgMarkup(catalog, "squat", "body_only"));
-    chartStage.appendChild(emptySvgWrap);
     chartStage.appendChild(
-      el("div", { className: "stage-hud-bottom", style: { justifyContent: "center" } }, [
-        el("a", { href: "#plan", className: "btn-primary", textContent: "\u25b6 Start" }),
+      el("div", { className: "empty-state-card" }, [
+        el("div", {
+          className: "muted",
+          textContent: "Complete a workout to unlock your progression chart.",
+        }),
+        el("a", {
+          href: "#plan",
+          className: "btn-primary",
+          textContent: "\u25b6 Start Workout",
+        }),
       ])
     );
   }
@@ -104,28 +94,33 @@ export function renderProgressView(ctx) {
                 : stepToIntensityPercent(log.intensity_at_session);
             const exItems = Array.isArray(log.exercises) ? log.exercises : [];
 
-            return el("div", { className: "log-item log-item-detailed" }, [
-              el("div", { className: "log-item-head" }, [
-                el("div", { className: "min-w-0" }, [
-                  el("div", { className: "ex-row-name", textContent: log.routine_name }),
-                  el("div", {
-                    className: "muted text-xs",
-                    textContent: `${dateTimeStr ? `${dateTimeStr} \u00b7 ` : ""}${log.duration_minutes || 25}m \u00b7 ${pct}%`,
+            return setDetailsOpen(
+              el("details", { className: "log-item log-item-detailed log-details" }, [
+                el("summary", { className: "log-item-head disclosure-summary" }, [
+                  el("div", { className: "min-w-0" }, [
+                    el("div", { className: "ex-row-name", textContent: log.routine_name }),
+                    el("div", {
+                      className: "muted text-xs",
+                      textContent: `${dateTimeStr ? `${dateTimeStr} \u00b7 ` : ""}${log.duration_minutes || 25}m \u00b7 ${pct}%`,
+                    }),
+                  ]),
+                  el("span", {
+                    className: "pill" + (choice === "more" ? " pill-brand" : ""),
+                    textContent: badgeText,
                   }),
                 ]),
-                el("span", {
-                  className: "pill" + (choice === "more" ? " pill-brand" : ""),
-                  textContent: badgeText,
-                }),
+                exItems.length > 0
+                  ? el(
+                      "ul",
+                      { className: "log-ex-list" },
+                      exItems.map((ex) =>
+                        el("li", { className: "log-ex-row", textContent: formatLoggedExerciseLine(ex) })
+                      )
+                    )
+                  : null,
               ]),
-              exItems.length > 0
-                ? el(
-                    "ul",
-                    { className: "log-ex-list" },
-                    exItems.map((ex) => el("li", { className: "log-ex-row", textContent: formatLoggedExerciseLine(ex) }))
-                  )
-                : null,
-            ]);
+              false
+            );
           })
         )
       : null;
@@ -139,10 +134,6 @@ export function renderProgressView(ctx) {
   document
     .getElementById("app-root")
     .replaceChildren(el("main", { className: "progress-screen" }, [kpiStrip, progressBody]));
-
-  if (emptySvgWrap) {
-    bindPreviewLoop(scope, emptySvgWrap, { speed: 0.36, tempoMode: "standard" });
-  }
 
   return scope;
 }
