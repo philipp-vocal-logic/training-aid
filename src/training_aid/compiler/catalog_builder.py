@@ -36,9 +36,10 @@ _EQUIPMENT_MAP: dict[str, str] = {
     "foam roll": "foam_roll",
 }
 _PULL_UP_BAR_RE = re.compile(r"pull-?ups?|chin-?ups?|inverted row", re.IGNORECASE)
+_BENCH_FREE_EQ = frozenset({"machine", "medicine ball", "exercise ball"})
+_EXPLICIT_BENCH_RE = re.compile(r"\b(?:bench|incline|decline)\b", re.IGNORECASE)
 _BENCH_RE = re.compile(
-    r"\bbench\b|\bdips?\b"
-    r"|\b(?:dumbbell|incline|decline)\s+flye?s?\b|\baround the worlds\b",
+    r"\bbench\b|\b(?:dumbbell|incline|decline)\s+flye?s?\b|\baround the worlds\b",
     re.IGNORECASE,
 )
 _NO_BENCH_RE = re.compile(r"\bfloor\b|no hyperextension bench", re.IGNORECASE)
@@ -72,10 +73,14 @@ def compute_required_equipment(exercise: CatalogExercise) -> list[str]:
         arch == "vertical_pull" or _PULL_UP_BAR_RE.search(name)
     ):
         required.append("pull_up_bar")
-    if (arch in {"bench_press", "dip"} or _BENCH_RE.search(name)) and not (
-        _NO_BENCH_RE.search(name)
-    ):
-        required.append("bench")
+    if raw_eq not in _BENCH_FREE_EQ and not _NO_BENCH_RE.search(name):
+        needs_bench = (
+            bool(_EXPLICIT_BENCH_RE.search(name))
+            if raw_eq in {"cable", "bands"}
+            else (arch in {"bench_press", "dip"} or bool(_BENCH_RE.search(name)))
+        )
+        if needs_bench:
+            required.append("bench")
 
     return list(dict.fromkeys(required))
 

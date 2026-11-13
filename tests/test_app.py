@@ -22,7 +22,6 @@ from training_aid.audit import (
 )
 from training_aid.compiler import (
     CATALOG_SCHEMA_VERSION,
-    CatalogExercise,
     build_exercise_metadata,
     build_pwa,
     compute_required_equipment,
@@ -437,32 +436,34 @@ def test_front_view_svg_and_props() -> None:
 
 
 def test_compute_required_equipment_chest_fly_bench_rules() -> None:
-    """Verify bench flyes keep 'bench' while cable/machine flyes omit it."""
-    cases = [
-        ("Dumbbell_Flyes", "Dumbbell Flyes", "dumbbell", ["dumbbell", "bench"]),
-        (
-            "Incline_Dumbbell_Flyes",
-            "Incline Dumbbell Flyes",
-            "dumbbell",
-            ["dumbbell", "bench"],
-        ),
-        (
-            "Decline_Dumbbell_Flyes",
-            "Decline Dumbbell Flyes",
-            "dumbbell",
-            ["dumbbell", "bench"],
-        ),
-        ("Around_The_Worlds", "Around The Worlds", "dumbbell", ["dumbbell", "bench"]),
-        ("Cable_Crossover", "Cable Crossover", "cable", ["cable"]),
-        ("Butterfly", "Butterfly", "machine", ["machine"]),
-    ]
-    for ex_id, name, equipment, expected in cases:
-        ex = CatalogExercise(
-            id=ex_id,
-            name=name,
-            category="strength",
-            equipment=equipment,
-            primary_muscle="chest",
-            archetype="chest_fly",
-        )
-        assert compute_required_equipment(ex) == expected
+    """Verify equipment-aware 'bench' inference across catalog exercises."""
+    by_id = {ex.id: ex for ex in load_catalog_exercises()}
+    expected_by_id: dict[str, list[str]] = {
+        "Standing_Cable_Chest_Press": ["cable"],
+        "Cable_Chest_Press": ["cable"],
+        "Cable_Crossover": ["cable"],
+        "Cross_Over_-_With_Bands": ["bands"],
+        "Leverage_Chest_Press": ["machine"],
+        "Machine_Bench_Press": ["machine"],
+        "Dip_Machine": ["machine"],
+        "Butterfly": ["machine"],
+        "Medicine_Ball_Chest_Pass": ["medicine_ball"],
+        "Supine_Chest_Throw": ["medicine_ball"],
+        "Chest_Stretch_on_Stability_Ball": ["exercise_ball"],
+        "Jerk_Dip_Squat": ["barbell"],
+        "Dumbbell_Floor_Press": ["dumbbell"],
+        "Bench_Dips": ["bench"],
+        "Dips_-_Triceps_Version": ["bench"],
+        "Dumbbell_Bench_Press": ["dumbbell", "bench"],
+        "Barbell_Bench_Press_-_Medium_Grip": ["barbell", "bench"],
+        "Dumbbell_Flyes": ["dumbbell", "bench"],
+        "Incline_Dumbbell_Flyes": ["dumbbell", "bench"],
+        "Decline_Dumbbell_Flyes": ["dumbbell", "bench"],
+        "Around_The_Worlds": ["dumbbell", "bench"],
+        "Incline_Cable_Chest_Press": ["cable", "bench"],
+        "Flat_Bench_Cable_Flyes": ["cable", "bench"],
+        "Bench_Press_-_With_Bands": ["bands", "bench"],
+    }
+    for ex_id, expected in expected_by_id.items():
+        assert ex_id in by_id, f"Missing catalog exercise: {ex_id}"
+        assert compute_required_equipment(by_id[ex_id]) == expected, ex_id
