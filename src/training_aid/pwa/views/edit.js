@@ -1,120 +1,91 @@
 /* Screen 3: Routine Editor — Prescription (Sets, Reps, Weight) & Random Exercise Swap (#edit/<routineId>) */
-(function () {
-  "use strict";
+import { el } from "../ui/dom.js";
+import { createViewScope } from "../ui/scope.js";
+import { renderCatalogPicker, renderEditableExerciseRow } from "../ui/widgets.js";
 
-  const root =
-    typeof window !== "undefined"
-      ? window
-      : typeof globalThis !== "undefined"
-        ? globalThis
-        : this;
+export function renderEditView(ctx) {
+  const scope = (ctx && ctx.scope) || createViewScope();
+  const { store } = ctx;
+  const targetId = ctx.param || ctx.routineId || ctx.id;
+  const syncTopbar = ctx.syncTopbar || (() => {});
 
-  function getDom() {
-    return (
-      root.TrainingDom ||
-      (typeof require === "function" ? require("../dom.js") : null)
-    );
-  }
+  const routine = store.getRoutine(targetId);
+  if (!routine) return scope;
 
-  function renderEditView(ctx) {
-    const dom = getDom();
-    const { el, renderEditableExerciseRow } = dom;
-    const scope = (ctx && ctx.scope) || dom.createViewScope();
-    const store = ctx.store;
-    const routineId = ctx.routineId || ctx.id || ctx.param;
-    const syncTopbar = ctx.syncTopbar || (() => {});
+  document.title = routine.name;
+  syncTopbar("plan", false);
 
-    const routine = store.getRoutine(routineId);
-    if (!routine) return scope;
+  const leftPane = el("section", { className: "editor-pane" });
+  const picker = renderCatalogPicker(scope, store, {
+    resultsId: "search-results",
+    placeholder: "Search exercises...",
+    ariaLabel: "Search exercises",
+    emptyText: "\u2014",
+    limit: 20,
+    showEquipment: false,
+    onAdd: (exId) => {
+      store.addExerciseItem(targetId, exId);
+      refreshRoutineExercises();
+    },
+  });
 
-    document.title = routine.name;
-    syncTopbar("plan", false);
+  document
+    .getElementById("app-root")
+    .replaceChildren(el("main", { className: "editor-screen" }, [leftPane, picker]));
 
-    const leftPane = el("section", { className: "editor-pane" });
-    const searchInput = el("input", {
-      type: "search",
-      name: "q",
-      className: "minimal-input",
-      placeholder: "Search exercises...",
-      "aria-label": "Search exercises",
+  function refreshRoutineExercises() {
+    const latestRoutine = store.getRoutine(targetId);
+    if (!latestRoutine) return;
+    const cards = store.buildRoutineCards([latestRoutine]);
+    const rows = cards && cards[0] ? cards[0].exercises : [];
+    const routineIdEnc = encodeURIComponent(latestRoutine.id);
+
+    const addRandomBtn = el("button", {
+      type: "button",
+      id: "edit-add-random-btn",
+      className: "btn-ghost btn-compact",
+      textContent: "+ Random",
     });
-    const searchResultsWrap = el("div", { id: "search-results" });
-    const rightPane = el("section", { className: "editor-pane" }, [
-      searchInput,
-      searchResultsWrap,
+    scope.on(addRandomBtn, "click", () => {
+      store.addRandomExerciseItem(latestRoutine.id);
+      refreshRoutineExercises();
+    });
+
+    const headerRow = el("div", { className: "row-cluster" }, [
+      el("a", {
+        href: "#plan",
+        className: "btn-ghost btn-compact",
+        "aria-label": "Back",
+        textContent: "\u2190",
+      }),
+      el("h1", { className: "pane-heading", textContent: latestRoutine.name }),
+      addRandomBtn,
+      rows.length > 0
+        ? el("a", {
+            href: `#workout/${routineIdEnc}`,
+            className: "btn-primary btn-compact push-right",
+            textContent: "\u25b6",
+          })
+        : null,
     ]);
 
-    document
-      .getElementById("app-root")
-      .replaceChildren(
-        el("main", { className: "editor-screen" }, [leftPane, rightPane])
-      );
-
-    function refreshRoutineExercises() {
-      const latestRoutine = store.getRoutine(routineId);
-      if (!latestRoutine) return;
-      const cards = store.buildRoutineCards([latestRoutine]);
-      const rows = cards && cards[0] ? cards[0].exercises : [];
-      const routineIdEnc = encodeURIComponent(latestRoutine.id);
-
-      const addRandomBtn = el("button", {
-        type: "button",
-        id: "edit-add-random-btn",
-        className: "btn-ghost btn-compact",
-        textContent: "+ Random",
-      });
-      scope.on(addRandomBtn, "click", () => {
-        store.addRandomExerciseToRoutine(latestRoutine.id);
-        refreshRoutineExercises();
-      });
-
-      const headerRow = el(
-        "div",
-        { style: { display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" } },
-        [
-          el("a", {
-            href: "#plan",
-            className: "btn-ghost",
-            style: { padding: "0.35rem 0.75rem" },
-            "aria-label": "Back",
-            textContent: "\u2190",
-          }),
-          el("h1", {
-            style: { fontSize: "1.15rem", fontWeight: "800", margin: "0" },
-            textContent: latestRoutine.name,
-          }),
-          addRandomBtn,
-          rows.length > 0
-            ? el("a", {
-                href: `#workout/${routineIdEnc}`,
-                className: "btn-primary",
-                style: {
-                  marginLeft: "auto",
-                  padding: "0.4rem 0.95rem",
-                  fontSize: "0.85rem",
-                },
-                textContent: "\u25b6",
-              })
-            : null,
-        ]
-      );
-
-      const listContent = rows.length > 0
+    const listContent =
+      rows.length > 0
         ? el(
             "ul",
             { className: "ex-list" },
             rows.map((row) =>
               renderEditableExerciseRow(scope, row, {
                 onUpdate: (patch) => {
-                  store.updateRoutineExercise(latestRoutine.id, row.item.id, patch);
+                  store.updateExerciseItem(latestRoutine.id, row.item.id, patch);
                   refreshRoutineExercises();
                 },
                 onSwap: () => {
-                  store.swapRoutineExercise(latestRoutine.id, row.item.id);
+                  store.swapExerciseItem(latestRoutine.id, row.item.id);
                   refreshRoutineExercises();
                 },
                 onRemove: () => {
-                  store.removeExerciseFromRoutine(latestRoutine.id, row.item.id);
+                  store.removeExerciseItem(latestRoutine.id, row.item.id);
                   refreshRoutineExercises();
                 },
               })
@@ -122,68 +93,9 @@
           )
         : el("div", { className: "muted", textContent: "+ Select or randomize exercises" });
 
-      leftPane.replaceChildren(headerRow, listContent);
-    }
-
-    function refreshCatalogSearch() {
-      const results = store.searchCatalog(searchInput.value, 20, { compatibleOnly: true }) || [];
-      if (results.length === 0) {
-        searchResultsWrap.replaceChildren(
-          el("div", { className: "muted", textContent: "\u2014" })
-        );
-        return;
-      }
-
-      const grid = el(
-        "div",
-        { className: "catalog-grid" },
-        results.map((ex) => {
-          const thumbSrc = ex.thumb_url || "./svgs/thumbs/squat__body_only.svg";
-          const addBtn = el("button", {
-            type: "button",
-            className: "btn-ghost",
-            style: { padding: "0.3rem 0.7rem" },
-            "aria-label": "Add",
-            textContent: "+",
-          });
-          scope.on(addBtn, "click", () => {
-            store.addExerciseToRoutine(routineId, ex.id);
-            refreshRoutineExercises();
-          });
-          return el("div", { className: "catalog-card" }, [
-            el("div", { className: "ex-row-left" }, [
-              el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }),
-              el("div", { style: { minWidth: "0" } }, [
-                el("div", { className: "ex-row-name", textContent: ex.name }),
-                el("div", {
-                  className: "muted",
-                  style: { fontSize: "0.75rem", textTransform: "capitalize" },
-                  textContent: ex.primary_muscle || "",
-                }),
-              ]),
-            ]),
-            addBtn,
-          ]);
-        })
-      );
-
-      searchResultsWrap.replaceChildren(grid);
-    }
-
-    scope.on(searchInput, "input", refreshCatalogSearch);
-    scope.on(searchInput, "search", refreshCatalogSearch);
-
-    refreshRoutineExercises();
-    refreshCatalogSearch();
-
-    return scope;
+    leftPane.replaceChildren(headerRow, listContent);
   }
 
-  renderEditView.render = renderEditView;
-
-  root.TrainingViews = root.TrainingViews || {};
-  root.TrainingViews.edit = renderEditView;
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = renderEditView;
-  }
-})();
+  refreshRoutineExercises();
+  return scope;
+}
