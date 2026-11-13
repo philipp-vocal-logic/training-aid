@@ -99,7 +99,6 @@ export function computePlanStats(state, logsDesc, nowDate) {
     avgPlanIntensity = logsDesc[0].intensity_percent;
   }
 
-  const profName = state?.profile?.name || "Athlete";
   const weeklyGoal = Math.max(1, Math.trunc(Number(state?.profile?.weekly_goal) || 3));
   const totalWorkouts = logsDesc.length;
   const suffix = totalWorkouts > 0 && workoutsThisWeek >= weeklyGoal ? " \u2713" : "";
@@ -110,7 +109,7 @@ export function computePlanStats(state, logsDesc, nowDate) {
     total_workouts: totalWorkouts,
     week_streak: computeWeekStreak(logsDesc, now),
     avg_plan_intensity: avgPlanIntensity,
-    message: `${profName} \u00b7 ${workoutsThisWeek}/${weeklyGoal}${suffix}`,
+    message: `${workoutsThisWeek}/${weeklyGoal} this week${suffix}`,
   };
 }
 

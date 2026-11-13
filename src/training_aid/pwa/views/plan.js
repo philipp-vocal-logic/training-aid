@@ -24,6 +24,13 @@ function getCardIntensityPercent(card) {
   return stepToIntensityPercent(card && card.routine ? card.routine.intensity_level : 0);
 }
 
+function formatLeadCue(card) {
+  const rows = card && Array.isArray(card.exercises) ? card.exercises : [];
+  if (rows.length === 0) return "";
+  const leadName = rows[0].exercise.name;
+  return rows.length > 1 ? `${leadName} \u00b7 +${rows.length - 1} more` : leadName;
+}
+
 export function renderPlanView(ctx) {
   const scope = (ctx && ctx.scope) || createViewScope();
   const { store, catalog } = ctx;
@@ -34,13 +41,19 @@ export function renderPlanView(ctx) {
     });
   const syncTopbar = ctx.syncTopbar || (() => {});
 
+  const desktopMql =
+    typeof globalThis.matchMedia === "function"
+      ? globalThis.matchMedia("(min-width: 861px)")
+      : null;
+  const isDesktop = Boolean(desktopMql && desktopMql.matches);
+  scope.onMediaChange(desktopMql, () => navigateTo("#plan"));
+
   const initialFilterOpen = preserveFilterPanelOpen;
   preserveFilterPanelOpen = false;
 
   document.title = "Plan";
   syncTopbar("plan", false);
 
-  const state = store.getState();
   const rec = store.getRecommendedToday();
   const timing = store.getWorkoutTiming();
   const routineCards = store.buildRoutineCards(undefined, { adaptForSession: true });
@@ -90,15 +103,32 @@ export function renderPlanView(ctx) {
   setTrustedSvg(svgWrap, resolveSvgMarkup(catalog, currentSvgKey));
 
   const stageTitleEl = el("h1", {
-    className: "stage-title",
+    className: "stage-title truncate",
     id: "stage-routine-title",
     textContent: nextCard ? nextCard.routine.name : "",
   });
+  const leadCueText = formatLeadCue(nextCard);
+  const stageLeadCueEl = el("div", {
+    className: "stage-lead-cue muted truncate",
+    id: "stage-lead-cue",
+    hidden: !leadCueText,
+    textContent: leadCueText,
+  });
 
+  let stageEditBtn = null;
   let stageActionBtn = null;
   if (nextCard) {
-    const hasExercises = nextCard.exercises && nextCard.exercises.length > 0;
+    const hasExercises = Boolean(nextCard.exercises && nextCard.exercises.length > 0);
     const nextIdEnc = encodeURIComponent(nextCard.routine.id);
+    stageEditBtn = el("a", {
+      id: "stage-edit-btn",
+      className: "btn-ghost hud-icon-btn",
+      href: `#edit/${nextIdEnc}`,
+      title: "Edit workout",
+      "aria-label": "Edit workout",
+      hidden: !hasExercises,
+      textContent: "\u270e",
+    });
     stageActionBtn = el("a", {
       id: "stage-start-btn",
       className: "btn-primary",
@@ -118,11 +148,8 @@ export function renderPlanView(ctx) {
       svgWrap,
       nextCard
         ? el("div", { className: "stage-hud-bottom" }, [
-            el("div", null, [
-              el("div", { className: "muted", textContent: state.plan.name }),
-              stageTitleEl,
-            ]),
-            el("div", { className: "row-cluster" }, [stageActionBtn]),
+            el("div", { className: "min-w-0" }, [stageTitleEl, stageLeadCueEl]),
+            el("div", { className: "row-cluster-tight stage-actions" }, [stageEditBtn, stageActionBtn]),
           ])
         : null,
     ]
@@ -142,7 +169,7 @@ export function renderPlanView(ctx) {
   });
 
   const weekStrip = el("div", { className: "week-strip" }, [
-    el("span", { className: "pill", textContent: stats.message }),
+    isDesktop ? el("span", { className: "pill", textContent: stats.message }) : null,
     el("div", { className: "mini-bar", "aria-label": "Weekly goal" }, [
       el("div", { className: "mini-bar-fill", style: { width: `${pct}%` } }),
     ]),
@@ -174,7 +201,7 @@ export function renderPlanView(ctx) {
   const equipPanel = setDetailsOpen(
     el("details", { className: "filter-panel disclosure-card" }, [
       el("summary", { className: "disclosure-summary" }, [
-        el("span", { className: "field-label", textContent: "Equipment Available Today" }),
+        el("span", { className: "field-label", textContent: "Gear" }),
         equipSummaryPill,
       ]),
       el("div", { className: "disclosure-body" }, [
@@ -212,12 +239,15 @@ export function renderPlanView(ctx) {
     previewLoop.rebind(svgWrap);
   }
 
-  const canHoverStage =
-    !globalThis.matchMedia || globalThis.matchMedia("(min-width: 861px)").matches;
+  const canHoverStage = desktopMql ? isDesktop : true;
 
   const articleElements = [];
+  let mobileTodayNode = null;
+  const otherCardNodes = [];
+
   const cardNodes = routineCards.map((card) => {
     const isNext = Boolean(nextCard && card.routine.id === nextCard.routine.id);
+    const isMobileToday = !isDesktop && isNext;
     const cardPct = getCardIntensityPercent(card);
     const hasEx = Boolean(card.exercises && card.exercises.length > 0);
     const exCount = hasEx ? card.exercises.length : 0;
@@ -246,7 +276,7 @@ export function renderPlanView(ctx) {
               },
               [
                 el("div", { className: "ex-row-left" }, [
-                  el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }),
+                  isDesktop ? el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }) : null,
                   el("div", { className: "min-w-0" }, nameGroup),
                 ]),
                 el("span", { className: "ex-row-target", textContent: row.scaled.formatted }),
@@ -258,8 +288,14 @@ export function renderPlanView(ctx) {
             scope.on(li, "click", () => {
               swapStageSvg(row.svg_key, row.archetype);
               stageTitleEl.textContent = card.routine.name;
+              stageLeadCueEl.textContent = `${row.exercise.name} \u00b7 ${row.scaled.formatted}`;
+              stageLeadCueEl.hidden = false;
               stageIntensityPill.textContent = `Intensity ${cardPct}%`;
               stageIntensityPill.hidden = false;
+              if (stageEditBtn) {
+                stageEditBtn.setAttribute("href", `#edit/${routineIdEnc}`);
+                stageEditBtn.hidden = !hasEx;
+              }
               if (stageActionBtn) {
                 stageActionBtn.setAttribute(
                   "href",
@@ -274,35 +310,27 @@ export function renderPlanView(ctx) {
         )
       : el("a", { href: `#edit/${routineIdEnc}`, className: "muted", textContent: "+ Add exercises" });
 
-    const summaryLabel = isNext
-      ? "Today's exercises"
-      : `${exCount} ${exCount === 1 ? "exercise" : "exercises"}`;
+    const summaryNode = isMobileToday
+      ? el(
+          "summary",
+          { className: "disclosure-summary" },
+          [el("span", { className: "field-label", textContent: `Today's exercises (${exCount})` })]
+        )
+      : el("summary", {
+          className: "disclosure-summary text-xs muted",
+          textContent: isNext
+            ? "Today's exercises"
+            : `${exCount} ${exCount === 1 ? "exercise" : "exercises"}`,
+        });
 
     const routineDetails = setDetailsOpen(
-      el("details", { className: "routine-details" }, [
-        el("summary", {
-          className: "disclosure-summary text-xs muted",
-          textContent: summaryLabel,
-        }),
-        exListNode,
-      ]),
-      isNext
+      el("details", { className: "routine-details" }, [summaryNode, exListNode]),
+      isDesktop && isNext
     );
 
-    const article = el(
-      "article",
-      {
-        className: "routine-card" + (isNext ? " is-next" : ""),
-        dataset: {
-          archetype: card.lead_archetype,
-          svgKey: card.lead_svg_key || `${card.lead_archetype}:body_only`,
-          routineName: card.routine.name,
-          startUrl: `#workout/${routineIdEnc}`,
-          hasEx: hasEx ? "1" : "0",
-        },
-      },
-      [
-        el("div", { className: "routine-card-head" }, [
+    const cardHead = isMobileToday
+      ? null
+      : el("div", { className: "routine-card-head" }, [
           el("div", { className: "row-cluster min-w-0" }, [
             el("span", { className: "routine-name", textContent: card.routine.name }),
             el("span", { className: "pill", textContent: `${cardPct}%` }),
@@ -326,20 +354,56 @@ export function renderPlanView(ctx) {
                 })
               : null,
           ]),
-        ]),
-        routineDetails,
-      ]
+        ]);
+
+    const article = el(
+      "article",
+      {
+        className:
+          "routine-card" +
+          (isNext ? " is-next" : "") +
+          (isMobileToday ? " is-mobile-today" : ""),
+        dataset: {
+          archetype: card.lead_archetype,
+          svgKey: card.lead_svg_key || `${card.lead_archetype}:body_only`,
+          routineName: card.routine.name,
+          startUrl: `#workout/${routineIdEnc}`,
+          hasEx: hasEx ? "1" : "0",
+        },
+      },
+      [cardHead, routineDetails]
     );
     articleElements.push(article);
+    if (isMobileToday) mobileTodayNode = article;
+    else otherCardNodes.push(article);
     return article;
   });
+
+  const otherSummaryLabel =
+    otherCardNodes.length > 0 ? `Other days (${otherCardNodes.length})` : "Schedule";
+  const otherDaysPanel = isDesktop
+    ? null
+    : setDetailsOpen(
+        el("details", { className: "other-days-panel disclosure-card" }, [
+          el("summary", { className: "disclosure-summary" }, [
+            el("span", { className: "field-label", textContent: otherSummaryLabel }),
+            el("span", { className: "pill", textContent: stats.message }),
+          ]),
+          el("div", { className: "disclosure-body" }, [...otherCardNodes, weekStrip]),
+        ]),
+        false
+      );
+
+  const sideChildren = isDesktop
+    ? [weekStrip, equipPanel, ...cardNodes]
+    : [mobileTodayNode, equipPanel, otherDaysPanel];
 
   document
     .getElementById("app-root")
     .replaceChildren(
-      el("main", { className: "split-screen" }, [
+      el("main", { className: "split-screen plan-screen" }, [
         stageSection,
-        el("section", { className: "side-pane" }, [weekStrip, equipPanel, ...cardNodes]),
+        el("section", { className: "side-pane" }, sideChildren),
       ])
     );
 

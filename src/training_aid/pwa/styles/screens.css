@@ -340,6 +340,32 @@ button.catalog-card:focus-visible,
   padding: 0.15rem 0;
 }
 
+.routine-card.is-mobile-today {
+  padding: 0.65rem 0.9rem;
+  border-color: var(--border);
+  background: var(--bg-card);
+}
+
+.routine-card.is-mobile-today > .routine-details {
+  margin-top: 0;
+}
+
+.routine-card.is-mobile-today > .routine-details > .disclosure-summary {
+  min-height: 36px;
+  padding: 0;
+}
+
+.other-days-panel.disclosure-card {
+  display: block;
+}
+
+.disclosure-summary > .pill {
+  margin-left: auto;
+  max-width: 65%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .picker-disclosure {
   display: block;
 }

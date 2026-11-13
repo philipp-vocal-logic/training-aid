@@ -98,22 +98,44 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   setupForm.dispatchEvent({ type: "submit" });
 
   assert.equal(getHash(), "#plan");
-  assert.equal(
-    JSON.parse(env.storage.getItem("training_aid_state_v2")).profile.name,
-    "Athlete"
-  );
+  const savedPlanState = JSON.parse(env.storage.getItem("training_aid_state_v2"));
+  assert.equal(savedPlanState.profile.name, "Athlete");
   assert.ok(appRoot.textContent.includes("Recommended Today"));
   assert.ok(appRoot.textContent.includes("Intensity 100%"));
+  assert.equal(
+    appRoot.textContent.includes("Athlete"),
+    false,
+    "#plan must omit boilerplate Athlete prefix"
+  );
+  assert.equal(
+    appRoot.textContent.includes(savedPlanState.plan.name),
+    false,
+    "#plan must omit redundant state.plan.name subtitle"
+  );
   assert.equal(
     appRoot.querySelectorAll("a").filter((a) => a.getAttribute("href") === "#quick").length,
     0,
     "#plan must have 0 duplicate href='#quick' links inside #app-root"
   );
 
+  // Mobile #plan (default matchMedia matches=false): lead cue, stage edit button, zero thumbs, all disclosures closed
+  const leadCue = docRoot.getElementById("stage-lead-cue");
+  assert.ok(Boolean(leadCue) && leadCue.hidden === false);
+  assert.match(leadCue.textContent, /\u00b7 \+\d+ more$/);
+  const stageEditBtn = docRoot.getElementById("stage-edit-btn");
+  assert.ok(Boolean(stageEditBtn) && stageEditBtn.hidden === false);
+  assert.equal(stageEditBtn.getAttribute("href"), "#edit/r1");
+  assert.equal(
+    appRoot.querySelectorAll(".svg-thumb").length,
+    0,
+    "Mobile #plan must omit .svg-thumb row images"
+  );
+
   const planFilter = appRoot.querySelector(".filter-panel");
   assert.equal(planFilter.tagName, "DETAILS");
   assert.equal(planFilter.open, false);
   assert.equal(planFilter.getAttribute("open"), null);
+  assert.equal(planFilter.querySelector(".field-label").textContent, "Gear");
   assert.ok(
     planFilter.querySelector(".disclosure-summary").textContent.includes("Dumbbells & Bands \u00b7 15s")
   );
@@ -123,10 +145,52 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   for (const card of routineCards) {
     const details = card.querySelector(".routine-details");
     assert.ok(Boolean(details) && details.tagName === "DETAILS");
+    assert.equal(details.open, false, "All .routine-details must default closed on mobile #plan");
+    assert.equal(details.getAttribute("open"), null);
+  }
+  const mobileTodayCard = appRoot.querySelector(".is-mobile-today");
+  assert.ok(Boolean(mobileTodayCard) && mobileTodayCard.classList.contains("is-next"));
+  assert.equal(mobileTodayCard.querySelector(".routine-card-head"), null);
+  assert.match(
+    mobileTodayCard.querySelector(".disclosure-summary").textContent,
+    /^Today's exercises \(\d+\)$/
+  );
+
+  const otherDaysPanel = appRoot.querySelector(".other-days-panel");
+  assert.ok(Boolean(otherDaysPanel) && otherDaysPanel.tagName === "DETAILS");
+  assert.equal(otherDaysPanel.open, false);
+  assert.equal(otherDaysPanel.getAttribute("open"), null);
+  assert.ok(otherDaysPanel.querySelector(".disclosure-summary").textContent.includes("Other days (2)"));
+  assert.ok(otherDaysPanel.querySelector(".disclosure-summary").textContent.includes("0/3 this week"));
+  assert.equal(otherDaysPanel.querySelectorAll(".routine-card").length, 2);
+  assert.ok(
+    otherDaysPanel.querySelectorAll("button").some((b) => b.textContent.includes("+ Day"))
+  );
+
+  // Desktop #plan (min-width: 861px): preserves side-by-side overview, open is-next details, and .svg-thumb icons
+  const prevMatchMedia = globalThis.matchMedia;
+  let mqlChangeHandler = null;
+  globalThis.matchMedia = (q) => ({
+    matches: q === "(min-width: 861px)",
+    addEventListener(type, fn) {
+      if (q === "(min-width: 861px)" && type === "change") mqlChangeHandler = fn;
+    },
+    removeEventListener() {},
+  });
+  appMod.handleRoute();
+  assert.equal(appRoot.querySelector(".other-days-panel"), null);
+  assert.ok(appRoot.querySelector(".week-strip").textContent.includes("0/3 this week"));
+  assert.equal(appRoot.textContent.includes("Athlete"), false);
+  assert.ok(appRoot.querySelectorAll(".svg-thumb").length > 0);
+  for (const card of appRoot.querySelectorAll(".routine-card")) {
+    const details = card.querySelector(".routine-details");
     const isNext = card.classList.contains("is-next");
     assert.equal(details.open, isNext);
-    assert.equal(details.getAttribute("open"), isNext ? "" : null);
   }
+  assert.equal(typeof mqlChangeHandler, "function");
+  globalThis.matchMedia = prevMatchMedia;
+  mqlChangeHandler({ matches: false });
+  assert.ok(Boolean(appRoot.querySelector(".other-days-panel")));
 
   // Verify #progress compact empty state before any workout is completed
   setHash("#progress");

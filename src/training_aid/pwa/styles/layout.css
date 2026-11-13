@@ -147,6 +147,15 @@
   line-height: 1.1;
 }
 
+.stage-lead-cue {
+  margin-top: 0.22rem;
+  font-weight: 600;
+}
+
+.stage-actions {
+  flex-shrink: 0;
+}
+
 .side-pane {
   height: 100%;
   min-height: 0;
@@ -191,9 +200,26 @@
   }
 
   .graphic-stage {
-    height: 28dvh;
-    min-height: 185px;
-    padding: 2rem 1rem;
+    height: clamp(240px, 44dvh, 360px);
+    padding: 3.1rem 1rem 4.1rem;
+  }
+
+  .stage-hud-top {
+    top: 0.85rem;
+    left: 0.95rem;
+    right: 0.95rem;
+  }
+
+  .stage-hud-bottom {
+    bottom: 0.95rem;
+    left: 0.95rem;
+    right: 0.95rem;
+    gap: 0.65rem;
+  }
+
+  .stage-hud-bottom .btn-primary {
+    padding: 0.66rem 1.25rem;
+    font-size: 0.95rem;
   }
 
   .setup-stage {
@@ -206,6 +232,11 @@
     overflow: visible;
     border-left: none;
     border-top: 1px solid var(--border);
+  }
+
+  .plan-screen .side-pane {
+    padding: 0.85rem 0.95rem;
+    gap: 0.55rem;
   }
 
   .progress-screen {
