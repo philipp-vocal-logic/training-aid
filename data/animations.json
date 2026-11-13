@@ -44,10 +44,10 @@
       "fixture": null,
       "forefoot": null,
       "default_equipment": "body_only",
-      "bar_mode": "shoulder",
+      "bar_mode": "hands",
       "hold_style": "settle",
       "band_anchor": [124.0, 173.0],
-      "band_target": "shoulder",
+      "band_target": "hand",
       "cable_anchor": [152.0, 170.0],
       "cable_target": "hand",
       "bones": {
@@ -57,16 +57,16 @@
       "pose_a": {
         "hip": [114.0, 98.0],
         "spine": [-86.0, -86.0, -84.0],
-        "arm_f": [102.0, -48.0],
-        "arm_b": [100.0, -44.0],
+        "arm_f": [84.0, -80.0],
+        "arm_b": [82.0, -78.0],
         "leg_f": { "target": [126.0, 168.0], "bend_sign": -1 },
         "leg_b": { "target": [118.0, 166.0], "bend_sign": -1 }
       },
       "pose_b": {
         "hip": [98.0, 132.0],
         "spine": [-62.0, -58.0, -68.0],
-        "arm_f": [68.0, -28.0],
-        "arm_b": [66.0, -24.0],
+        "arm_f": [82.0, -78.0],
+        "arm_b": [80.0, -76.0],
         "leg_f": { "target": [126.0, 168.0], "bend_sign": -1 },
         "leg_b": { "target": [118.0, 166.0], "bend_sign": -1 }
       },
@@ -84,7 +84,7 @@
       "fixture": null,
       "forefoot": null,
       "default_equipment": "body_only",
-      "bar_mode": "shoulder",
+      "bar_mode": "hands",
       "hold_style": "settle",
       "band_anchor": [150.0, 173.0],
       "band_target": "hand",
@@ -99,16 +99,16 @@
       "pose_a": {
         "hip": [118.0, 108.0],
         "spine": [-88.0, -88.0, -86.0],
-        "arm_f": [98.0, -42.0],
-        "arm_b": [96.0, -38.0],
+        "arm_f": [84.0, -80.0],
+        "arm_b": [82.0, -78.0],
         "leg_f": { "target": [150.0, 169.0], "bend_sign": -1 },
         "leg_b": { "target": [84.0, 169.0], "bend_sign": -1 }
       },
       "pose_b": {
         "hip": [118.0, 131.0],
         "spine": [-86.0, -86.0, -84.0],
-        "arm_f": [74.0, -28.0],
-        "arm_b": [72.0, -24.0],
+        "arm_f": [82.0, -78.0],
+        "arm_b": [80.0, -76.0],
         "leg_f": { "target": [150.0, 169.0], "bend_sign": -1 },
         "leg_b": { "target": [84.0, 169.0], "bend_sign": -1 }
       },
@@ -123,7 +123,7 @@
     },
     "pushup": {
       "label": "Pushup",
-      "fixture": null,
+      "fixture": "pushup_bars",
       "forefoot": null,
       "default_equipment": "body_only",
       "bar_mode": "hands",
@@ -133,26 +133,26 @@
       "cable_anchor": [162.0, 172.0],
       "cable_target": "hand",
       "bones": {
-        "uarm": 29.0,
-        "farm": 29.0,
+        "uarm": 28.0,
+        "farm": 28.0,
         "thigh": 37.5,
         "shin": 37.5,
         "back_dx": -4.0,
         "back_dy": -2.0
       },
       "pose_a": {
-        "hip": [119.0, 134.0],
+        "hip": [119.0, 128.0],
         "spine": [-26.0, -26.0, -22.0],
-        "arm_f": { "target": [162.0, 169.0], "bend_sign": 1 },
-        "arm_b": { "target": [158.0, 167.0], "bend_sign": 1 },
+        "arm_f": { "target": [162.0, 153.5], "bend_sign": 1 },
+        "arm_b": { "target": [158.0, 152.0], "bend_sign": 1 },
         "leg_f": { "target": [53.0, 169.0], "bend_sign": -1 },
         "leg_b": { "target": [49.0, 167.0], "bend_sign": -1 }
       },
       "pose_b": {
-        "hip": [125.5, 152.0],
+        "hip": [125.0, 144.0],
         "spine": [-11.0, -11.0, -7.0],
-        "arm_f": { "target": [162.0, 169.0], "bend_sign": 1 },
-        "arm_b": { "target": [158.0, 167.0], "bend_sign": 1 },
+        "arm_f": { "target": [162.0, 153.5], "bend_sign": 1 },
+        "arm_b": { "target": [158.0, 152.0], "bend_sign": 1 },
         "leg_f": { "target": [53.0, 169.0], "bend_sign": -1 },
         "leg_b": { "target": [49.0, 167.0], "bend_sign": -1 }
       },
@@ -177,7 +177,7 @@
       "cable_anchor": [164.0, 172.0],
       "cable_target": "hand",
       "bones": {
-        "uarm": 28.0,
+        "uarm": 26.0,
         "farm": 24.0,
         "thigh": 36.2,
         "shin": 36.2,
@@ -185,18 +185,18 @@
         "back_dy": -2.0
       },
       "pose_a": {
-        "hip": [120.0, 146.0],
+        "hip": [120.0, 144.0],
         "spine": [-8.0, -8.0, -4.0],
-        "arm_f": [88.0, 0.0],
-        "arm_b": [88.0, 0.0],
+        "arm_f": [88.0, -24.0],
+        "arm_b": [88.0, -24.0],
         "leg_f": { "target": [52.0, 170.0], "bend_sign": -1 },
         "leg_b": { "target": [48.0, 168.0], "bend_sign": -1 }
       },
       "pose_b": {
-        "hip": [120.0, 142.0],
+        "hip": [120.0, 140.0],
         "spine": [-4.0, -5.0, -2.0],
-        "arm_f": [88.0, 0.0],
-        "arm_b": [88.0, 0.0],
+        "arm_f": [86.0, -22.0],
+        "arm_b": [86.0, -22.0],
         "leg_f": { "target": [52.0, 170.0], "bend_sign": -1 },
         "leg_b": { "target": [48.0, 168.0], "bend_sign": -1 }
       },
@@ -267,18 +267,18 @@
         "back_dy": -2.0
       },
       "pose_a": {
-        "hip": [116.0, 164.0],
+        "hip": [116.0, 160.0],
         "spine": [183.0, 184.0, 196.0],
-        "arm_f": [10.0, 4.0],
-        "arm_b": [10.0, 4.0],
+        "arm_f": { "target": [115.0, 151.0], "bend_sign": 1 },
+        "arm_b": { "target": [111.0, 149.0], "bend_sign": 1 },
         "leg_f": { "target": [166.0, 170.0], "bend_sign": -1 },
         "leg_b": { "target": [160.0, 168.0], "bend_sign": -1 }
       },
       "pose_b": {
         "hip": [114.0, 136.0],
         "spine": [144.0, 146.0, 192.0],
-        "arm_f": [10.0, 4.0],
-        "arm_b": [10.0, 4.0],
+        "arm_f": { "target": [113.0, 129.0], "bend_sign": 1 },
+        "arm_b": { "target": [109.0, 127.0], "bend_sign": 1 },
         "leg_f": { "target": [166.0, 170.0], "bend_sign": -1 },
         "leg_b": { "target": [160.0, 168.0], "bend_sign": -1 }
       },
@@ -335,7 +335,7 @@
     },
     "mountain_climber": {
       "label": "Mountain Climber",
-      "fixture": null,
+      "fixture": "pushup_bars",
       "forefoot": null,
       "default_equipment": "body_only",
       "bar_mode": "hands",
@@ -345,26 +345,26 @@
       "cable_anchor": [58.0, 172.0],
       "cable_target": "hand",
       "bones": {
-        "uarm": 30.0,
-        "farm": 30.0,
+        "uarm": 28.0,
+        "farm": 28.0,
         "thigh": 35.0,
         "shin": 35.0,
         "back_dx": -3.0,
         "back_dy": -1.5
       },
       "pose_a": {
-        "hip": [114.0, 124.0],
+        "hip": [114.0, 120.0],
         "spine": [-18.0, -18.0, -16.0],
-        "arm_f": { "target": [160.0, 169.0], "bend_sign": 1 },
-        "arm_b": { "target": [156.0, 167.5], "bend_sign": 1 },
+        "arm_f": { "target": [162.0, 153.5], "bend_sign": 1 },
+        "arm_b": { "target": [158.0, 152.0], "bend_sign": 1 },
         "leg_f": [18.0, 176.0],
         "leg_b": { "target": [59.5, 166.0], "bend_sign": -1, "root": "hip" }
       },
       "pose_b": {
-        "hip": [114.0, 124.0],
+        "hip": [114.0, 120.0],
         "spine": [-18.0, -18.0, -16.0],
-        "arm_f": { "target": [160.0, 169.0], "bend_sign": 1 },
-        "arm_b": { "target": [156.0, 167.5], "bend_sign": 1 },
+        "arm_f": { "target": [162.0, 153.5], "bend_sign": 1 },
+        "arm_b": { "target": [158.0, 152.0], "bend_sign": 1 },
         "leg_f": { "target": [59.5, 166.0], "bend_sign": -1, "root": "hip" },
         "leg_b": [18.0, 176.0]
       },
@@ -730,10 +730,10 @@
       "fixture": "calf_block",
       "forefoot": [136.0, 167.0],
       "default_equipment": "body_only",
-      "bar_mode": "shoulder",
+      "bar_mode": "hands",
       "hold_style": "settle",
       "band_anchor": [130.0, 173.0],
-      "band_target": "shoulder",
+      "band_target": "hand",
       "cable_anchor": [154.0, 170.0],
       "cable_target": "hand",
       "bones": {
@@ -743,16 +743,16 @@
       "pose_a": {
         "hip": [114.0, 105.0],
         "spine": [-88.0, -88.0, -86.0],
-        "arm_f": [102.0, -48.0],
-        "arm_b": [100.0, -44.0],
+        "arm_f": [84.0, -80.0],
+        "arm_b": [82.0, -78.0],
         "leg_f": { "target": [119.0, 170.0], "bend_sign": -1 },
         "leg_b": { "target": [114.0, 168.0], "bend_sign": -1 }
       },
       "pose_b": {
         "hip": [120.0, 91.0],
         "spine": [-88.0, -88.0, -86.0],
-        "arm_f": [98.0, -46.0],
-        "arm_b": [96.0, -42.0],
+        "arm_f": [84.0, -80.0],
+        "arm_b": [82.0, -78.0],
         "leg_f": { "target": [124.0, 156.0], "bend_sign": -1 },
         "leg_b": { "target": [119.0, 154.0], "bend_sign": -1 }
       },

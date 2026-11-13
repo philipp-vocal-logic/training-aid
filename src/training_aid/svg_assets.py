@@ -97,6 +97,14 @@ _STATIC_FIXTURES: dict[str, str] = {
         '<rect x="118" y="167" width="32" height="7" rx="2.5" fill="#334155" '
         'stroke="#64748b" stroke-width="1.2" />'
     ),
+    "pushup_bars": (
+        '<line x1="148" y1="154" x2="170" y2="154" stroke="#64748b" '
+        'stroke-width="3.5" stroke-linecap="round" />'
+        '<line x1="152" y1="154" x2="149" y2="174" stroke="#475569" '
+        'stroke-width="3.2" stroke-linecap="round" />'
+        '<line x1="166" y1="154" x2="169" y2="174" stroke="#475569" '
+        'stroke-width="3.2" stroke-linecap="round" />'
+    ),
 }
 
 
@@ -407,7 +415,11 @@ def _compute_aura_center(spec: dict[str, Any]) -> Point:
     return (round(cx, 1), round(cy, 1))
 
 
-def _render_fixture(fixture: str | None, t: float) -> str:
+def _render_fixture(
+    fixture: str | None,
+    t: float,
+    eq_mode: str = "body_only",
+) -> str:
     if fixture is None:
         return ""
     if fixture == "pulse":
@@ -416,12 +428,13 @@ def _render_fixture(fixture: str | None, t: float) -> str:
             f'<circle class="js-pulse" cx="132" cy="144" r="{r:.2f}" fill="none" '
             'stroke="#34d399" stroke-width="2.5" stroke-opacity="0.45" />'
         )
+    if fixture == "pushup_bars" and eq_mode in {"dumbbell", "kettlebells", "barbell"}:
+        return ""
     return _STATIC_FIXTURES.get(fixture, "")
 
 
 def _render_handheld_props(
     eq_mode: str,
-    bar_mode: str,
     joints: dict[str, Point],
 ) -> tuple[str, str]:
     if eq_mode == "dumbbell":
@@ -440,9 +453,9 @@ def _render_handheld_props(
         return (back, front)
 
     if eq_mode == "kettlebells":
-        kb_by = min(165.0, joints["hand_b"][1] + 8.0)
-        kb_fy = min(165.0, joints["hand_f"][1] + 9.0)
-        hdl_fy = min(159.0, joints["hand_f"][1] + 2.5)
+        kb_by = joints["hand_b"][1] + 8.0
+        kb_fy = joints["hand_f"][1] + 9.0
+        hdl_fy = joints["hand_f"][1] + 2.5
         back = (
             f'<circle class="js-weight-b" cx="{joints["hand_b"][0]:.2f}" '
             f'cy="{kb_by:.2f}" r="7.2" fill="#047857" fill-opacity="0.68" />'
@@ -457,8 +470,8 @@ def _render_handheld_props(
         )
         return (back, front)
 
-    p_b = joints["shoulder_b"] if bar_mode == "shoulder" else joints["hand_b"]
-    p_f = joints["shoulder"] if bar_mode == "shoulder" else joints["hand_f"]
+    p_b = joints["hand_b"]
+    p_f = joints["hand_f"]
     sx1, sy1 = p_b[0] - 6.0, p_b[1] - 2.0
     sx2, sy2 = p_f[0] + 6.0, p_f[1] + 2.0
     back = (
@@ -550,7 +563,7 @@ def _render_equipment_props(
         attrs.append(f'data-forefoot-y="{forefoot_pt[1]:.2f}"')
 
     if eq_mode in {"dumbbell", "kettlebells", "barbell"}:
-        back, front = _render_handheld_props(eq_mode, bar_mode, joints)
+        back, front = _render_handheld_props(eq_mode, joints)
         return (attrs, back, front)
     if eq_mode in {"bands", "cable", "machine"}:
         t_attrs, back, front = _render_tethered_props(eq_mode, spec, joints)
@@ -624,7 +637,7 @@ def render_archetype_svg(
     forefoot_b_markup, forefoot_f_markup = _render_forefoot_lines(
         spec.get("forefoot"), j
     )
-    fixture_markup = _render_fixture(spec["fixture"], t_init)
+    fixture_markup = _render_fixture(spec["fixture"], t_init, eq_mode)
     extra_attr_str = " ".join(extra_svg_attrs)
 
     svg_open = (
