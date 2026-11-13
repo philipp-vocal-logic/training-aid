@@ -10,7 +10,10 @@
       <div class="hud-title-cluster">
         <a href="/" class="hud-icon-btn" aria-label="Exit">✕</a>
         <span id="step-progress" class="pill">1/{{ playlist | length }} · S1/{{ playlist[0].sets }}</span>
-        <h1 id="ex-title" class="hud-ex-title">{{ playlist[0].name }}</h1>
+        <div style="min-width: 0;">
+          <h1 id="ex-title" class="hud-ex-title">{{ playlist[0].name }}</h1>
+          <div id="ex-how-to" class="muted" style="font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ playlist[0].how_to }}</div>
+        </div>
         <span id="ex-weight" class="pill pill-brand" style="{% if not playlist[0].weight_label %}display: none;{% endif %}">
           {{ playlist[0].weight_label or '' }}
         </span>
@@ -150,6 +153,7 @@
     const stageEl = document.getElementById("coach-stage");
     const stepProgressEl = document.getElementById("step-progress");
     const titleEl = document.getElementById("ex-title");
+    const howToEl = document.getElementById("ex-how-to");
     const weightEl = document.getElementById("ex-weight");
     const svgHolder = document.getElementById("svg-holder");
     const phaseCueEl = document.getElementById("phase-cue");
@@ -290,6 +294,9 @@
       const ex = currentEx();
       stepProgressEl.textContent = `${exIdx + 1}/${PLAYLIST.length} · S${setNum}/${ex.sets}`;
       titleEl.textContent = ex.name;
+      if (howToEl) {
+        howToEl.textContent = ex.how_to || "";
+      }
       if (ex.weight_label) {
         weightEl.textContent = ex.weight_label;
         weightEl.style.display = "inline-flex";

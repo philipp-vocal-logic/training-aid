@@ -92,8 +92,8 @@
               null
             ],
             [
-              "Single_Leg_Glute_Bridge",
-              12,
+              "Floor_Glute-Ham_Raise",
+              10,
               null
             ],
             [
@@ -187,11 +187,6 @@
           "Day 4: Upper & Core Focus",
           [
             [
-              "Dumbbell_Lunges",
-              10,
-              10.0
-            ],
-            [
               "Dumbbell_Bench_Press",
               10,
               12.0
@@ -200,6 +195,11 @@
               "Alternate_Incline_Dumbbell_Curl",
               12,
               8.0
+            ],
+            [
+              "Standing_Dumbbell_Calf_Raise",
+              15,
+              10.0
             ],
             [
               "Plank",
@@ -302,7 +302,7 @@
               12.0
             ],
             [
-              "Back_Flyes_-_With_Bands",
+              "Calf_Raises_-_With_Bands",
               15,
               null
             ],
@@ -377,9 +377,9 @@
               50.0
             ],
             [
-              "Dumbbell_Bench_Press",
-              10,
-              16.0
+              "Lying_Leg_Curls",
+              12,
+              25.0
             ],
             [
               "One-Arm_Dumbbell_Row",
@@ -402,9 +402,9 @@
               12.0
             ],
             [
-              "Barbell_Shoulder_Press",
-              8,
-              25.0
+              "Standing_Calf_Raises",
+              15,
+              40.0
             ],
             [
               "Cable_Chest_Press",

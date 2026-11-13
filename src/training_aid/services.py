@@ -100,6 +100,7 @@ def compute_scaled_target(
     clamped = max(-5, intensity_level)
     intensity_pct = 100 + clamped * 10
     multiplier = intensity_pct / 100.0
+    is_hold = is_hold_exercise(exercise or item.exercise_id)
 
     if item.base_weight_kg is not None and item.base_weight_kg > 0:
         rounded_weight = round_half_kg(item.base_weight_kg * multiplier)
@@ -112,9 +113,15 @@ def compute_scaled_target(
         else:
             target_weight = item.base_weight_kg
 
-        formatted = (
-            f"{item.sets} \u00d7 {item.base_reps} @ {format_weight(target_weight)}"
-        )
+        if is_hold:
+            formatted = (
+                f"{item.sets} \u00d7 {item.base_reps} sec @ "
+                f"{format_weight(target_weight)}"
+            )
+        else:
+            formatted = (
+                f"{item.sets} \u00d7 {item.base_reps} @ {format_weight(target_weight)}"
+            )
         return ScaledTarget(
             sets=item.sets,
             reps=item.base_reps,
@@ -131,7 +138,7 @@ def compute_scaled_target(
     else:
         target_reps = item.base_reps
 
-    unit = "sec" if is_hold_exercise(exercise or item.exercise_id) else "reps"
+    unit = "sec" if is_hold else "reps"
     formatted = f"{item.sets} \u00d7 {target_reps} {unit}"
     return ScaledTarget(
         sets=item.sets,
@@ -214,6 +221,9 @@ def default_prescription_for_exercise(
     user: User, exercise: Exercise
 ) -> tuple[int, int, float | None]:
     """Compute default sets, reps, and load when adding an exercise to a routine."""
+    if is_hold_exercise(exercise):
+        return _scale_initial_prescription(30, None, user.starting_intensity)
+
     weighted_equip = {
         "barbell",
         "dumbbell",

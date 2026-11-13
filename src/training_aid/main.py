@@ -10,9 +10,14 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Respo
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, col, func, select
+from sqlmodel import Session, col, func, or_, select
 
-from training_aid.coaching import _load_svg, build_exercise_guidance, classify_archetype
+from training_aid.coaching import (
+    _load_svg,
+    build_exercise_guidance,
+    classify_archetype,
+    exercise_svg_url,
+)
 from training_aid.database import create_db_and_tables, engine, get_session
 from training_aid.models import (
     Exercise,
@@ -33,7 +38,11 @@ from training_aid.services import (
     load_programs_config,
     seed_exercises,
 )
-from training_aid.svg_assets import pregenerate_all_svgs
+from training_aid.svg_assets import (
+    ARCHETYPE_SPECS,
+    pregenerate_all_svgs,
+    render_archetype_svg,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -73,6 +82,14 @@ def resolve_user(request: Request, session: Session) -> User | None:
     return session.exec(select(User).order_by(col(User.id))).first()
 
 
+_BODYWEIGHT_AUX_EQUIPMENT: tuple[str, ...] = (
+    "body only",
+    "foam roll",
+    "exercise ball",
+    "other",
+)
+
+
 def build_routine_cards(
     session: Session, routines: list[WorkoutRoutine]
 ) -> list[dict[str, Any]]:
@@ -99,7 +116,7 @@ def build_routine_cards(
                     "exercise": exercise,
                     "archetype": archetype,
                     "svg_key": svg_key,
-                    "svg_url": f"/static/svgs/{archetype}.svg",
+                    "svg_url": exercise_svg_url(archetype, exercise.equipment),
                     "scaled": compute_scaled_target(
                         item, routine.intensity_level, exercise=exercise
                     ),
@@ -123,26 +140,60 @@ def search_exercises_for_user(
 ) -> list[dict[str, Any]]:
     """Search exercises filtered by query text or user equipment tier."""
     stmt = select(Exercise)
-    if q.strip():
-        stmt = stmt.where(col(Exercise.name).ilike(f"%{q.strip()}%"))
-    elif user.equipment == "body_only":
-        stmt = stmt.where(Exercise.equipment == "body only")
-    elif user.equipment == "dumbbells":
-        stmt = stmt.where(col(Exercise.equipment).in_(["dumbbell", "body only"]))
-    elif user.equipment == "kettlebell_bands":
+    clean_q = q.strip()
+    if clean_q:
+        pattern = f"%{clean_q}%"
+        lower_q = clean_q.lower()
         stmt = stmt.where(
-            col(Exercise.equipment).in_(["kettlebells", "bands", "body only"])
+            or_(
+                col(Exercise.name).ilike(pattern),
+                col(Exercise.id).ilike(pattern),
+            )
+        ).order_by(
+            func.lower(col(Exercise.name)) != lower_q,
+            func.lower(col(Exercise.id)) != lower_q,
+            col(Exercise.name),
         )
-    stmt = stmt.order_by(col(Exercise.name)).limit(limit)
+    else:
+        if user.equipment == "body_only":
+            stmt = stmt.where(col(Exercise.equipment).in_(_BODYWEIGHT_AUX_EQUIPMENT))
+        elif user.equipment == "dumbbells":
+            stmt = stmt.where(
+                col(Exercise.equipment).in_(
+                    ["dumbbell", "medicine ball", *_BODYWEIGHT_AUX_EQUIPMENT]
+                )
+            )
+        elif user.equipment == "kettlebell_bands":
+            stmt = stmt.where(
+                col(Exercise.equipment).in_(
+                    ["kettlebells", "bands", *_BODYWEIGHT_AUX_EQUIPMENT]
+                )
+            )
+        stmt = stmt.order_by(col(Exercise.name))
+    stmt = stmt.limit(limit)
     results = list(session.exec(stmt).all())
     return [
         {
             "exercise": ex,
             "archetype": (arch := classify_archetype(ex)),
-            "svg_url": f"/static/svgs/{arch}.svg",
+            "svg_url": exercise_svg_url(arch, ex.equipment),
         }
         for ex in results
     ]
+
+
+@app.get("/svgs/{archetype}.svg")
+def archetype_thumbnail_svg(
+    archetype: str,
+    equipment: Annotated[str | None, Query()] = None,
+) -> Response:
+    """Render an equipment-aware peak-pose SVG thumbnail for an archetype."""
+    if archetype not in ARCHETYPE_SPECS:
+        raise HTTPException(status_code=404, detail="Archetype not found")
+    return Response(
+        content=render_archetype_svg(archetype, equipment=equipment, thumbnail=True),
+        media_type="image/svg+xml",
+    )
 
 
 # ---------------------------------------------------------------------------
