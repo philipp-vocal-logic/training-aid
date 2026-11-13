@@ -119,6 +119,7 @@ export class MockNode {
     this.listeners = new Map();
     this._className = ""; this._textContent = ""; this._innerHTML = "";
     this.hidden = false; this.disabled = false; this.checked = false; this.value = "";
+    this.open = false; this.files = null;
     const tokens = () => new Set(this._className.split(/\s+/).filter(Boolean));
     this.classList = {
       add: (...cls) => { const s = tokens(); for (const c of cls) s.add(c); this._className = [...s].join(" "); },
@@ -171,10 +172,31 @@ export class MockNode {
     for (const fn of [...(this.listeners.get(e.type) || [])]) fn(e);
   }
   click() { this.dispatchEvent({ type: "click" }); }
-  focus() {}
-  blur() {}
+  focus() {
+    if (typeof globalThis.document !== "undefined" && globalThis.document) {
+      globalThis.document.activeElement = this;
+    }
+  }
+  blur() {
+    if (
+      typeof globalThis.document !== "undefined" &&
+      globalThis.document &&
+      globalThis.document.activeElement === this
+    ) {
+      globalThis.document.activeElement = globalThis.document.body || null;
+    }
+  }
   select() {}
+  showModal() {
+    this.open = true;
+    this.setAttribute("open", "");
+  }
+  close() {
+    this.open = false;
+    this.removeAttribute("open");
+  }
   matches(sel) {
+    if (sel.includes(",")) return sel.split(",").some((s) => this.matches(s.trim()));
     if (sel === "*") return true;
     if (sel.startsWith("#")) return this.id === sel.slice(1);
     if (sel.startsWith(".")) return this.classList.contains(sel.slice(1));
@@ -252,7 +274,7 @@ export function installBrowserEnv({ catalog = null, initialHash = "#edit/%", man
     },
     removeEventListener: (type, fn) => { const s = winListeners.get(type); if (s) s.delete(fn); },
     document: {
-      readyState: "complete", hidden: false, title: "", body: docRoot, documentElement: docRoot,
+      readyState: "complete", hidden: false, title: "", body: docRoot, documentElement: docRoot, activeElement: docRoot,
       createElement: (tag) => new MockNode(tag), createElementNS: (_ns, tag) => new MockNode(tag),
       createTextNode: (txt) => { const t = new MockNode("#text"); t.textContent = String(txt); return t; },
       getElementById: (id) => docRoot.querySelector("#" + id),

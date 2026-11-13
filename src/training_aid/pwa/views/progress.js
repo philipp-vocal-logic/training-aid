@@ -4,6 +4,7 @@ import { el, formatLogDateTime, resolveSvgMarkup, setTrustedSvg } from "../ui/do
 import { bindPreviewLoop } from "../ui/preview-loop.js";
 import { buildProgressChartSvg } from "../ui/progress-chart.js";
 import { createViewScope } from "../ui/scope.js";
+import { triggerStateExportDownload } from "./setup.js";
 
 function formatLoggedExerciseLine(ex) {
   const unit = ex.unit === "sec" ? "s" : "";
@@ -23,6 +24,21 @@ export function renderProgressView(ctx) {
   const logs = store.getLogsDesc() || [];
   const series = store.getProgressSeries() || { labels: [], values: [] };
   const hasLogs = logs.length > 0 && series.values && series.values.length > 0;
+  const hasPlan = Boolean(store && typeof store.hasActivePlan === "function" && store.hasActivePlan());
+
+  const exportBtn = hasPlan
+    ? el("button", {
+        type: "button",
+        id: "progress-export-btn",
+        className: "btn-ghost btn-xs",
+        textContent: "Export JSON",
+      })
+    : null;
+  if (exportBtn) {
+    scope.on(exportBtn, "click", () => {
+      triggerStateExportDownload(store);
+    });
+  }
 
   const kpiStrip = el("section", { className: "kpi-strip" }, [
     el("div", { className: "kpi-cell" }, [
@@ -40,6 +56,7 @@ export function renderProgressView(ctx) {
     el("div", { className: "kpi-cell" }, [
       el("span", { className: "kpi-num", textContent: `${stats.avg_plan_intensity || 100}%` }),
       el("span", { className: "kpi-label", textContent: "Plan Load" }),
+      exportBtn,
     ]),
   ]);
 
