@@ -45,9 +45,19 @@ export function findSubstituteExercise(targetEx, availableEquip, exerciseList, u
   return best;
 }
 
-export function adaptRoutineForEquipment(routine, availableEquip, profile, exerciseList, exerciseMap) {
+export function adaptRoutineForEquipment(
+  routine,
+  availableEquip,
+  profile,
+  exerciseList,
+  exerciseMap,
+  baselineEquip,
+) {
   if (!routine || typeof routine !== "object") return null;
   const availSet = toAvailableSet(availableEquip);
+  const baseSet = baselineEquip !== undefined && baselineEquip !== null
+    ? toAvailableSet(baselineEquip)
+    : null;
   const rawItems = Array.isArray(routine.exercises) ? routine.exercises : [];
   const usedIds = new Set();
 
@@ -62,7 +72,10 @@ export function adaptRoutineForEquipment(routine, availableEquip, profile, exerc
     const origEx = exerciseMap instanceof Map ? exerciseMap.get(item.exercise_id) : null;
     if (!origEx) continue;
 
-    if (isExerciseCompatible(origEx, availSet)) {
+    if (
+      isExerciseCompatible(origEx, availSet)
+      || (baseSet !== null && !isExerciseCompatible(origEx, baseSet))
+    ) {
       usedIds.add(origEx.id);
       adaptedItems.push({ ...structuredClone(item), is_substituted: false, replaced_name: null });
       continue;
@@ -105,8 +118,11 @@ export function pickRandomExercise(exerciseList, availableEquip, options) {
   const targetEx = opts.targetExercise || null;
   const targetFamily = opts.family || (targetEx ? familyForArchetype(targetEx.archetype) : null);
 
+  const wantStretch = Boolean(targetEx && String(targetEx.category || "").toLowerCase() === "stretching");
   const compatible = filterCompatibleCatalog(exerciseList, availSet, { safeCategoriesOnly: true })
-    .filter((ex) => String(ex.category || "").toLowerCase() !== "stretching");
+    .filter((ex) => (wantStretch
+      ? String(ex.category || "").toLowerCase() === "stretching"
+      : String(ex.category || "").toLowerCase() !== "stretching"));
   if (compatible.length === 0) return null;
 
   let pool = compatible.filter((ex) => !excludeIds.has(ex.id));

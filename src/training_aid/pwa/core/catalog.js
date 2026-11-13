@@ -28,7 +28,13 @@ export const ARCHETYPE_FAMILY = Object.freeze({
 });
 
 export const BALANCED_SLOT_FAMILIES = Object.freeze(["lower", "push", "pull", "core"]);
-export const SAFE_GENERATOR_CATEGORIES = new Set(["strength", "cardio", "stretching"]);
+export const SAFE_GENERATOR_CATEGORIES = new Set([
+  "strength",
+  "cardio",
+  "plyometrics",
+  "powerlifting",
+  "stretching",
+]);
 
 export function familyForArchetype(archetype) {
   return ARCHETYPE_FAMILY[String(archetype || "").toLowerCase()] || "lower";
@@ -90,31 +96,64 @@ export function filterCompatibleCatalog(exerciseList, availableEquip, options) {
   return out;
 }
 
+function buildCatalogSynonyms(equipNorm, muscleNorm) {
+  const syns = [];
+  if (equipNorm === "body only") syns.push("bodyweight");
+  if (muscleNorm === "abdominals") syns.push("abs core");
+  if (muscleNorm === "quadriceps") syns.push("quads legs");
+  if (muscleNorm === "middle back" || muscleNorm === "lower back" || muscleNorm === "lats") {
+    syns.push("back");
+  }
+  return syns.join(" ");
+}
+
 export function searchCompatibleCatalog(exerciseList, query, limit, equipFilter, enforceCompat) {
+  const list = Array.isArray(exerciseList) ? exerciseList : [];
   const maxItems = limit !== undefined && limit !== null
     ? Math.max(1, Math.trunc(Number(limit)) || 16)
     : 16;
-  const cleanQ = String(query ?? "").trim();
-  if (cleanQ) {
-    const lowerQ = cleanQ.toLowerCase();
-    const matches = [];
-    for (const ex of exerciseList) {
-      if (enforceCompat && !isExerciseCompatible(ex, equipFilter)) continue;
-      const nLow = ex.name.toLowerCase();
-      const idLow = ex.id.toLowerCase();
-      if (nLow.includes(lowerQ) || idLow.includes(lowerQ)) {
-        matches.push({ ex, exactName: nLow === lowerQ ? 0 : 1, exactId: idLow === lowerQ ? 0 : 1 });
-      }
+  const availSet = toAvailableSet(equipFilter);
+  const cleanQ = String(query ?? "").trim().toLowerCase();
+  const tokens = cleanQ ? cleanQ.split(/[\s_/,-]+/).filter(Boolean) : [];
+  const matches = [];
+
+  for (const ex of list) {
+    if (!ex) continue;
+    const compat = isExerciseCompatible(ex, availSet);
+    if (enforceCompat && !compat) continue;
+    const compatRank = compat ? 0 : 1;
+
+    let matchTier = 0;
+    if (tokens.length > 0) {
+      const nameNorm = String(ex.name || "").toLowerCase();
+      const idNorm = String(ex.id || "").toLowerCase();
+      const idWords = idNorm.replace(/_/g, " ");
+      const muscleNorm = String(ex.primary_muscle || "").toLowerCase();
+      const equipNorm = String(ex.equipment || "").toLowerCase();
+      const catNorm = String(ex.category || "").toLowerCase();
+      const synonyms = buildCatalogSynonyms(equipNorm, muscleNorm);
+      const nameHay = `${nameNorm} ${idNorm} ${idWords}`;
+      const metaHay = `${muscleNorm} ${equipNorm} ${catNorm} ${synonyms}`;
+
+      if (!tokens.every((t) => nameHay.includes(t) || metaHay.includes(t))) continue;
+
+      if (nameNorm === cleanQ || idNorm === cleanQ || idWords === cleanQ) matchTier = 0;
+      else if (nameNorm.startsWith(cleanQ)) matchTier = 1;
+      else if (tokens.every((t) => nameHay.includes(t))) matchTier = 2;
+      else matchTier = 3;
     }
-    matches.sort((a, b) => (
-      a.exactName !== b.exactName ? a.exactName - b.exactName :
-      a.exactId !== b.exactId ? a.exactId - b.exactId :
-      a.ex.name < b.ex.name ? -1 : a.ex.name > b.ex.name ? 1 : 0
-    ));
-    return matches.slice(0, maxItems).map((m) => structuredClone(m.ex));
+
+    matches.push({ ex, compatRank, matchTier });
   }
-  return filterCompatibleCatalog(exerciseList, equipFilter)
-    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-    .slice(0, maxItems)
-    .map((ex) => structuredClone(ex));
+
+  matches.sort((a, b) => {
+    const aExact = tokens.length > 0 && a.matchTier === 0 ? 0 : 1;
+    const bExact = tokens.length > 0 && b.matchTier === 0 ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+    if (a.compatRank !== b.compatRank) return a.compatRank - b.compatRank;
+    if (a.matchTier !== b.matchTier) return a.matchTier - b.matchTier;
+    return a.ex.name < b.ex.name ? -1 : a.ex.name > b.ex.name ? 1 : 0;
+  });
+
+  return matches.slice(0, maxItems).map((m) => structuredClone(m.ex));
 }

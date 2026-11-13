@@ -75,6 +75,7 @@ export function createStore(options = {}) {
   let sessionEquipmentOverride = null;
   let sessionEquipmentDayKey = "";
   let adHocSession = null;
+  let adHocEquipment = null;
 
   const activeProfile = () => state?.profile || defaultProfile;
 
@@ -187,6 +188,7 @@ export function createStore(options = {}) {
     sessionEquipmentOverride = null;
     sessionEquipmentDayKey = "";
     adHocSession = null;
+    adHocEquipment = null;
     persistState({
       schema_version: SCHEMA_VERSION,
       profile,
@@ -221,6 +223,7 @@ export function createStore(options = {}) {
 
   function generateAdHocSession(genOpts) {
     const eq = getSessionEquipment();
+    adHocEquipment = eq.slice();
     adHocSession = {
       id: "adhoc",
       name: `On-the-Fly \u00b7 ${formatEquipmentSummary(eq)}`,
@@ -240,9 +243,16 @@ export function createStore(options = {}) {
   function adaptAdHocForCurrentEquipment() {
     if (!adHocSession) return null;
     const eq = getSessionEquipment();
+    const baseline = adHocEquipment !== null ? adHocEquipment : eq;
     const adapted = adaptRoutineForEquipment(
-      adHocSession, eq, state?.profile || { starting_intensity: "moderate" }, exerciseList, exerciseMap,
+      adHocSession,
+      eq,
+      state?.profile || { starting_intensity: "moderate" },
+      exerciseList,
+      exerciseMap,
+      baseline,
     );
+    adHocEquipment = eq.slice();
     adHocSession = {
       ...adHocSession,
       name: `On-the-Fly \u00b7 ${formatEquipmentSummary(eq)}`,
@@ -313,8 +323,9 @@ export function createStore(options = {}) {
   }
 
   function buildRoutineCards(routinesSubset, cardOpts) {
-    const adaptSession = Boolean(cardOpts?.adaptForSession);
+    const adaptSession = Boolean(cardOpts?.adaptForSession) && hasSessionEquipmentOverride(cardOpts?.nowDate);
     const availEq = adaptSession ? getSessionEquipment(cardOpts?.nowDate) : null;
+    const baselineEq = adaptSession && hasActivePlan() ? state.profile.equipment_list : undefined;
     let sourceRoutines = hasActivePlan() ? state.plan.routines : [];
     if (Array.isArray(routinesSubset)) {
       sourceRoutines = [];
@@ -327,7 +338,7 @@ export function createStore(options = {}) {
       }
     }
     return sourceRoutines.map((rawRt) => (
-      projectRoutineCard(rawRt, exerciseList, exerciseMap, state?.profile, availEq, adaptSession)
+      projectRoutineCard(rawRt, exerciseList, exerciseMap, state?.profile, availEq, adaptSession, baselineEq)
     ));
   }
 
@@ -419,8 +430,10 @@ export function createStore(options = {}) {
     };
 
     state.logs.unshift(logEntry);
-    if (isAdHoc) adHocSession = null;
-    else {
+    if (isAdHoc) {
+      adHocSession = null;
+      adHocEquipment = null;
+    } else {
       state.plan.last_routine_id = routine.id;
       if (!wasSubstituted) routine.intensity_level = applyIntensityFeedback(routine.intensity_level, effectiveChoice);
     }
