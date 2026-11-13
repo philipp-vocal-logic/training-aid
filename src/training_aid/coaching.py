@@ -146,6 +146,16 @@ def _load_svg(archetype: str, equipment: str | None = None) -> str:
     return load_svg_markup(effective_arch)
 
 
+def exercise_svg_url(archetype: str, equipment: str | None = None) -> str:
+    """Return static or equipment-parameterized SVG thumbnail URL for an archetype."""
+    effective_arch = archetype if archetype in svg_assets.ARCHETYPE_SPECS else "squat"
+    spec = svg_assets.ARCHETYPE_SPECS[effective_arch]
+    eq_mode = svg_assets.normalize_equipment(equipment, effective_arch)
+    if eq_mode == str(spec["default_equipment"]):
+        return f"/static/svgs/{effective_arch}.svg"
+    return f"/svgs/{effective_arch}.svg?equipment={eq_mode}"
+
+
 def _matches_chin_pull(n: str, pm: str, _cat: str) -> bool:
     return (
         bool(_CHIN_WORD_RE.search(n))
@@ -174,8 +184,20 @@ def _matches_cardio(_n: str, _pm: str, cat: str) -> bool:
 _ARCHETYPE_RULES: tuple[
     tuple[str, tuple[str, ...], _ArchetypePredicate | None], ...
 ] = (
-    ("plank", ("plank", "ab rollout", "ab roller", "side bridge"), None),
-    ("mountain_climber", ("mountain climber",), None),
+    (
+        "plank",
+        (
+            "plank",
+            "ab rollout",
+            "ab roller",
+            "rollout",
+            "fallout",
+            "exercise ball pull-in",
+            "side bridge",
+        ),
+        None,
+    ),
+    ("mountain_climber", ("mountain climber", "spider crawl"), None),
     (
         "bicycle_crunch",
         (
@@ -184,12 +206,14 @@ _ARCHETYPE_RULES: tuple[
             "cross-body crunch",
             "cocoons",
             "elbow to knee",
+            "dead bug",
+            "flutter kick",
         ),
         None,
     ),
     (
         "glute_bridge",
-        ("glute bridge", "hip thrust", "hip bridge", "butt lift (bridge)"),
+        ("glute bridge", "hip thrust", "hip bridge", "butt lift (bridge)", "hip lift"),
         None,
     ),
     (
@@ -253,13 +277,24 @@ _ARCHETYPE_RULES: tuple[
         ),
         _matches_triceps_kickback,
     ),
-    ("pushup", ("pushup", "push-up", "push up"), None),
+    ("pushup", ("pushup", "push-up", "push up", "body-up", "drop push"), None),
     ("lunge", ("lunge", "split squat"), None),
-    ("squat", ("squat", "box jump", "tuck jump", "depth jump"), None),
+    (
+        "squat",
+        ("squat", "box jump", "tuck jump", "depth jump", "box skip", "hurdle hop"),
+        None,
+    ),
     ("dip", ("dip",), None),
     (
         "hinge",
-        ("deadlift", "good morning", "swing", "rack pull", "pull through"),
+        (
+            "deadlift",
+            "good morning",
+            "swing",
+            "rack pull",
+            "pull through",
+            "bottoms-up clean",
+        ),
         None,
     ),
     ("crunch_core", ("crunch", "sit-up", "sit up"), None),
@@ -273,10 +308,24 @@ _ARCHETYPE_RULES: tuple[
             "kettlebell press",
             "push press",
             "jerk",
+            "catch and overhead throw",
         ),
         None,
     ),
-    ("bench_press", ("bench press", "chest press", "floor press"), None),
+    (
+        "bench_press",
+        (
+            "bench press",
+            "chest press",
+            "floor press",
+            "board press",
+            "pin press",
+            "close-grip dumbbell press",
+            "close-grip ez-bar press",
+            "chest throw",
+        ),
+        None,
+    ),
     (
         "row_pull",
         (
@@ -331,12 +380,8 @@ def _fallback_muscle_archetype(pm: str, equipment: str | None) -> str:
     return _MUSCLE_ARCHETYPE_MAP.get(pm, "squat")
 
 
-def classify_archetype(exercise: Exercise) -> str:
-    """Classify an exercise into one of the 18 movement archetypes."""
-    entry = _lookup_exercise_coaching(exercise.id)
-    if entry is not None:
-        return str(entry["archetype"])
-
+def classify_archetype_fallback(exercise: Exercise) -> str:
+    """Classify an exercise into one of the 18 archetypes via rule-based heuristics."""
     n = _normalized_text(exercise.id, exercise.name)
     pm = (exercise.primary_muscle or "").lower()
     cat = (exercise.category or "").lower()
@@ -350,6 +395,18 @@ def classify_archetype(exercise: Exercise) -> str:
     return _fallback_muscle_archetype(pm, exercise.equipment)
 
 
+def classify_archetype(exercise: Exercise) -> str:
+    """Classify an exercise into one of the 18 movement archetypes."""
+    entry = _lookup_exercise_coaching(exercise.id)
+    if entry is not None:
+        return str(entry["archetype"])
+    return classify_archetype_fallback(exercise)
+
+
+def _resolve_non_hold_tempo(raw_tempo: str) -> str:
+    return "standard" if raw_tempo == "hold" else raw_tempo
+
+
 def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
     """Build SVG markup, tempo pacing, and movement cues for an exercise."""
     entry = _lookup_exercise_coaching(exercise.id)
@@ -359,7 +416,9 @@ def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
         archetype = str(entry["archetype"])
         meta = ARCHETYPE_COACHING.get(archetype, _DEFAULT_COACHING_META)
         is_hold = True if is_stretch else bool(entry["is_hold"])
-        tempo_mode = "hold" if is_hold else str(entry["tempo_mode"])
+        tempo_mode = (
+            "hold" if is_hold else _resolve_non_hold_tempo(str(entry["tempo_mode"]))
+        )
         is_alternating = bool(entry["is_alternating"])
     else:
         archetype = classify_archetype(exercise)
@@ -371,19 +430,25 @@ def build_exercise_guidance(exercise: Exercise) -> dict[str, Any]:
         elif any(k in n for k in EXPLOSIVE_KEYWORDS):
             tempo_mode = "explosive"
         else:
-            tempo_mode = str(meta["tempo_mode"])
+            tempo_mode = _resolve_non_hold_tempo(str(meta["tempo_mode"]))
         is_alternating = archetype in {"mountain_climber", "bicycle_crunch"} or any(
             k in n for k in ALTERNATING_KEYWORDS
         )
 
+    raw_instructions = [
+        step.strip() for step in exercise.instructions if step and step.strip()
+    ]
+    instructions = raw_instructions or [str(meta["how_to"])]
+
     return {
         "archetype": archetype,
-        "svg_url": f"/static/svgs/{archetype}.svg",
+        "svg_url": exercise_svg_url(archetype, exercise.equipment),
         "svg_markup": _load_svg(archetype, equipment=exercise.equipment),
         "rep_seconds": 1.0 if is_hold else meta["rep_seconds"],
         "is_hold": is_hold,
         "unit": "sec" if is_hold else "reps",
         "how_to": meta["how_to"],
+        "instructions": instructions,
         "cue_work": "Hold" if is_hold else meta["cue_work"],
         "cue_return": "Breathe" if is_hold else meta["cue_return"],
         "tempo_mode": tempo_mode,
