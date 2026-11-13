@@ -10,6 +10,16 @@ import {
 
 const TARGET_ID = "adhoc";
 
+function countExercises(routine) {
+  const counts = new Map();
+  for (const item of routine?.exercises || []) {
+    if (item && item.exercise_id) {
+      counts.set(item.exercise_id, (counts.get(item.exercise_id) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
 export function renderQuickView(ctx) {
   const scope = (ctx && ctx.scope) || createViewScope();
   const { store } = ctx;
@@ -28,6 +38,7 @@ export function renderQuickView(ctx) {
     emptyText: "No matching exercises.",
     limit: 48,
     showEquipment: true,
+    getAddedCounts: () => countExercises(store.getRoutine(TARGET_ID)),
     onAdd: (exId) => {
       store.addExerciseItem(TARGET_ID, exId);
       refreshAdHocPane();
@@ -87,14 +98,13 @@ export function renderQuickView(ctx) {
 
     const equipCard = el("div", { className: "filter-panel" }, [
       el("div", { className: "field-label-row" }, [
-        el("span", { className: "field-label", textContent: "Available Equipment" }),
+        el("span", { className: "field-label", textContent: "Workout Gear (Generator)" }),
         renderPacingControls(scope, store.getWorkoutTiming(), (patch) => store.setWorkoutTiming(patch)),
       ]),
       renderEquipmentChipBar(scope, store.getSessionEquipment(), (nextList) => {
         store.setSessionEquipment(nextList);
         store.adaptAdHocForCurrentEquipment();
         refreshAdHocPane();
-        picker.refresh();
       }),
       el("div", { className: "row-cluster" }, [shuffleBtn, addRandomBtn]),
     ]);
@@ -124,6 +134,7 @@ export function renderQuickView(ctx) {
         : el("div", { className: "muted", textContent: "+ Generate or add exercises for your workout" });
 
     leftPane.replaceChildren(headerRow, equipCard, listNode);
+    picker.refresh();
   }
 
   refreshAdHocPane();

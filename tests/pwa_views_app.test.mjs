@@ -182,7 +182,7 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   assert.equal(activeIntervals.size, 0);
 });
 
-test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope Jumping selection in #edit/r1 and #quick", async () => {
+test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add, and live badges in #edit/r1 and #quick", async () => {
   const env = installBrowserEnv({
     catalog,
     initialHash: "#setup",
@@ -192,7 +192,10 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
 
   const scopeMod = await importDistModule(distDir, "ui", "scope.js");
   const widgetsMod = await importDistModule(distDir, "ui", "widgets.js");
+  const pickerMod = await importDistModule(distDir, "ui", "catalog-picker.js");
   const appMod = await importDistModule(distDir, "app.js");
+
+  assert.equal(widgetsMod.renderCatalogPicker, pickerMod.renderCatalogPicker);
 
   const scope = scopeMod.createViewScope();
   const mockExercises = Array.from({ length: 120 }, (_, i) => ({
@@ -213,12 +216,52 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
     },
   };
 
+  const addedCounts = new Map();
   const pickedIds = [];
   const picker = widgetsMod.renderCatalogPicker(scope, mockStore, {
-    onAdd: (id) => pickedIds.push(id),
+    getAddedCounts: () => addedCounts,
+    onAdd: (id) => {
+      pickedIds.push(id);
+      addedCounts.set(id, (addedCounts.get(id) || 0) + 1);
+      picker.refresh();
+    },
   });
 
-  assert.equal( picker.querySelectorAll("select").length, 0, "Picker must have zero filter dropdowns" );
+  // 3 facet selects + conditional Reset button inside .picker-filter-strip
+  const filterStrip = picker.querySelector(".picker-filter-strip");
+  assert.ok(Boolean(filterStrip), "Picker must render .picker-filter-strip");
+  const selects = filterStrip.querySelectorAll("select");
+  assert.equal(selects.length, 3, "Picker must render 3 facet dropdowns");
+  const [muscleSelect, categorySelect, movementSelect] = selects;
+  assert.equal(muscleSelect.getAttribute("aria-label"), "Filter by muscle");
+  assert.equal(categorySelect.getAttribute("aria-label"), "Filter by category");
+  assert.equal(movementSelect.getAttribute("aria-label"), "Filter by movement");
+  assert.equal(muscleSelect.children[0].textContent, "All Muscles");
+  assert.equal(categorySelect.children[0].textContent, "All Categories");
+  assert.equal(movementSelect.children[0].textContent, "All Movements");
+  assert.equal(muscleSelect.children.length, pickerMod.MUSCLE_OPTIONS.length + 1);
+  assert.equal(categorySelect.children.length, pickerMod.CATEGORY_OPTIONS.length + 1);
+  assert.equal(movementSelect.children.length, pickerMod.MOVEMENT_OPTIONS.length + 1);
+
+  const resetBtn = filterStrip.querySelector(".picker-reset-btn");
+  assert.ok(Boolean(resetBtn), "Picker must render .picker-reset-btn");
+  assert.equal(resetBtn.textContent, "Reset");
+  assert.equal(resetBtn.hidden, true, "Reset button must be hidden when no filter or query is active");
+
+  // 8 selectable .equip-chip buttons in .catalog-equip-bar (including body_only)
+  const equipBar = picker.querySelector(".catalog-equip-bar");
+  assert.ok(Boolean(equipBar), "Picker must render .catalog-equip-bar");
+  assert.equal(equipBar.getAttribute("aria-label"), "Filter catalog equipment");
+  const equipChips = equipBar.querySelectorAll("button");
+  assert.equal(equipChips.length, 8);
+  assert.equal(equipChips[0].dataset.equipId, "body_only");
+  assert.equal(equipChips[0].textContent, "Bodyweight");
+  for (const chip of equipChips) {
+    assert.equal(chip.getAttribute("aria-pressed"), "false");
+    assert.equal(chip.classList.contains("is-active"), false);
+    assert.ok(Boolean(chip.querySelector(".equip-icon")));
+  }
+
   assert.equal(
     picker.searchInput.getAttribute("placeholder"),
     "Search name, muscle, gear, or category..."
@@ -226,13 +269,35 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   assert.equal(searchCalls.length, 1);
   assert.equal(searchCalls[0].limit, 1000);
   assert.equal(searchCalls[0].opts.compatibleOnly, false);
+  assert.deepEqual(searchCalls[0].opts.filters, {
+    equipment: [],
+    muscle: "",
+    category: "",
+    movement: "",
+  });
+  assert.deepEqual(picker.getFilters(), {
+    equipment: [],
+    muscle: "",
+    category: "",
+    movement: "",
+  });
 
-  // Batch 1: 48 of 120
+  // Batch 1: 48 of 120 full-card buttons
   assert.equal(
     picker.resultsWrap.querySelector(".picker-meta").textContent,
     "Showing 48 of 120 exercises"
   );
-  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 48);
+  const batch1Cards = picker.resultsWrap.querySelectorAll(".catalog-card");
+  assert.equal(batch1Cards.length, 48);
+  const firstCard = batch1Cards[0];
+  assert.equal(firstCard.tagName, "BUTTON");
+  assert.equal(firstCard.classList.contains("catalog-card-btn"), true);
+  assert.equal(firstCard.classList.contains("is-added"), false);
+  assert.equal(firstCard.dataset.exerciseId, "ex_001");
+  assert.equal(firstCard.getAttribute("aria-label"), "Add Exercise 001");
+  assert.equal(firstCard.querySelectorAll("button").length, 0, "No nested button inside card button");
+  assert.equal(firstCard.querySelector(".catalog-card-badge").textContent, "+");
+
   const firstThumb = picker.resultsWrap.querySelector(".svg-thumb");
   assert.equal(firstThumb.getAttribute("loading"), "lazy");
   assert.equal(firstThumb.getAttribute("decoding"), "async");
@@ -241,8 +306,19 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   assert.ok(Boolean(moreBtn1));
   assert.equal(moreBtn1.textContent, "Show more (72 remaining)");
 
+  // Click full card once -> badge "✓" + .is-added, twice -> badge "✓ 2"
+  firstCard.click();
+  assert.deepEqual(pickedIds, ["ex_001"]);
+  let updatedFirstCard = picker.resultsWrap.querySelectorAll(".catalog-card")[0];
+  assert.equal(updatedFirstCard.classList.contains("is-added"), true);
+  assert.equal(updatedFirstCard.querySelector(".catalog-card-badge").textContent, "\u2713");
+  updatedFirstCard.click();
+  updatedFirstCard = picker.resultsWrap.querySelectorAll(".catalog-card")[0];
+  assert.equal(updatedFirstCard.classList.contains("is-added"), true);
+  assert.equal(updatedFirstCard.querySelector(".catalog-card-badge").textContent, "\u2713 2");
+
   // Batch 2: 96 of 120
-  moreBtn1.click();
+  picker.resultsWrap.querySelector(".picker-more-btn").click();
   assert.equal(
     picker.resultsWrap.querySelector(".picker-meta").textContent,
     "Showing 96 of 120 exercises"
@@ -261,6 +337,46 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 120);
   assert.equal(picker.resultsWrap.querySelector(".picker-more-btn"), null);
 
+  // Changing a facet select resets pagination to 48, shows Reset button, and forwards opts.filters
+  muscleSelect.value = "quadriceps";
+  muscleSelect.dispatchEvent({ type: "change" });
+  assert.equal(resetBtn.hidden, false);
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 48);
+  assert.deepEqual(searchCalls.at(-1).opts.filters, {
+    equipment: [],
+    muscle: "quadriceps",
+    category: "",
+    movement: "",
+  });
+
+  // Expand to 96 then toggle equipment chips -> resets pagination to 48 and updates aria-pressed/.is-active
+  picker.resultsWrap.querySelector(".picker-more-btn").click();
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 96);
+  equipChips[0].click(); // body_only
+  equipChips[1].click(); // dumbbell
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 48);
+  assert.equal(equipChips[0].classList.contains("is-active"), true);
+  assert.equal(equipChips[0].getAttribute("aria-pressed"), "true");
+  assert.equal(equipChips[1].classList.contains("is-active"), true);
+  assert.equal(equipChips[1].getAttribute("aria-pressed"), "true");
+
+  categorySelect.value = "cardio";
+  categorySelect.dispatchEvent({ type: "change" });
+  movementSelect.value = "lower";
+  movementSelect.dispatchEvent({ type: "change" });
+  assert.deepEqual(picker.getFilters(), {
+    equipment: ["body_only", "dumbbell"],
+    muscle: "quadriceps",
+    category: "cardio",
+    movement: "lower",
+  });
+  assert.deepEqual(searchCalls.at(-1).opts.filters, {
+    equipment: ["body_only", "dumbbell"],
+    muscle: "quadriceps",
+    category: "cardio",
+    movement: "lower",
+  });
+
   // Query change resets pagination and handles singular count
   picker.searchInput.value = "Exercise 001";
   picker.searchInput.dispatchEvent({ type: "input" });
@@ -271,9 +387,20 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 1);
   assert.equal(picker.resultsWrap.querySelector(".picker-more-btn"), null);
 
-  // Clearing query resets back to initial 48 batch
-  picker.searchInput.value = "";
-  picker.searchInput.dispatchEvent({ type: "search" });
+  // Clicking Reset clears activeEquip, all 3 selects, and searchInput, hiding Reset and resetting to 48
+  resetBtn.click();
+  assert.equal(resetBtn.hidden, true);
+  assert.equal(picker.searchInput.value, "");
+  assert.deepEqual(picker.getFilters(), {
+    equipment: [],
+    muscle: "",
+    category: "",
+    movement: "",
+  });
+  for (const chip of equipChips) {
+    assert.equal(chip.classList.contains("is-active"), false);
+    assert.equal(chip.getAttribute("aria-pressed"), "false");
+  }
   assert.equal(
     picker.resultsWrap.querySelector(".picker-meta").textContent,
     "Showing 48 of 120 exercises"
@@ -286,7 +413,7 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   assert.equal(picker.resultsWrap.textContent, "No matching exercises.");
   scope.dispose();
 
-  // Boot app and verify searching & adding "Rope Jumping" ("other" equipment) in #edit/r1 and #quick
+  // Boot app and verify searching, full-card click-to-add, and live .is-added badges in #edit/r1 and #quick
   await appMod.boot();
   assert.equal(getHash(), "#setup");
   const setupForm = appRoot.querySelector(".setup-form");
@@ -304,17 +431,51 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   const editResults = docRoot.getElementById("search-results");
   assert.ok(editResults.textContent.includes("Rope Jumping"));
   assert.ok(editResults.textContent.includes("quadriceps \u00b7 other"));
-  const addRopeEditBtn = editResults
-    .querySelectorAll("button")
-    .find((b) => b.attrs["aria-label"] === "Add Rope Jumping");
+  const findEditRopeCard = () =>
+    editResults
+      .querySelectorAll("button")
+      .find((b) => b.attrs["aria-label"] === "Add Rope Jumping");
+  let addRopeEditBtn = findEditRopeCard();
   assert.ok(Boolean(addRopeEditBtn), "Rope Jumping must be selectable in #edit/r1");
+  assert.equal(addRopeEditBtn.classList.contains("is-added"), false);
+  assert.equal(addRopeEditBtn.querySelector(".catalog-card-badge").textContent, "+");
+
   addRopeEditBtn.click();
   assert.ok(
     appRoot.querySelector(".ex-list").textContent.includes("Rope Jumping"),
     "Rope Jumping must be added to routine r1"
   );
+  addRopeEditBtn = findEditRopeCard();
+  assert.equal(addRopeEditBtn.classList.contains("is-added"), true);
+  assert.equal(addRopeEditBtn.querySelector(".catalog-card-badge").textContent, "\u2713");
+
+  addRopeEditBtn.click();
+  addRopeEditBtn = findEditRopeCard();
+  assert.equal(addRopeEditBtn.classList.contains("is-added"), true);
+  assert.equal(addRopeEditBtn.querySelector(".catalog-card-badge").textContent, "\u2713 2");
+
+  // Removing one instance in #edit/r1 updates badge back to "✓", and swapping the remaining one resets badge to "+"
+  const editRemoveBtns = appRoot
+    .querySelectorAll("button")
+    .filter((b) => b.attrs["aria-label"] === "Remove");
+  editRemoveBtns.at(-1).click();
+  addRopeEditBtn = findEditRopeCard();
+  assert.equal(addRopeEditBtn.classList.contains("is-added"), true);
+  assert.equal(addRopeEditBtn.querySelector(".catalog-card-badge").textContent, "\u2713");
+
+  const editSwapBtns = appRoot
+    .querySelectorAll("button")
+    .filter((b) => b.attrs["aria-label"] === "Random swap");
+  editSwapBtns.at(-1).click();
+  addRopeEditBtn = findEditRopeCard();
+  assert.equal(addRopeEditBtn.classList.contains("is-added"), false);
+  assert.equal(addRopeEditBtn.querySelector(".catalog-card-badge").textContent, "+");
 
   setHash("#quick");
+  assert.equal(
+    appRoot.querySelector(".filter-panel").querySelector(".field-label").textContent,
+    "Workout Gear (Generator)"
+  );
   const quickSearch = appRoot.querySelector(".minimal-input");
   assert.equal(
     quickSearch.getAttribute("placeholder"),
@@ -325,15 +486,42 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   const quickResults = docRoot.getElementById("quick-search-results");
   assert.ok(quickResults.textContent.includes("Rope Jumping"));
   assert.ok(quickResults.textContent.includes("quadriceps \u00b7 other"));
-  const addRopeQuickBtn = quickResults
-    .querySelectorAll("button")
-    .find((b) => b.attrs["aria-label"] === "Add Rope Jumping");
+  const findQuickRopeCard = () =>
+    quickResults
+      .querySelectorAll("button")
+      .find((b) => b.attrs["aria-label"] === "Add Rope Jumping");
+  let addRopeQuickBtn = findQuickRopeCard();
   assert.ok(Boolean(addRopeQuickBtn), "Rope Jumping must be selectable in #quick");
+  assert.equal(addRopeQuickBtn.classList.contains("is-added"), false);
+  assert.equal(addRopeQuickBtn.querySelector(".catalog-card-badge").textContent, "+");
+
   addRopeQuickBtn.click();
   assert.ok(
     appRoot.querySelector(".ex-list").textContent.includes("Rope Jumping"),
     "Rope Jumping must be added to On-the-Fly session"
   );
+  addRopeQuickBtn = findQuickRopeCard();
+  assert.equal(addRopeQuickBtn.classList.contains("is-added"), true);
+  assert.equal(addRopeQuickBtn.querySelector(".catalog-card-badge").textContent, "\u2713");
+
+  addRopeQuickBtn.click();
+  addRopeQuickBtn = findQuickRopeCard();
+  assert.equal(addRopeQuickBtn.classList.contains("is-added"), true);
+  assert.equal(addRopeQuickBtn.querySelector(".catalog-card-badge").textContent, "\u2713 2");
+
+  // Removing one Rope Jumping instance in #quick updates badge to "✓", and Generate Workout resets it to "+"
+  const quickRemoveBtns = appRoot
+    .querySelectorAll("button")
+    .filter((b) => b.attrs["aria-label"] === "Remove");
+  quickRemoveBtns.at(-1).click();
+  addRopeQuickBtn = findQuickRopeCard();
+  assert.equal(addRopeQuickBtn.classList.contains("is-added"), true);
+  assert.equal(addRopeQuickBtn.querySelector(".catalog-card-badge").textContent, "\u2713");
+
+  docRoot.getElementById("quick-generate-btn").click();
+  addRopeQuickBtn = findQuickRopeCard();
+  assert.equal(addRopeQuickBtn.classList.contains("is-added"), false);
+  assert.equal(addRopeQuickBtn.querySelector(".catalog-card-badge").textContent, "+");
 
   appMod.teardownActiveView();
   assert.equal(activeIntervals.size, 0);

@@ -3,6 +3,16 @@ import { el } from "../ui/dom.js";
 import { createViewScope } from "../ui/scope.js";
 import { renderCatalogPicker, renderEditableExerciseRow } from "../ui/widgets.js";
 
+function countExercises(routine) {
+  const counts = new Map();
+  for (const item of routine?.exercises || []) {
+    if (item && item.exercise_id) {
+      counts.set(item.exercise_id, (counts.get(item.exercise_id) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
 export function renderEditView(ctx) {
   const scope = (ctx && ctx.scope) || createViewScope();
   const { store } = ctx;
@@ -23,6 +33,7 @@ export function renderEditView(ctx) {
     emptyText: "No matching exercises.",
     limit: 48,
     showEquipment: true,
+    getAddedCounts: () => countExercises(store.getRoutine(targetId)),
     onAdd: (exId) => {
       store.addExerciseItem(targetId, exId);
       refreshRoutineExercises();
@@ -94,6 +105,7 @@ export function renderEditView(ctx) {
         : el("div", { className: "muted", textContent: "+ Select or randomize exercises" });
 
     leftPane.replaceChildren(headerRow, listContent);
+    picker.refresh();
   }
 
   refreshRoutineExercises();
