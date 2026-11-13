@@ -421,6 +421,37 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
   assert.equal(getHash(), "#plan");
 
   setHash("#edit/r1");
+  const editResults = docRoot.getElementById("search-results");
+  assert.equal(
+    editResults.querySelector(".picker-meta").textContent,
+    "Showing 48 of 876 exercises"
+  );
+  const editEquipChips = appRoot
+    .querySelector(".catalog-equip-bar")
+    .querySelectorAll(".equip-chip");
+  editEquipChips[0].click(); // body_only -> 176 bodyweight exercises
+  assert.equal(
+    editResults.querySelector(".picker-meta").textContent,
+    "Showing 48 of 176 exercises"
+  );
+  const [editMuscleSelect, , editMovementSelect] = appRoot
+    .querySelector(".picker-filter-strip")
+    .querySelectorAll("select");
+  editMuscleSelect.value = "chest";
+  editMuscleSelect.dispatchEvent({ type: "change" });
+  editMovementSelect.value = "push";
+  editMovementSelect.dispatchEvent({ type: "change" });
+  const filteredChestPushCards = editResults.querySelectorAll(".catalog-card");
+  assert.ok(filteredChestPushCards.length > 0 && filteredChestPushCards.length < 48);
+  assert.ok(
+    filteredChestPushCards.every((c) => c.textContent.includes("chest \u00b7 body only"))
+  );
+  appRoot.querySelector(".picker-reset-btn").click();
+  assert.equal(
+    editResults.querySelector(".picker-meta").textContent,
+    "Showing 48 of 876 exercises"
+  );
+
   const editSearch = appRoot.querySelector(".minimal-input");
   assert.equal(
     editSearch.getAttribute("placeholder"),
@@ -428,7 +459,6 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
   );
   editSearch.value = "Rope Jumping";
   editSearch.dispatchEvent({ type: "input" });
-  const editResults = docRoot.getElementById("search-results");
   assert.ok(editResults.textContent.includes("Rope Jumping"));
   assert.ok(editResults.textContent.includes("quadriceps \u00b7 other"));
   const findEditRopeCard = () =>
