@@ -224,6 +224,55 @@
   gap: 0.55rem;
 }
 
+.disclosure-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.65rem 0.9rem;
+}
+
+.filter-panel.disclosure-card {
+  display: block;
+  padding: 0.65rem 0.9rem;
+}
+
+.disclosure-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  min-height: 36px;
+}
+
+.disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-summary::after {
+  content: "▾";
+  font-size: 0.85rem;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+details[open] > .disclosure-summary {
+  margin-bottom: 0.6rem;
+}
+
+details[open] > .disclosure-summary::after {
+  transform: rotate(180deg);
+}
+
+.disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
 .equip-chip-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.38rem; }
 .equip-chip {
   display: inline-flex;
@@ -269,6 +318,20 @@
 
 .pacing-strip { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .pacing-select { height: 32px; font-size: 0.75rem; padding: 0 1.65rem 0 0.65rem; }
+
+@media (max-width: 600px) {
+  .minimal-input,
+  .hud-select,
+  .pacing-select {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tile-grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 
 .backup-bar {
   display: flex;

@@ -330,3 +330,67 @@ button.catalog-card:focus-visible,
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+.routine-details {
+  margin-top: 0.15rem;
+}
+
+.routine-details > .disclosure-summary {
+  min-height: 28px;
+  padding: 0.15rem 0;
+}
+
+.picker-disclosure {
+  display: block;
+}
+
+.picker-toggle-summary {
+  width: 100%;
+  justify-content: center;
+  list-style: none;
+  user-select: none;
+}
+
+.picker-toggle-summary::-webkit-details-marker {
+  display: none;
+}
+
+details.picker-disclosure[open] > .picker-toggle-summary {
+  margin-bottom: 0.65rem;
+}
+
+.log-details {
+  display: block;
+}
+
+.log-details > .log-item-head {
+  min-height: 32px;
+}
+
+.log-details[open] > .log-item-head {
+  margin-bottom: 0.45rem;
+}
+
+.empty-state-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .rx-num-input {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 440px) {
+  .editable-ex-card .svg-thumb {
+    display: none;
+  }
+}

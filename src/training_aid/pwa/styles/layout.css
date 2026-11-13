@@ -191,8 +191,13 @@
   }
 
   .graphic-stage {
-    height: 44dvh;
-    min-height: 260px;
+    height: 28dvh;
+    min-height: 185px;
+    padding: 2rem 1rem;
+  }
+
+  .setup-stage {
+    display: none;
   }
 
   .side-pane,
@@ -248,7 +253,29 @@
     max-width: 6.2rem;
     padding: 0 1.45rem 0 0.6rem;
     background-position: right 0.45rem center;
-    font-size: 0.75rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-text {
+    display: none;
+  }
+
+  .topbar {
+    padding: env(safe-area-inset-top, 0px) calc(0.75rem + env(safe-area-inset-right, 0px)) 0 calc(0.75rem + env(safe-area-inset-left, 0px));
+  }
+
+  .nav-pills {
+    gap: 0.2rem;
+  }
+
+  .nav-pills a {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.82rem;
   }
 }
 
