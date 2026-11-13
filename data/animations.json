@@ -10,6 +10,28 @@
     "back_dx": -5.0,
     "back_dy": -2.0
   },
+  "prop_geometry": {
+    "barbell": {
+      "front_r": 11.5,
+      "hub_r": 3.8,
+      "back_r": 10.0,
+      "shaft_dx": 6.0,
+      "shaft_dy": 2.0
+    },
+    "dumbbell": {
+      "front_r": 8.2,
+      "cap_r": 3.0,
+      "back_r": 7.0
+    },
+    "kettlebells": {
+      "front_r": 8.4,
+      "front_dy": 9.0,
+      "handle_r": 5.0,
+      "handle_dy": 2.5,
+      "back_r": 7.2,
+      "back_dy": 8.0
+    }
+  },
   "equipment_aliases": {
     "body_only": "body_only",
     "none": "body_only",

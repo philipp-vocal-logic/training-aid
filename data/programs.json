@@ -425,17 +425,5 @@
     "light": "Easy Start",
     "moderate": "Moderate",
     "intense": "Intense"
-  },
-  "equipment_archetypes": {
-    "body_only": "squat",
-    "dumbbells": "curl",
-    "kettlebell_bands": "hinge",
-    "full_gym": "bench_press"
-  },
-  "setup_equipment_props": {
-    "body_only": "body_only",
-    "dumbbells": "dumbbell",
-    "kettlebell_bands": "bands",
-    "full_gym": "barbell"
   }
 }
