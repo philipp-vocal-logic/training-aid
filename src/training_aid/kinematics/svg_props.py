@@ -11,6 +11,8 @@ __all__ = [
     "svg_class_attr",
 ]
 
+_FRONT_BAR_OVERHANG = 8.0
+
 _STATIC_FIXTURES: dict[str, str] = {
     "bench": (
         '<rect x="50" y="136" width="96" height="8" rx="4" fill="#334155" '
@@ -155,11 +157,17 @@ def _render_barbell(
     geom: dict[str, float],
     *,
     interactive: bool,
+    is_front: bool = False,
 ) -> tuple[str, str]:
     p_b = joints["hand_b"]
     p_f = joints["hand_f"]
-    sx1, sy1 = p_b[0] - geom["shaft_dx"], p_b[1] - geom["shaft_dy"]
-    sx2, sy2 = p_f[0] + geom["shaft_dx"], p_f[1] + geom["shaft_dy"]
+    if is_front:
+        left_h, right_h = (p_b, p_f) if p_b[0] <= p_f[0] else (p_f, p_b)
+        sx1, sy1 = left_h[0] - _FRONT_BAR_OVERHANG, left_h[1]
+        sx2, sy2 = right_h[0] + _FRONT_BAR_OVERHANG, right_h[1]
+    else:
+        sx1, sy1 = p_b[0] - geom["shaft_dx"], p_b[1] - geom["shaft_dy"]
+        sx2, sy2 = p_f[0] + geom["shaft_dx"], p_f[1] + geom["shaft_dy"]
     back = (
         f"<circle{svg_class_attr('js-weight-b', interactive=interactive)} "
         f'cx="{p_b[0]:.2f}" cy="{p_b[1]:.2f}" r="{geom["back_r"]:g}" '
@@ -195,8 +203,23 @@ def _render_tethered_props(
             f'data-anchor-y="{ay:.2f}"',
             f'data-band-target="{b_target}"',
         ]
+        if b_target == "span":
+            hb, hf = joints["hand_b"], joints["hand_f"]
+            back = (
+                f"<line{svg_class_attr('js-band-b', interactive=interactive)} "
+                f'x1="{hb[0]:.2f}" y1="{hb[1]:.2f}" x2="{hf[0]:.2f}" '
+                f'y2="{hf[1]:.2f}" stroke="#059669" stroke-width="2.6" '
+                'stroke-opacity="0.72" stroke-linecap="round" />'
+            )
+            front = (
+                f"<line{svg_class_attr('js-band-f', interactive=interactive)} "
+                f'x1="{hb[0]:.2f}" y1="{hb[1]:.2f}" x2="{hf[0]:.2f}" '
+                f'y2="{hf[1]:.2f}" stroke="#34d399" stroke-width="3.2" '
+                'stroke-linecap="round" />'
+            )
+            return (attrs, back, front)
         if b_target == "shoulder":
-            tb_pt, tf_pt = joints["shoulder_b"], joints["shoulder"]
+            tb_pt, tf_pt = joints["shoulder_b"], joints["shoulder_f"]
         elif b_target == "foot":
             tb_pt, tf_pt = joints["foot_b"], joints["foot_f"]
         else:
@@ -259,10 +282,17 @@ def render_equipment_props(
         attrs.append(f'data-forefoot-x="{forefoot_pt[0]:.2f}"')
         attrs.append(f'data-forefoot-y="{forefoot_pt[1]:.2f}"')
 
+    if eq_mode == "barbell":
+        back, front = _render_barbell(
+            joints,
+            prop_geometry[eq_mode],
+            interactive=interactive,
+            is_front=spec.get("view") == "front",
+        )
+        return (attrs, back, front)
     handheld_renderers = {
         "dumbbell": _render_dumbbell,
         "kettlebells": _render_kettlebells,
-        "barbell": _render_barbell,
     }
     if eq_mode in handheld_renderers:
         back, front = handheld_renderers[eq_mode](

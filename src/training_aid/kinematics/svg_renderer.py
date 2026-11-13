@@ -70,12 +70,13 @@ def _build_svg_open(
     interactive: bool,
 ) -> str:
     label = escape(str(spec["label"]), quote=True)
+    view_attr = ' data-view="front"' if spec.get("view") == "front" else ""
     if not interactive:
         return (
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" '
             'preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" '
             f'aria-label="{label}" data-archetype="{arch}" '
-            f'data-equipment="{eq_mode}">'
+            f'data-equipment="{eq_mode}"{view_attr}>'
         )
     pose_a_attr = escape(json.dumps(spec["pose_a"], separators=(",", ":")), quote=True)
     pose_b_attr = escape(json.dumps(spec["pose_b"], separators=(",", ":")), quote=True)
@@ -89,7 +90,7 @@ def _build_svg_open(
         f'aria-label="{label}" data-archetype="{arch}" '
         f'data-tempo-mode="{tempo_mode}" data-hold-style="{hold_style}" '
         f'data-bones="{bones_attr}" data-pose-a="{pose_a_attr}" '
-        f'data-pose-b="{pose_b_attr}" {extra_attr_str}>'
+        f'data-pose-b="{pose_b_attr}"{view_attr} {extra_attr_str}>'
     )
 
 
@@ -106,6 +107,129 @@ def _joint_marker(
     )
 
 
+def _render_body_layers(
+    j: dict[str, Point],
+    forefoot_lines: tuple[str, str],
+    prop_back: str,
+    *,
+    view: str,
+    interactive: bool,
+) -> list[str]:
+    forefoot_b, forefoot_f = forefoot_lines
+    neck_line = "  " + _svg_line(
+        "js-neck",
+        j["shoulder"],
+        j["head"],
+        'stroke="#cbd5e1" stroke-width="6.5" stroke-linecap="round"',
+        interactive=interactive,
+    )
+    torso_line = (
+        f"  <path{svg_class_attr('js-torso', interactive=interactive)} "
+        f'd="M {j["hip"][0]:.2f} {j["hip"][1]:.2f} '
+        f"Q {j['mid_spine'][0]:.2f} {j['mid_spine'][1]:.2f} "
+        f'{j["shoulder"][0]:.2f} {j["shoulder"][1]:.2f}" fill="none" '
+        'stroke="#f8fafc" stroke-width="11" stroke-linecap="round" '
+        'stroke-linejoin="round" />'
+    )
+    if view == "front":
+        clavicle_line = "  " + _svg_line(
+            "js-clavicle",
+            j["shoulder_b"],
+            j["shoulder_f"],
+            'stroke="#f8fafc" stroke-width="9.5" stroke-linecap="round"',
+            interactive=interactive,
+        )
+        return [
+            '  <g stroke="#e2e8f0" stroke-width="9.2" stroke-linecap="round">',
+            "    "
+            + _svg_line("js-pelvis", j["hip_b"], j["hip_f"], interactive=interactive),
+            "    "
+            + _svg_line("js-thigh-b", j["hip_b"], j["knee_b"], interactive=interactive),
+            "    "
+            + _svg_line("js-shin-b", j["knee_b"], j["foot_b"], interactive=interactive),
+            f"    {forefoot_b}",
+            "    "
+            + _svg_line("js-thigh-f", j["hip_f"], j["knee_f"], interactive=interactive),
+            "    "
+            + _svg_line("js-shin-f", j["knee_f"], j["foot_f"], interactive=interactive),
+            f"    {forefoot_f}",
+            "  </g>",
+            neck_line,
+            torso_line,
+            clavicle_line,
+            f"  {prop_back}",
+            '  <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">',
+            "    "
+            + _svg_line(
+                "js-uarm-b", j["shoulder_b"], j["elbow_b"], interactive=interactive
+            ),
+            "    "
+            + _svg_line(
+                "js-farm-b", j["elbow_b"], j["hand_b"], interactive=interactive
+            ),
+            "    "
+            + _svg_line(
+                "js-uarm-f", j["shoulder_f"], j["elbow_f"], interactive=interactive
+            ),
+            "    "
+            + _svg_line(
+                "js-farm-f", j["elbow_f"], j["hand_f"], interactive=interactive
+            ),
+            "  </g>",
+            '  <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">',
+            _joint_marker(
+                "js-j-shoulder", j["shoulder_f"], "3", interactive=interactive
+            ),
+            _joint_marker(
+                "js-j-shoulder-b", j["shoulder_b"], "3", interactive=interactive
+            ),
+            _joint_marker("js-j-hip", j["hip_f"], "3", interactive=interactive),
+            _joint_marker("js-j-hip-b", j["hip_b"], "3", interactive=interactive),
+            _joint_marker("js-j-knee", j["knee_f"], "2.8", interactive=interactive),
+            _joint_marker("js-j-knee-b", j["knee_b"], "2.8", interactive=interactive),
+            _joint_marker("js-j-elbow", j["elbow_f"], "2.8", interactive=interactive),
+            _joint_marker("js-j-elbow-b", j["elbow_b"], "2.8", interactive=interactive),
+            "  </g>",
+        ]
+    return [
+        '  <g stroke="#64748b" stroke-width="8" stroke-linecap="round">',
+        "    "
+        + _svg_line("js-thigh-b", j["hip_b"], j["knee_b"], interactive=interactive),
+        "    "
+        + _svg_line("js-shin-b", j["knee_b"], j["foot_b"], interactive=interactive),
+        f"    {forefoot_b}",
+        "    "
+        + _svg_line(
+            "js-uarm-b", j["shoulder_b"], j["elbow_b"], interactive=interactive
+        ),
+        "    "
+        + _svg_line("js-farm-b", j["elbow_b"], j["hand_b"], interactive=interactive),
+        "  </g>",
+        f"  {prop_back}",
+        '  <g stroke="#e2e8f0" stroke-width="9.5" stroke-linecap="round">',
+        "    "
+        + _svg_line("js-thigh-f", j["hip"], j["knee_f"], interactive=interactive),
+        "    "
+        + _svg_line("js-shin-f", j["knee_f"], j["foot_f"], interactive=interactive),
+        f"    {forefoot_f}",
+        "  </g>",
+        neck_line,
+        torso_line,
+        '  <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">',
+        "    "
+        + _svg_line("js-uarm-f", j["shoulder"], j["elbow_f"], interactive=interactive),
+        "    "
+        + _svg_line("js-farm-f", j["elbow_f"], j["hand_f"], interactive=interactive),
+        "  </g>",
+        '  <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">',
+        _joint_marker("js-j-shoulder", j["shoulder"], "3", interactive=interactive),
+        _joint_marker("js-j-hip", j["hip"], "3", interactive=interactive),
+        _joint_marker("js-j-knee", j["knee_f"], "2.8", interactive=interactive),
+        _joint_marker("js-j-elbow", j["elbow_f"], "2.8", interactive=interactive),
+        "  </g>",
+    ]
+
+
 def render_archetype_svg(
     archetype: str,
     equipment: str | None = None,
@@ -118,11 +242,16 @@ def render_archetype_svg(
     arch = archetype if archetype in reg.specs else "squat"
     spec = reg.specs[arch]
     bones = spec["bones"]
+    view = str(spec.get("view", "side"))
     eq_mode = normalize_equipment(equipment, arch, registry=reg)
 
     interactive = not thumbnail
     t_init = 0.9 if thumbnail else 0.0
-    j = solve_fk(bones, lerp_pose(spec["pose_a"], spec["pose_b"], t_init))
+    j = solve_fk(
+        bones,
+        lerp_pose(spec["pose_a"], spec["pose_b"], t_init),
+        view=view,
+    )
 
     grad_id = f"glow-{arch}"
     aura_cx, aura_cy = compute_aura_center(spec)
@@ -137,7 +266,7 @@ def render_archetype_svg(
         reg.prop_geometry,
         interactive=interactive,
     )
-    forefoot_b, forefoot_f = _render_forefoot_lines(
+    forefoot_lines = _render_forefoot_lines(
         spec.get("forefoot"),
         j,
         interactive=interactive,
@@ -156,21 +285,6 @@ def render_archetype_svg(
         interactive=interactive,
     )
 
-    neck_line = "  " + _svg_line(
-        "js-neck",
-        j["shoulder"],
-        j["head"],
-        'stroke="#cbd5e1" stroke-width="6.5" stroke-linecap="round"',
-        interactive=interactive,
-    )
-    torso_line = (
-        f"  <path{svg_class_attr('js-torso', interactive=interactive)} "
-        f'd="M {j["hip"][0]:.2f} {j["hip"][1]:.2f} '
-        f"Q {j['mid_spine'][0]:.2f} {j['mid_spine'][1]:.2f} "
-        f'{j["shoulder"][0]:.2f} {j["shoulder"][1]:.2f}" fill="none" '
-        'stroke="#f8fafc" stroke-width="11" stroke-linecap="round" '
-        'stroke-linejoin="round" />'
-    )
     head_line = (
         f"  <circle{svg_class_attr('js-head', interactive=interactive)} "
         f'cx="{j["head"][0]:.2f}" cy="{j["head"][1]:.2f}" r="11.5" '
@@ -207,41 +321,13 @@ def render_archetype_svg(
             'fill="#10b981" fill-opacity="0.22" />'
         ),
         f"  {fixture_markup}",
-        '  <g stroke="#64748b" stroke-width="8" stroke-linecap="round">',
-        "    "
-        + _svg_line("js-thigh-b", j["hip_b"], j["knee_b"], interactive=interactive),
-        "    "
-        + _svg_line("js-shin-b", j["knee_b"], j["foot_b"], interactive=interactive),
-        f"    {forefoot_b}",
-        "    "
-        + _svg_line(
-            "js-uarm-b", j["shoulder_b"], j["elbow_b"], interactive=interactive
+        *_render_body_layers(
+            j,
+            forefoot_lines,
+            prop_back,
+            view=view,
+            interactive=interactive,
         ),
-        "    "
-        + _svg_line("js-farm-b", j["elbow_b"], j["hand_b"], interactive=interactive),
-        "  </g>",
-        f"  {prop_back}",
-        '  <g stroke="#e2e8f0" stroke-width="9.5" stroke-linecap="round">',
-        "    "
-        + _svg_line("js-thigh-f", j["hip"], j["knee_f"], interactive=interactive),
-        "    "
-        + _svg_line("js-shin-f", j["knee_f"], j["foot_f"], interactive=interactive),
-        f"    {forefoot_f}",
-        "  </g>",
-        neck_line,
-        torso_line,
-        '  <g stroke="#34d399" stroke-width="8.8" stroke-linecap="round">',
-        "    "
-        + _svg_line("js-uarm-f", j["shoulder"], j["elbow_f"], interactive=interactive),
-        "    "
-        + _svg_line("js-farm-f", j["elbow_f"], j["hand_f"], interactive=interactive),
-        "  </g>",
-        '  <g fill="#0f172a" stroke="#34d399" stroke-width="1.6">',
-        _joint_marker("js-j-shoulder", j["shoulder"], "3", interactive=interactive),
-        _joint_marker("js-j-hip", j["hip"], "3", interactive=interactive),
-        _joint_marker("js-j-knee", j["knee_f"], "2.8", interactive=interactive),
-        _joint_marker("js-j-elbow", j["elbow_f"], "2.8", interactive=interactive),
-        "  </g>",
         head_line,
         f"  {prop_front}",
         "</svg>",

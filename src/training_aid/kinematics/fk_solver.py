@@ -32,7 +32,14 @@ BONE_KEYS: tuple[str, ...] = (
     "shin",
     "back_dx",
     "back_dy",
+    "clavicle_r",
+    "pelvis_r",
 )
+
+_VIEWPORT_WIDTH = 240.0
+_HALF_TURN_DEG = 180.0
+_DEFAULT_CLAVICLE_R = 14.5
+_DEFAULT_PELVIS_R = 9.5
 
 __all__ = [
     "BONE_KEYS",
@@ -40,10 +47,44 @@ __all__ = [
     "Point",
     "compute_aura_center",
     "compute_shadow",
+    "compute_sockets",
     "lerp_pose",
     "solve_fk",
     "step_point",
 ]
+
+
+def compute_sockets(
+    hip: Point,
+    shoulder: Point,
+    spine: tuple[float, float],
+    bones: dict[str, float],
+    *,
+    view: str = "side",
+) -> tuple[Point, Point, Point, Point]:
+    """Return `(hip_f, hip_b, shoulder_f, shoulder_b)` socket coordinates."""
+    lumbar, thoracic = spine
+    if view == "front":
+        pelvis_r = bones.get("pelvis_r", _DEFAULT_PELVIS_R)
+        clavicle_r = bones.get("clavicle_r", _DEFAULT_CLAVICLE_R)
+        lum_rad = math.radians(lumbar)
+        tho_rad = math.radians(thoracic)
+        nx_l, ny_l = -math.sin(lum_rad), math.cos(lum_rad)
+        nx_t, ny_t = -math.sin(tho_rad), math.cos(tho_rad)
+        return (
+            (hip[0] + pelvis_r * nx_l, hip[1] + pelvis_r * ny_l),
+            (hip[0] - pelvis_r * nx_l, hip[1] - pelvis_r * ny_l),
+            (shoulder[0] + clavicle_r * nx_t, shoulder[1] + clavicle_r * ny_t),
+            (shoulder[0] - clavicle_r * nx_t, shoulder[1] - clavicle_r * ny_t),
+        )
+    back_dx = bones["back_dx"]
+    back_dy = bones["back_dy"]
+    return (
+        hip,
+        (hip[0] + back_dx, hip[1] + back_dy),
+        shoulder,
+        (shoulder[0] + back_dx, shoulder[1] + back_dy),
+    )
 
 
 def step_point(origin: Point, length: float, angle_deg: float) -> Point:
@@ -66,47 +107,73 @@ def solve_fk(
     pose: dict[str, float],
     *,
     swap_sides: bool = False,
+    view: str = "side",
 ) -> dict[str, Point]:
     """Solve 2D forward kinematics joint coordinates from bone lengths and angles."""
-    if swap_sides:
-        uarm_f, uarm_b = pose["uarm_b"], pose["uarm_f"]
-        farm_f, farm_b = pose["farm_b"], pose["farm_f"]
-        thigh_f, thigh_b = pose["thigh_b"], pose["thigh_f"]
-        shin_f, shin_b = pose["shin_b"], pose["shin_f"]
+    is_front = view == "front"
+    if is_front and swap_sides:
+        hip_x = _VIEWPORT_WIDTH - pose["hip_x"]
+        hip_y = pose["hip_y"]
+        lumbar = -_HALF_TURN_DEG - pose["lumbar"]
+        thoracic = -_HALF_TURN_DEG - pose["thoracic"]
+        neck = -_HALF_TURN_DEG - pose["neck"]
+        uarm_f = _HALF_TURN_DEG - pose["uarm_b"]
+        uarm_b = _HALF_TURN_DEG - pose["uarm_f"]
+        farm_f = _HALF_TURN_DEG - pose["farm_b"]
+        farm_b = _HALF_TURN_DEG - pose["farm_f"]
+        thigh_f = _HALF_TURN_DEG - pose["thigh_b"]
+        thigh_b = _HALF_TURN_DEG - pose["thigh_f"]
+        shin_f = _HALF_TURN_DEG - pose["shin_b"]
+        shin_b = _HALF_TURN_DEG - pose["shin_f"]
     else:
-        uarm_f, uarm_b = pose["uarm_f"], pose["uarm_b"]
-        farm_f, farm_b = pose["farm_f"], pose["farm_b"]
-        thigh_f, thigh_b = pose["thigh_f"], pose["thigh_b"]
-        shin_f, shin_b = pose["shin_f"], pose["shin_b"]
+        hip_x = pose["hip_x"]
+        hip_y = pose["hip_y"]
+        lumbar = pose["lumbar"]
+        thoracic = pose["thoracic"]
+        neck = pose["neck"]
+        if swap_sides:
+            uarm_f, uarm_b = pose["uarm_b"], pose["uarm_f"]
+            farm_f, farm_b = pose["farm_b"], pose["farm_f"]
+            thigh_f, thigh_b = pose["thigh_b"], pose["thigh_f"]
+            shin_f, shin_b = pose["shin_b"], pose["shin_f"]
+        else:
+            uarm_f, uarm_b = pose["uarm_f"], pose["uarm_b"]
+            farm_f, farm_b = pose["farm_f"], pose["farm_b"]
+            thigh_f, thigh_b = pose["thigh_f"], pose["thigh_b"]
+            shin_f, shin_b = pose["shin_f"], pose["shin_b"]
 
-    hip: Point = (pose["hip_x"], pose["hip_y"])
-    mid_spine = step_point(hip, bones["lumbar"], pose["lumbar"])
-    shoulder = step_point(mid_spine, bones["thoracic"], pose["thoracic"])
-    head = step_point(shoulder, bones["neck"], pose["neck"])
+    hip: Point = (hip_x, hip_y)
+    mid_spine = step_point(hip, bones["lumbar"], lumbar)
+    shoulder = step_point(mid_spine, bones["thoracic"], thoracic)
+    head = step_point(shoulder, bones["neck"], neck)
 
-    hip_b: Point = (hip[0] + bones["back_dx"], hip[1] + bones["back_dy"])
-    shoulder_b: Point = (
-        shoulder[0] + bones["back_dx"],
-        shoulder[1] + bones["back_dy"],
+    hip_f, hip_b, shoulder_f, shoulder_b = compute_sockets(
+        hip,
+        shoulder,
+        (lumbar, thoracic),
+        bones,
+        view=view,
     )
 
-    knee_f = step_point(hip, bones["thigh"], thigh_f)
+    knee_f = step_point(hip_f, bones["thigh"], thigh_f)
     foot_f = step_point(knee_f, bones["shin"], shin_f)
     knee_b = step_point(hip_b, bones["thigh"], thigh_b)
     foot_b = step_point(knee_b, bones["shin"], shin_b)
 
-    elbow_f = step_point(shoulder, bones["uarm"], uarm_f)
+    elbow_f = step_point(shoulder_f, bones["uarm"], uarm_f)
     hand_f = step_point(elbow_f, bones["farm"], farm_f)
     elbow_b = step_point(shoulder_b, bones["uarm"], uarm_b)
     hand_b = step_point(elbow_b, bones["farm"], farm_b)
 
     return {
         "hip": hip,
+        "hip_f": hip_f,
+        "hip_b": hip_b,
         "mid_spine": mid_spine,
         "shoulder": shoulder,
-        "head": head,
-        "hip_b": hip_b,
+        "shoulder_f": shoulder_f,
         "shoulder_b": shoulder_b,
+        "head": head,
         "knee_f": knee_f,
         "foot_f": foot_f,
         "knee_b": knee_b,
@@ -127,6 +194,7 @@ def compute_shadow(joints: dict[str, Point]) -> tuple[float, float]:
         joints["foot_f"][0],
         joints["foot_b"][0],
         joints["hand_f"][0],
+        joints["hand_b"][0],
     )
     min_x = min(xs)
     max_x = max(xs)
@@ -137,7 +205,11 @@ def compute_shadow(joints: dict[str, Point]) -> tuple[float, float]:
 
 def compute_aura_center(spec: dict[str, Any]) -> Point:
     """Compute clamped backdrop aura center from the mid-rep FK pose."""
-    j_mid = solve_fk(spec["bones"], lerp_pose(spec["pose_a"], spec["pose_b"], 0.5))
+    j_mid = solve_fk(
+        spec["bones"],
+        lerp_pose(spec["pose_a"], spec["pose_b"], 0.5),
+        view=str(spec.get("view", "side")),
+    )
     ys = (
         j_mid["head"][1],
         j_mid["shoulder"][1],

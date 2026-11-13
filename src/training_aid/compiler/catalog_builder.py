@@ -36,7 +36,11 @@ _EQUIPMENT_MAP: dict[str, str] = {
     "foam roll": "foam_roll",
 }
 _PULL_UP_BAR_RE = re.compile(r"pull-?ups?|chin-?ups?|inverted row", re.IGNORECASE)
-_BENCH_RE = re.compile(r"\bbench\b|\bdips?\b", re.IGNORECASE)
+_BENCH_RE = re.compile(
+    r"\bbench\b|\bdips?\b"
+    r"|\b(?:dumbbell|incline|decline)\s+flye?s?\b|\baround the worlds\b",
+    re.IGNORECASE,
+)
 _NO_BENCH_RE = re.compile(r"\bfloor\b|no hyperextension bench", re.IGNORECASE)
 
 __all__ = [

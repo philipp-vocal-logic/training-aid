@@ -18,11 +18,11 @@ import training_aid
 from training_aid.audit import (
     EXPECTED_ARCHETYPE_COUNT,
     EXPECTED_CATALOG_COUNT,
-    EXPECTED_SVG_COMBO_COUNT,
     REPO_ROOT,
 )
 from training_aid.compiler import (
     CATALOG_SCHEMA_VERSION,
+    CatalogExercise,
     build_exercise_metadata,
     build_pwa,
     compute_required_equipment,
@@ -31,6 +31,8 @@ from training_aid.compiler import (
 )
 from training_aid.kinematics import (
     CANONICAL_EQUIPMENT_MODES,
+    AnimationRegistry,
+    compile_animation_spec,
     compute_shadow,
     lerp_pose,
     load_animation_registry,
@@ -38,6 +40,7 @@ from training_aid.kinematics import (
     render_archetype_svg,
     solve_fk,
 )
+from training_aid.kinematics.svg_props import render_equipment_props
 
 EXPECTED_COMPILED_KEYS: set[str] = {
     "id",
@@ -120,8 +123,10 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
 
     assert not (built_pwa / "static").exists()
     assert not (built_pwa / "qr.js").exists()
+    registry = load_animation_registry()
+    expected_svg_combos = len(registry.specs) * 7
     thumbs = list((built_pwa / "svgs" / "thumbs").glob("*.svg"))
-    assert len(thumbs) == EXPECTED_SVG_COMBO_COUNT
+    assert len(thumbs) == expected_svg_combos
 
     payload = json.loads((built_pwa / "data" / "catalog.json").read_text("utf-8"))
     assert payload["schema_version"] == CATALOG_SCHEMA_VERSION == 2
@@ -130,7 +135,7 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
         "intensity_labels",
     }
     assert len(payload["exercises"]) == EXPECTED_CATALOG_COUNT
-    assert len(payload["svgs"]) == EXPECTED_SVG_COMBO_COUNT
+    assert len(payload["svgs"]) == expected_svg_combos
     for svg_key, markup in payload["svgs"].items():
         assert ":" in svg_key
         assert markup.startswith("<svg")
@@ -277,3 +282,187 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
         assert "data-pose-a=" not in thumb_svg
         assert 'class="js-' not in thumb_svg
         assert len(thumb_svg) < len(full_svg)
+
+
+def _make_front_test_spec(std_bones: dict[str, float]) -> dict[str, object]:
+    front_cfg = {
+        "label": "Front Fly Test",
+        "view": "front",
+        "fixture": None,
+        "default_equipment": "bands",
+        "bar_mode": "hands",
+        "hold_style": "settle",
+        "band_anchor": [120.0, 74.0],
+        "band_target": "span",
+        "cable_anchor": [92.0, 74.0],
+        "cable_target": "hand",
+        "coaching": {
+            "rep_seconds": 2.4,
+            "is_hold": False,
+            "how_to": "Test cue",
+            "cue_work": "Pull",
+            "cue_return": "Return",
+            "tempo_mode": "standard",
+        },
+        "pose_a": {
+            "hip": [120.0, 102.0],
+            "spine": [-90.0, -90.0, -90.0],
+            "arm_f": {"target": [134.0, 74.0], "bend_sign": 1},
+            "arm_b": {"target": [106.0, 74.0], "bend_sign": -1},
+            "leg_f": [90.0, 90.0],
+            "leg_b": [90.0, 90.0],
+        },
+        "pose_b": {
+            "hip": [116.0, 102.0],
+            "spine": [-90.0, -90.0, -90.0],
+            "arm_f": {"target": [176.0, 70.0], "bend_sign": 1},
+            "arm_b": {"target": [64.0, 70.0], "bend_sign": -1},
+            "leg_f": [86.0, 90.0],
+            "leg_b": [94.0, 90.0],
+        },
+    }
+    return compile_animation_spec(front_cfg, std_bones)
+
+
+def test_front_view_ik_and_fk_sockets() -> None:
+    """Verify coronal front-view IK/FK bilateral sockets, swap_sides, and shadow."""
+    base_reg = load_animation_registry()
+    spec = _make_front_test_spec(dict(base_reg.std_bones))
+    assert spec["view"] == "front"
+
+    joints_b = solve_fk(spec["bones"], spec["pose_b"], view="front")
+    assert joints_b["shoulder_f"][0] == pytest.approx(116.0 + 14.5)
+    assert joints_b["shoulder_b"][0] == pytest.approx(116.0 - 14.5)
+    assert joints_b["hip_f"][0] == pytest.approx(116.0 + 9.5)
+    assert joints_b["hip_b"][0] == pytest.approx(116.0 - 9.5)
+    assert joints_b["hand_f"][0] == pytest.approx(176.0, abs=0.5)
+    assert joints_b["hand_b"][0] == pytest.approx(64.0, abs=0.5)
+
+    swapped = solve_fk(spec["bones"], spec["pose_b"], swap_sides=True, view="front")
+    assert swapped["hip"][0] == pytest.approx(240.0 - joints_b["hip"][0])
+    assert swapped["head"][0] == pytest.approx(240.0 - joints_b["head"][0])
+    assert swapped["shoulder_f"][0] == pytest.approx(240.0 - joints_b["shoulder_b"][0])
+    assert swapped["hip_f"][0] == pytest.approx(240.0 - joints_b["hip_b"][0])
+    assert swapped["hand_f"][0] == pytest.approx(240.0 - joints_b["hand_b"][0])
+    assert swapped["hand_f"][1] == pytest.approx(joints_b["hand_b"][1])
+
+    side_joints = solve_fk(
+        base_reg.specs["squat"]["bones"],
+        base_reg.specs["squat"]["pose_a"],
+    )
+    assert side_joints["hip_f"] == side_joints["hip"]
+    assert side_joints["shoulder_f"] == side_joints["shoulder"]
+
+    sym_joints = solve_fk(spec["bones"], spec["pose_a"], view="front")
+    sym_cx, _ = compute_shadow(sym_joints)
+    assert sym_cx == pytest.approx(120.0, abs=0.6)
+
+
+def test_front_view_svg_and_props() -> None:
+    """Verify front-view SVG layers, thumbnails, barbell shaft, and span bands."""
+    base_reg = load_animation_registry()
+    spec = _make_front_test_spec(dict(base_reg.std_bones))
+    joints_b = solve_fk(spec["bones"], spec["pose_b"], view="front")
+
+    synth_reg = AnimationRegistry(
+        std_bones=base_reg.std_bones,
+        prop_geometry=base_reg.prop_geometry,
+        equipment_aliases=base_reg.equipment_aliases,
+        specs={**base_reg.specs, "front_test": spec},
+        coaching={**base_reg.coaching, "front_test": dict(spec["coaching"])},
+    )
+    front_svg = render_archetype_svg(
+        "front_test", equipment="bands", thumbnail=False, registry=synth_reg
+    )
+    front_thumb = render_archetype_svg(
+        "front_test", equipment="bands", thumbnail=True, registry=synth_reg
+    )
+    side_svg = render_archetype_svg(
+        "squat", equipment="barbell", thumbnail=False, registry=synth_reg
+    )
+    assert 'data-view="front"' in front_svg
+    assert 'data-view="front"' in front_thumb
+    assert "data-view=" not in side_svg
+    for cls_name in (
+        "js-clavicle",
+        "js-pelvis",
+        "js-j-shoulder-b",
+        "js-j-hip-b",
+        "js-j-knee-b",
+        "js-j-elbow-b",
+    ):
+        assert cls_name in front_svg
+        assert cls_name not in front_thumb
+    assert 'data-band-target="span"' in front_svg
+    assert '<circle cx="120.00" cy="74.00" r="3.5"' not in front_svg
+
+    bb_attrs, bb_back, _ = render_equipment_props(
+        "barbell",
+        spec,
+        joints_b,
+        base_reg.prop_geometry,
+        interactive=True,
+    )
+    assert 'data-equipment="barbell"' in bb_attrs
+    assert f'x1="{joints_b["hand_b"][0] - 8.0:.2f}"' in bb_back
+    assert f'y1="{joints_b["hand_b"][1]:.2f}"' in bb_back
+    assert f'x2="{joints_b["hand_f"][0] + 8.0:.2f}"' in bb_back
+    assert f'y2="{joints_b["hand_f"][1]:.2f}"' in bb_back
+
+    crossed_joints = {
+        **joints_b,
+        "hand_f": (70.0, 70.0),
+        "hand_b": (170.0, 70.0),
+    }
+    _, cr_bb_back, _ = render_equipment_props(
+        "barbell",
+        spec,
+        crossed_joints,
+        base_reg.prop_geometry,
+        interactive=True,
+    )
+    assert 'x1="62.00"' in cr_bb_back
+    assert 'x2="178.00"' in cr_bb_back
+
+    shoulder_spec = {**spec, "band_target": "shoulder"}
+    _, sh_back, sh_front = render_equipment_props(
+        "bands",
+        shoulder_spec,
+        joints_b,
+        base_reg.prop_geometry,
+        interactive=True,
+    )
+    assert f'x2="{joints_b["shoulder_b"][0]:.2f}"' in sh_back
+    assert f'x2="{joints_b["shoulder_f"][0]:.2f}"' in sh_front
+
+
+def test_compute_required_equipment_chest_fly_bench_rules() -> None:
+    """Verify bench flyes keep 'bench' while cable/machine flyes omit it."""
+    cases = [
+        ("Dumbbell_Flyes", "Dumbbell Flyes", "dumbbell", ["dumbbell", "bench"]),
+        (
+            "Incline_Dumbbell_Flyes",
+            "Incline Dumbbell Flyes",
+            "dumbbell",
+            ["dumbbell", "bench"],
+        ),
+        (
+            "Decline_Dumbbell_Flyes",
+            "Decline Dumbbell Flyes",
+            "dumbbell",
+            ["dumbbell", "bench"],
+        ),
+        ("Around_The_Worlds", "Around The Worlds", "dumbbell", ["dumbbell", "bench"]),
+        ("Cable_Crossover", "Cable Crossover", "cable", ["cable"]),
+        ("Butterfly", "Butterfly", "machine", ["machine"]),
+    ]
+    for ex_id, name, equipment, expected in cases:
+        ex = CatalogExercise(
+            id=ex_id,
+            name=name,
+            category="strength",
+            equipment=equipment,
+            primary_muscle="chest",
+            archetype="chest_fly",
+        )
+        assert compute_required_equipment(ex) == expected

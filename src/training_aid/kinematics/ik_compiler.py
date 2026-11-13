@@ -4,7 +4,7 @@
 import math
 from typing import Any
 
-from training_aid.kinematics.fk_solver import Point, step_point
+from training_aid.kinematics.fk_solver import Point, compute_sockets, step_point
 
 LimbAngles = tuple[float, float]
 SpineAngles = tuple[float, float, float]
@@ -98,6 +98,8 @@ def _compile_pose(
     bones: dict[str, float],
     prev_spec: dict[str, Any] | None = None,
     prev_limbs: dict[str, LimbAngles] | None = None,
+    *,
+    view: str = "side",
 ) -> tuple[dict[str, float], dict[str, LimbAngles]]:
     hip: Point = (float(pose_spec["hip"][0]), float(pose_spec["hip"][1]))
     spine: SpineAngles = (
@@ -107,16 +109,26 @@ def _compile_pose(
     )
     mid_spine = step_point(hip, bones["lumbar"], spine[0])
     shoulder = step_point(mid_spine, bones["thoracic"], spine[1])
+    hip_f, hip_b, shoulder_f, shoulder_b = compute_sockets(
+        hip,
+        shoulder,
+        (spine[0], spine[1]),
+        bones,
+        view=view,
+    )
+
     roots: dict[str, Point] = {
         "hip": hip,
-        "hip_b": (hip[0] + bones["back_dx"], hip[1] + bones["back_dy"]),
+        "hip_f": hip_f,
+        "hip_b": hip_b,
         "shoulder": shoulder,
-        "shoulder_b": (shoulder[0] + bones["back_dx"], shoulder[1] + bones["back_dy"]),
+        "shoulder_f": shoulder_f,
+        "shoulder_b": shoulder_b,
     }
     limb_defs: tuple[tuple[str, str, tuple[float, float]], ...] = (
-        ("arm_f", "shoulder", (bones["uarm"], bones["farm"])),
+        ("arm_f", "shoulder_f", (bones["uarm"], bones["farm"])),
         ("arm_b", "shoulder_b", (bones["uarm"], bones["farm"])),
-        ("leg_f", "hip", (bones["thigh"], bones["shin"])),
+        ("leg_f", "hip_f", (bones["thigh"], bones["shin"])),
         ("leg_b", "hip_b", (bones["thigh"], bones["shin"])),
     )
     limbs: dict[str, LimbAngles] = {}
@@ -144,16 +156,18 @@ def compile_animation_spec(
     std_bones: dict[str, float],
 ) -> dict[str, Any]:
     """Compile a declarative animation entry into FK poses and rig metadata."""
+    view = str(cfg.get("view", "side"))
     bones: dict[str, float] = {
         **std_bones,
         **{k: float(v) for k, v in cfg.get("bones", {}).items()},
     }
-    pose_a, limbs_a = _compile_pose(cfg["pose_a"], bones)
-    pose_b, _ = _compile_pose(cfg["pose_b"], bones, cfg["pose_a"], limbs_a)
+    pose_a, limbs_a = _compile_pose(cfg["pose_a"], bones, view=view)
+    pose_b, _ = _compile_pose(cfg["pose_b"], bones, cfg["pose_a"], limbs_a, view=view)
     band_anchor = cfg["band_anchor"]
     cable_anchor = cfg["cable_anchor"]
     spec: dict[str, Any] = {
         "label": str(cfg["label"]),
+        "view": view,
         "fixture": cfg.get("fixture"),
         "default_equipment": str(cfg["default_equipment"]),
         "bar_mode": str(cfg.get("bar_mode", "hands")),
