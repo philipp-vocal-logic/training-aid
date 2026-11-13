@@ -29,4 +29,7 @@ uv run training-aid --build-only
 ```bash
 uv run pytest -v
 uv run training-aid-check
+
+# Enable fast (<1s) Ruff + JS syntax pre-commit hook on fresh clones
+git config core.hooksPath .githooks
 ```
