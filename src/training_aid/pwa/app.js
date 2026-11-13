@@ -162,7 +162,7 @@ export function boot() {
     window.location &&
     (window.location.protocol === "https:" || window.location.protocol === "http:")
   ) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(() => {});
   }
 
   const catalogPromise = globalThis.__TRAINING_CATALOG__

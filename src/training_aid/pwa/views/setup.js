@@ -1,6 +1,7 @@
-/* Screen 1: Setup — Multiselect Equipment, Weekly Goal, Intensity, Speed & Rest (#setup) */
+/* Screen 1: Setup — Multiselect Equipment, Weekly Goal, Intensity, Speed, Rest & JSON Backup (#setup) */
 import { EQUIPMENT_OPTIONS, REST_PRESETS } from "../core/constants.js";
 import { el, makeEquipmentIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
+import { closeModal, openModal } from "../ui/modal.js";
 import { bindPreviewLoop } from "../ui/preview-loop.js";
 import { createViewScope } from "../ui/scope.js";
 
@@ -10,6 +11,49 @@ const SETUP_PRESCRIPTIONS = {
   intense: "4 sets \u00b7 +20% load",
 };
 const PREVIEW_SPEED_BY_MODE = { slow: 0.29, normal: 0.39, fast: 0.49 };
+
+export function triggerStateExportDownload(store, nowDate) {
+  const json = store && typeof store.exportStateJson === "function" ? store.exportStateJson() : null;
+  if (!json) return null;
+  const dt = nowDate instanceof Date ? nowDate : new Date();
+  const yyyy = String(dt.getFullYear());
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const filename = `training-aid-backup-${yyyy}-${mm}-${dd}.json`;
+  const blob = new Blob([json], { type: "application/json" });
+  const url =
+    typeof URL !== "undefined" && typeof URL.createObjectURL === "function"
+      ? URL.createObjectURL(blob)
+      : "";
+  const link = el("a", {
+    href: url || "data:application/json;charset=utf-8," + encodeURIComponent(json),
+    download: filename,
+    hidden: true,
+  });
+  if (typeof document !== "undefined" && document.body) document.body.appendChild(link);
+  link.click();
+  if (link.parentNode) link.parentNode.removeChild(link);
+  if (url && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+    URL.revokeObjectURL(url);
+  }
+  return filename;
+}
+
+function readBackupFileText(file) {
+  if (!file) return Promise.reject(new Error("No backup file selected."));
+  if (typeof file === "string") return file;
+  if (typeof file.text === "function") return file.text();
+  if (typeof file.content === "string") return file.content;
+  if (typeof FileReader !== "undefined") {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Unable to read backup file."));
+      reader.readAsText(file);
+    });
+  }
+  return Promise.reject(new Error("Unable to read backup file."));
+}
 
 export function renderSetupView(ctx) {
   const scope = (ctx && ctx.scope) || createViewScope();
@@ -151,12 +195,62 @@ export function renderSetupView(ctx) {
     el("button", { type: "submit", className: "btn-primary btn-block", textContent: "Save Plan \u2192" }),
   ]);
 
+  const hasPlan = Boolean(store && store.hasActivePlan());
+  const hasStorageErr = Boolean(store && typeof store.hasStorageError === "function" && store.hasStorageError());
+
+  const fileInput = el("input", {
+    type: "file",
+    id: "backup-file-input",
+    accept: "application/json,.json",
+    hidden: true,
+  });
+  const importBtn = el("button", {
+    type: "button",
+    id: "backup-import-btn",
+    className: "btn-ghost btn-compact",
+    textContent: "Import JSON",
+  });
+  const exportBtn = el("button", {
+    type: "button",
+    id: "backup-export-btn",
+    className: "btn-ghost btn-compact",
+    hidden: !hasPlan,
+    disabled: !hasPlan,
+    textContent: "Export JSON",
+  });
+  const storageErrorPill = el("span", {
+    id: "storage-error-pill",
+    className: "pill pill-warn",
+    role: "alert",
+    hidden: !hasStorageErr,
+    textContent: "Storage unavailable \u2014 export JSON to save backups",
+  });
+  const statusMsg = el("span", {
+    id: "backup-status-msg",
+    className: "muted text-xs",
+    role: "status",
+    hidden: true,
+  });
+
+  const backupBar = el("div", { className: "backup-bar" }, [
+    el("div", { className: "row-cluster-tight" }, [importBtn, exportBtn, fileInput]),
+    storageErrorPill,
+    statusMsg,
+  ]);
+
+  function syncBackupUi() {
+    const active = Boolean(store && store.hasActivePlan());
+    exportBtn.hidden = !active;
+    exportBtn.disabled = !active;
+    storageErrorPill.hidden = !(store && typeof store.hasStorageError === "function" && store.hasStorageError());
+  }
+
   document
     .getElementById("app-root")
     .replaceChildren(
       el("main", { className: "split-screen" }, [
         stageSection,
-        el("section", { className: "side-pane" }, [setupForm]),
+        el("section", { className: "side-pane" }, [setupForm, backupBar]),
       ])
     );
 
@@ -196,8 +290,49 @@ export function renderSetupView(ctx) {
     });
   }
 
-  scope.on(setupForm, "submit", (e) => {
-    e.preventDefault();
+  scope.on(importBtn, "click", () => fileInput.click());
+  scope.on(exportBtn, "click", () => {
+    if (triggerStateExportDownload(store)) {
+      statusMsg.textContent = "Backup exported.";
+      statusMsg.hidden = false;
+    }
+  });
+  scope.on(fileInput, "change", () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    const applyImportText = (rawText) => {
+      try {
+        store.importStateJson(rawText);
+        syncBackupUi();
+        statusMsg.textContent = "Backup imported.";
+        statusMsg.hidden = false;
+        navigateTo("#plan");
+      } catch (err) {
+        statusMsg.textContent = err && err.message ? err.message : "Invalid backup file.";
+        statusMsg.hidden = false;
+      } finally {
+        fileInput.value = "";
+      }
+    };
+    try {
+      const readRes = readBackupFileText(file);
+      if (typeof readRes === "string") {
+        applyImportText(readRes);
+      } else if (readRes && typeof readRes.then === "function") {
+        readRes.then(applyImportText, (err) => {
+          statusMsg.textContent = err && err.message ? err.message : "Invalid backup file.";
+          statusMsg.hidden = false;
+          fileInput.value = "";
+        });
+      }
+    } catch (err) {
+      statusMsg.textContent = err && err.message ? err.message : "Invalid backup file.";
+      statusMsg.hidden = false;
+      fileInput.value = "";
+    }
+  });
+
+  function applySetupSave() {
     const chosenEq = eqTiles.filter((t) => t.input.checked).map((t) => t.id);
     let chosenInt = "moderate";
     for (const t of intTiles) if (t.input.checked) chosenInt = t.input.value;
@@ -217,7 +352,44 @@ export function renderSetupView(ctx) {
       speed_mode: chosenSpeed,
       rest_seconds: chosenRest,
     });
+    syncBackupUi();
     navigateTo("#plan");
+  }
+
+  scope.on(setupForm, "submit", (e) => {
+    e.preventDefault();
+    if (!store.hasActivePlan()) {
+      applySetupSave();
+      return;
+    }
+    openModal((mScope) => {
+      const cancelBtn = el("button", {
+        type: "button",
+        id: "setup-overwrite-cancel-btn",
+        className: "btn-ghost",
+        textContent: "Cancel",
+      });
+      const confirmBtn = el("button", {
+        type: "button",
+        id: "setup-overwrite-confirm-btn",
+        className: "btn-primary",
+        textContent: "Replace Plan",
+      });
+      mScope.on(cancelBtn, "click", () => closeModal());
+      mScope.on(confirmBtn, "click", () => {
+        closeModal();
+        applySetupSave();
+      });
+      return el("div", { className: "modal-card is-error" }, [
+        el("h2", { className: "modal-title", textContent: "Replace Current Plan?" }),
+        el("div", {
+          className: "muted",
+          textContent:
+            "Saving a new setup will replace your current routines and custom exercise edits. Completed workout history will be kept.",
+        }),
+        el("div", { className: "modal-actions" }, [cancelBtn, confirmBtn]),
+      ]);
+    });
   });
 
   return scope;

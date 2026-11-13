@@ -55,19 +55,20 @@ function requestPersistentStorage() {
 export function createStore(options = {}) {
   const catalog = options.catalog || { exercises: [], programs: {}, svgs: {} };
   const nowFn = typeof options.nowFn === "function" ? options.nowFn : () => new Date();
+  let storageError = false;
   let storage = options.storage !== undefined ? options.storage : null;
   if (options.storage === undefined) {
-    try { storage = typeof localStorage !== "undefined" ? localStorage : null; } catch { storage = null; }
+    try { storage = typeof localStorage !== "undefined" ? localStorage : null; } catch { storage = null; storageError = true; }
   }
 
   const { exerciseList, exerciseMap } = buildCatalogIndex(catalog);
   const readStorage = (k) => {
     if (typeof storage?.getItem !== "function") return null;
-    try { return storage.getItem(k); } catch { return null; }
+    try { return storage.getItem(k); } catch { storageError = true; return null; }
   };
   const writeStorage = (k, v) => {
     if (typeof storage?.setItem !== "function") return;
-    try { storage.setItem(k, v); } catch { /* ignore quota */ }
+    try { storage.setItem(k, v); storageError = false; } catch { storageError = true; }
   };
 
   const defaultProfile = { sound_theme: "minimal", rest_seconds: DEFAULT_REST_SECONDS, speed_mode: "normal" };
@@ -101,6 +102,24 @@ export function createStore(options = {}) {
 
   const hasActivePlan = () => Boolean(state?.plan && Array.isArray(state.plan.routines));
   const getState = () => (hasActivePlan() ? structuredClone(state) : null);
+  const hasStorageError = () => storageError;
+  const exportStateJson = () => (hasActivePlan() ? JSON.stringify(state, null, 2) : null);
+
+  function importStateJson(rawText) {
+    if (typeof rawText !== "string" || !rawText.trim()) {
+      throw new Error("Invalid backup: expected a non-empty JSON string.");
+    }
+    let parsed;
+    try { parsed = JSON.parse(rawText); } catch { throw new Error("Invalid backup: file is not valid JSON."); }
+    const validated = validateAndNormalizeState(parsed, { exerciseMap });
+    sessionEquipmentOverride = null;
+    sessionEquipmentDayKey = "";
+    adHocSession = null;
+    adHocEquipment = null;
+    persistState(validated);
+    requestPersistentStorage();
+    return structuredClone(state);
+  }
 
   function getSoundTheme() {
     const theme = activeProfile().sound_theme;
@@ -454,7 +473,8 @@ export function createStore(options = {}) {
   }
 
   return {
-    hasActivePlan, getState, getSoundTheme, setSoundTheme, getWorkoutTiming, setWorkoutTiming,
+    hasActivePlan, getState, hasStorageError, exportStateJson, importStateJson,
+    getSoundTheme, setSoundTheme, getWorkoutTiming, setWorkoutTiming,
     getSessionEquipment, hasSessionEquipmentOverride, setSessionEquipment, resetSessionEquipment,
     setupPlan, addWorkoutDay, getRoutine,
     hasAdHocSession, ensureAdHocSession, generateAdHocSession, adaptAdHocForCurrentEquipment,

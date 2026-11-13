@@ -18,6 +18,12 @@
   border: 1px solid rgba(52, 211, 153, 0.3);
 }
 
+.pill-warn {
+  background: rgba(251, 191, 36, 0.16);
+  color: var(--warn);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.84rem;
@@ -173,6 +179,7 @@
 .tile-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.45rem; }
 
 .tile-option {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,7 +196,18 @@
 }
 .tile-option-compact { padding: 0.48rem 0.45rem; font-size: 0.8rem; }
 .tile-option input[type="radio"],
-.tile-option input[type="checkbox"] { display: none; }
+.tile-option input[type="checkbox"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+}
+.tile-option:has(input:focus-visible) {
+  outline: 2px solid var(--brand-bright);
+  outline-offset: 2px;
+}
 .tile-option:has(input:checked) {
   border-color: var(--brand-bright);
   background: var(--brand-soft);
@@ -251,6 +269,34 @@
 
 .pacing-strip { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .pacing-select { height: 32px; font-size: 0.75rem; padding: 0 1.65rem 0 0.65rem; }
+
+.backup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+dialog.modal-dialog {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+dialog.modal-dialog::backdrop {
+  background: transparent;
+}
 
 .modal-backdrop {
   position: fixed;
