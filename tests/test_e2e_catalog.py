@@ -15,7 +15,6 @@ from training_aid.audit import (
     EXPECTED_CATALOG_COUNT,
     PWA_DIR,
     REPO_ROOT,
-    STATIC_DIR,
     AuditConfig,
     run_catalog_audit,
     verify_motion_js_safe_grip,
@@ -23,18 +22,14 @@ from training_aid.audit import (
 from training_aid.audit import (
     main as audit_main,
 )
-from training_aid.builder import (
-    CANONICAL_EQUIPMENT_MODES,
+from training_aid.compiler import (
     CatalogExercise,
+    build_exercise_metadata,
     build_pwa,
     load_catalog_exercises,
     load_programs_config,
 )
-from training_aid.coaching import (
-    build_exercise_metadata,
-    load_archetype_coaching,
-)
-from training_aid.svg_assets import (
+from training_aid.kinematics import (
     lerp_pose,
     load_animation_registry,
     normalize_equipment,
@@ -89,7 +84,6 @@ def test_audit_cli_and_motion_safe_grip_failure_detection(
         exercises_path=tmp_path / "missing_exercises.json",
         animations_path=DATA_DIR / "animations.json",
         programs_path=DATA_DIR / "programs.json",
-        motion_js_path=STATIC_DIR / "motion.js",
         pwa_dir=PWA_DIR,
     )
     bad_report = run_catalog_audit(config=bad_cfg)
@@ -97,9 +91,17 @@ def test_audit_cli_and_motion_safe_grip_failure_detection(
     assert len(bad_report.errors) > 0
 
     bad_motion = tmp_path / "bad_motion.js"
-    bad_motion.write_text("window.TrainingMotion = {};\n", encoding="utf-8")
+    bad_motion.write_text("export const RIG_SELECTORS = [];\n", encoding="utf-8")
     grip_errs = verify_motion_js_safe_grip(bad_motion, [("squat", "barbell")])
     assert len(grip_errs) > 0
+
+    bad_query_motion = tmp_path / "bad_query_motion.js"
+    bad_query_motion.write_text(
+        "function renderPoseState(svg) { return svg.querySelector('.js-head'); }\n",
+        encoding="utf-8",
+    )
+    query_errs = verify_motion_js_safe_grip(bad_query_motion, [])
+    assert any("static invariants" in err for err in query_errs)
 
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     assert "training-aid" in readme
@@ -109,13 +111,14 @@ def test_catalog_safe_grip_and_floor_bounds() -> None:
     """Verify hand-to-handle distances and floor bounds across all catalog poses."""
     catalog = load_catalog_exercises()
     assert len(catalog) == EXPECTED_CATALOG_COUNT
-    _std_bones, _aliases, specs = load_animation_registry()
+    registry = load_animation_registry()
+    specs = registry.specs
     assert len(specs) == EXPECTED_ARCHETYPE_COUNT
 
     combos = {
         (
             ex.archetype,
-            normalize_equipment(ex.equipment, ex.archetype),
+            normalize_equipment(ex.equipment, ex.archetype, registry=registry),
         )
         for ex in catalog
     }
@@ -139,8 +142,9 @@ def test_catalog_safe_grip_and_floor_bounds() -> None:
 
 def test_baked_exercise_coaching_and_archetypes() -> None:
     """Verify pre-baked exercises.json coaching attributes and archetype coverage."""
-    _std_bones, _aliases, specs = load_animation_registry()
-    arch_coaching = load_archetype_coaching()
+    registry = load_animation_registry()
+    specs = registry.specs
+    arch_coaching = registry.coaching
     assert set(arch_coaching.keys()) == set(specs.keys())
     assert not (DATA_DIR / "exercise_coaching.json").exists()
 
@@ -170,10 +174,13 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
     assert stretch_meta["cue_return"] == "Breathe"
 
 
-def test_programs_config_18_archetype_coverage_and_setup_props() -> None:
-    """Verify preset programs cover all 18 archetypes and setup_equipment_props."""
-    _std_bones, _aliases, specs = load_animation_registry()
+def test_programs_config_18_archetype_coverage() -> None:
+    """Verify preset programs cover all 18 archetypes and omit legacy keys."""
+    registry = load_animation_registry()
+    specs = registry.specs
     programs_cfg = load_programs_config()
+    assert set(programs_cfg.keys()) == {"equipment_programs", "intensity_labels"}
+
     eq_programs = programs_cfg["equipment_programs"]
     assert len(eq_programs) == 4
 
@@ -186,8 +193,3 @@ def test_programs_config_18_archetype_coverage_and_setup_props() -> None:
                 covered_archetypes.add(by_id[ex_id].archetype)
 
     assert covered_archetypes == set(specs.keys())
-
-    setup_props = programs_cfg["setup_equipment_props"]
-    assert set(setup_props.keys()) == set(eq_programs.keys())
-    for prop_mode in setup_props.values():
-        assert prop_mode in CANONICAL_EQUIPMENT_MODES

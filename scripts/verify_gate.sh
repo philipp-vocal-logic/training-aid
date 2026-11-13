@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deterministic verification gate for Training Aid (lint, JS syntax, build, pytest, audit, git cleanliness).
+# Deterministic verification gate for Training Aid (lint, JS syntax, build, Node ESM suites, pytest, audit, git cleanliness).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -13,7 +13,7 @@ usage() {
 Usage: bash scripts/verify_gate.sh [--quick] [--allow-dirty] [--help]
 
 Options:
-  --quick        Fast (<1s) check: ruff lint/format + node --check on all JS files only.
+  --quick        Fast (<1s) check: ruff lint/format + node --check on all JS/MJS files only.
   --allow-dirty  Skip the final git status --porcelain cleanliness assertion.
   --help         Show this help message.
 EOF
@@ -43,7 +43,7 @@ JS_COUNT=0
 while IFS= read -r -d '' js_file; do
   "$NODE_BIN" --check "$js_file"
   JS_COUNT=$((JS_COUNT + 1))
-done < <(find src/training_aid/pwa src/training_aid/static tests -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 2>/dev/null | sort -z)
+done < <(find src/training_aid/pwa tests -type f \( -name '*.js' -o -name '*.mjs' \) -print0 2>/dev/null | sort -z)
 if [[ "$JS_COUNT" -eq 0 ]]; then
   echo "[verify_gate] ERROR: No JavaScript files discovered for syntax check." >&2
   exit 1
@@ -69,8 +69,8 @@ echo "[verify_gate] 3. Static PWA CLI build smoke check..."
 uv run training-aid --build-only --out-dir "$TMP_DIST/dist" >/dev/null
 export TA_DIST_DIR="$TMP_DIST/dist"
 
-echo "[verify_gate] 4. Standalone Node test suites ($NODE_BIN)..."
-"$NODE_BIN" --test tests/*.test.cjs
+echo "[verify_gate] 4. Standalone Node ESM test suites ($NODE_BIN)..."
+"$NODE_BIN" --test tests/*.test.mjs
 
 echo "[verify_gate] 5. Pytest suite..."
 uv run pytest -q

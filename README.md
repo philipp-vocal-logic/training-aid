@@ -1,18 +1,19 @@
 # Training Aid
 
-Minimal, zero-backend, offline-first guided workout PWA.
+Minimal, zero-backend, offline-first guided workout PWA built with Python ≥3.13 and zero-build native ES Modules.
 
 ## Screens
 
-1. **Setup (`#setup`)** — Full-screen live SVG preview alongside equipment, intensity, and weekly frequency tiles, plus zero-server device portability via QR/share link (`#import=` `deflate-raw` fragment) and `.json` backup export/import.
-2. **Plan (`#plan` & `#edit/<id>`)** — Split full-screen stage with interactive animated exercise preview, compact routine deck, and instant offline catalog search across all 876 exercises.
-3. **Workout (`#workout/<id>`)** — Edge-to-edge `100vw × 100dvh` animated SVG motion coach with minimal HUD (`1/4 · S1/3`, live step-by-step form cue, 1-word movement cues, giant counter, Web Audio tempo packs, fullscreen toggle `⛶`, and `Space`/`→` shortcuts), ending with 1-tap adaptation (`−10%`, `=`, `+10%`).
-4. **Stats (`#progress`)** — Full-screen inline SVG intensity progression chart, streak KPIs, and compact session rail.
+1. **Setup (`#setup`)** — Full-screen live SVG preview alongside multiselect equipment, intensity, weekly frequency, exercise speed (`slow` / `normal` / `fast`), and rest interval tiles.
+2. **Plan (`#plan` & `#edit/<id>`)** — Split full-screen stage with interactive animated exercise preview, non-destructive daily equipment filter, compact routine deck, and instant offline catalog search across all 876 exercises.
+3. **On-the-Fly (`#quick`)** — Instant balanced workout generator and custom ad-hoc session builder that counts toward weekly goals and history without advancing the saved split cursor.
+4. **Workout (`#workout/<id>`)** — Edge-to-edge `100vw × 100dvh` animated SVG motion coach with minimal HUD (`1/4 · S1/3`, live step-by-step form cue, movement cues, giant counter, live tempo/rest controls, 4-layer Web Audio synth packs, fullscreen toggle `⛶`, and `Space`/`→` shortcuts), ending with 1-tap adaptation (`−10%`, `=`, `+10%`).
+5. **Stats (`#progress`)** — Full-screen inline SVG intensity progression chart, streak KPIs, and detailed date-time workout history rail.
 
 ## Privacy & Offline Architecture
 
-- **100% local state:** Profile, routines, and workout history stay in browser `localStorage` (`training_aid_state_v1`) with persistent storage requests where supported.
-- **Zero backend & zero external requests:** Compiled entirely with the Python standard library (`dependencies = []`), strict `Content-Security-Policy`, no external CDNs or telemetry, and full offline precaching via `sw.js`.
+- **100% local state:** Profile, routines, and workout history stay in browser `localStorage` (`training_aid_state_v2`) with persistent storage requests where supported.
+- **Zero backend & zero external requests:** Compiled entirely with the Python standard library (`dependencies = []`), strict `Content-Security-Policy`, zero external CDNs or telemetry, and deterministic offline precaching (`APP_SHELL_ASSETS` + `CACHE_VERSION`) via `sw.js`.
 
 ## Run & Build
 
@@ -27,6 +28,9 @@ uv run training-aid --build-only
 ## Test & Audit
 
 ```bash
+# Run full deterministic verification gate (Ruff, JS syntax, build, Node ESM tests, pytest, E2E audit)
+bash scripts/verify_gate.sh
+
 uv run pytest -v
 uv run training-aid-check
 
