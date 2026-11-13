@@ -1,4 +1,5 @@
 /* Screen 6: On-the-Fly & Random Workout Builder (#quick) */
+import { formatEquipmentSummary } from "../core/constants.js";
 import { el } from "../ui/dom.js";
 import { createViewScope } from "../ui/scope.js";
 import {
@@ -29,6 +30,11 @@ export function renderQuickView(ctx) {
   syncTopbar("quick", false);
 
   store.ensureAdHocSession();
+  const initCards = store.buildRoutineCards([TARGET_ID]);
+  const initRows = initCards && initCards[0] ? initCards[0].exercises : [];
+  const defaultPickerOpen =
+    initRows.length === 0 ||
+    Boolean(globalThis.matchMedia?.("(min-width: 861px)")?.matches);
 
   const leftPane = el("section", { className: "editor-pane" });
   const picker = renderCatalogPicker(scope, store, {
@@ -36,8 +42,9 @@ export function renderQuickView(ctx) {
     placeholder: "Search name, muscle, gear, or category...",
     ariaLabel: "Search exercises",
     emptyText: "No matching exercises.",
-    limit: 48,
+    limit: 24,
     showEquipment: true,
+    showEquipmentFilter: false,
     getAddedCounts: () => countExercises(store.getRoutine(TARGET_ID)),
     onAdd: (exId) => {
       store.addExerciseItem(TARGET_ID, exId);
@@ -45,9 +52,23 @@ export function renderQuickView(ctx) {
     },
   });
 
+  const pickerDisclosure = el(
+    "details",
+    { className: "picker-disclosure", open: defaultPickerOpen },
+    [
+      el("summary", {
+        className: "btn-ghost btn-block picker-toggle-summary",
+        textContent: "+ Browse & Search Catalog",
+      }),
+      picker,
+    ]
+  );
+
   document
     .getElementById("app-root")
-    .replaceChildren(el("main", { className: "editor-screen" }, [leftPane, picker]));
+    .replaceChildren(
+      el("main", { className: "editor-screen" }, [leftPane, pickerDisclosure])
+    );
 
   function refreshAdHocPane() {
     const adhoc = store.ensureAdHocSession();
@@ -96,18 +117,43 @@ export function renderQuickView(ctx) {
       startBtn,
     ]);
 
-    const equipCard = el("div", { className: "filter-panel" }, [
-      el("div", { className: "field-label-row" }, [
-        el("span", { className: "field-label", textContent: "Workout Gear (Generator)" }),
-        renderPacingControls(scope, store.getWorkoutTiming(), (patch) => store.setWorkoutTiming(patch)),
-      ]),
-      renderEquipmentChipBar(scope, store.getSessionEquipment(), (nextList) => {
-        store.setSessionEquipment(nextList);
-        store.adaptAdHocForCurrentEquipment();
-        refreshAdHocPane();
-      }),
-      el("div", { className: "row-cluster" }, [shuffleBtn, addRandomBtn]),
+    const actionRow = el("div", { className: "row-cluster" }, [
+      shuffleBtn,
+      addRandomBtn,
     ]);
+
+    const eq = store.getSessionEquipment();
+    const timing = store.getWorkoutTiming();
+    const prevGearDetails = leftPane.querySelector(".filter-panel");
+    const isGearOpen = prevGearDetails ? Boolean(prevGearDetails.open) : false;
+
+    const equipCard = el(
+      "details",
+      { className: "filter-panel disclosure-card", open: isGearOpen },
+      [
+        el("summary", { className: "disclosure-summary" }, [
+          el("span", {
+            className: "field-label",
+            textContent: "Workout Gear (Generator)",
+          }),
+          el("span", {
+            className: "pill",
+            textContent: `${formatEquipmentSummary(eq)} \u00b7 ${timing.rest_seconds}s`,
+          }),
+        ]),
+        el("div", { className: "disclosure-body" }, [
+          renderPacingControls(scope, timing, (patch) => {
+            store.setWorkoutTiming(patch);
+            refreshAdHocPane();
+          }),
+          renderEquipmentChipBar(scope, eq, (nextList) => {
+            store.setSessionEquipment(nextList);
+            store.adaptAdHocForCurrentEquipment();
+            refreshAdHocPane();
+          }),
+        ]),
+      ]
+    );
 
     const listNode =
       rows.length > 0
@@ -131,9 +177,16 @@ export function renderQuickView(ctx) {
               })
             )
           )
-        : el("div", { className: "muted", textContent: "+ Generate or add exercises for your workout" });
+        : el("div", {
+            className: "muted",
+            textContent: "+ Generate or add exercises for your workout",
+          });
 
-    leftPane.replaceChildren(headerRow, equipCard, listNode);
+    if (rows.length === 0) {
+      pickerDisclosure.open = true;
+      pickerDisclosure.setAttribute("open", "");
+    }
+    leftPane.replaceChildren(headerRow, actionRow, equipCard, listNode);
     picker.refresh();
   }
 

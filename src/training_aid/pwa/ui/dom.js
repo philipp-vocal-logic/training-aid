@@ -2,7 +2,7 @@
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const BOOL_PROPS = new Set(["checked", "disabled", "hidden", "required", "readOnly", "selected"]);
+const BOOL_PROPS = new Set(["checked", "disabled", "hidden", "required", "readOnly", "selected", "open"]);
 
 function appendChildren(parent, children) {
   if (children === undefined || children === null) return;
@@ -28,8 +28,13 @@ export function el(tag, attrs, children) {
         }
       } else if (k === "style" && typeof v === "object") {
         for (const [sk, sv] of Object.entries(v)) node.style[sk] = sv;
-      } else if (BOOL_PROPS.has(k)) node[k] = Boolean(v);
-      else if (k === "value") node.value = String(v);
+      } else if (BOOL_PROPS.has(k)) {
+        node[k] = Boolean(v);
+        if (k === "open") {
+          if (v) node.setAttribute("open", "");
+          else node.removeAttribute("open");
+        }
+      } else if (k === "value") node.value = String(v);
       else node.setAttribute(k, String(v));
     }
   }
@@ -96,6 +101,16 @@ export const makeFullscreenIcon = () =>
     svgNode("path", {
       d: "M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3",
     }),
+  ]);
+
+export const makeTuneIcon = () =>
+  svgNode("svg", { ...ICON_BASE, width: "18", height: "18", "aria-hidden": "true" }, [
+    svgNode("line", { x1: "4", y1: "6", x2: "20", y2: "6" }),
+    svgNode("line", { x1: "4", y1: "12", x2: "20", y2: "12" }),
+    svgNode("line", { x1: "4", y1: "18", x2: "20", y2: "18" }),
+    svgNode("circle", { cx: "9", cy: "6", r: "2" }),
+    svgNode("circle", { cx: "15", cy: "12", r: "2" }),
+    svgNode("circle", { cx: "10", cy: "18", r: "2" }),
   ]);
 
 export function makeEquipmentIcon(equipId, size = 15) {

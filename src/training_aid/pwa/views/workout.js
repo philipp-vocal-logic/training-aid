@@ -2,7 +2,7 @@
 import { REST_PRESETS, SOUND_THEMES, VALID_SPEED_MODES } from "../core/constants.js";
 import { createWorkoutSession } from "../core/workout-engine.js";
 import { bindSvg, prefersReducedMotion, tempoCurve, turnaroundForMode } from "../rig/motion.js";
-import { el, makeFullscreenIcon, makeVolumeOffIcon, makeVolumeOnIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
+import { el, makeTuneIcon, makeVolumeOffIcon, makeVolumeOnIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
 import { closeModal, openModal } from "../ui/modal.js";
 import { createViewScope } from "../ui/scope.js";
 import { createWakeLock } from "../ui/wake-lock.js";
@@ -70,20 +70,21 @@ export function renderWorkoutView(ctx) {
   const howToEl = el("div", { id: "ex-how-to", className: "muted text-xs truncate", textContent: firstEx.how_to || "" });
   const weightEl = el("span", { id: "ex-weight", className: "pill pill-brand", style: { display: firstEx.weight_label ? "inline-flex" : "none" }, textContent: firstEx.weight_label || "" });
 
-  const speedSelect = el("select", { id: "speed-mode-select", className: "hud-select", "aria-label": "Exercise speed" },
+  const speedSelect = el("select", { id: "speed-mode-select", className: "hud-select workout-tune-select", "aria-label": "Exercise speed" },
     VALID_SPEED_MODES.map((m) => el("option", { value: m, selected: m === initSnap.speedMode, textContent: HUD_SPEED_LABELS[m] || m })));
+  speedSelect.value = initSnap.speedMode;
   const restChoices = REST_PRESETS.includes(initSnap.configuredRestSeconds)
     ? REST_PRESETS
     : [...REST_PRESETS, initSnap.configuredRestSeconds].sort((a, b) => a - b);
-  const restSelect = el("select", { id: "rest-seconds-select", className: "hud-select", "aria-label": "Rest interval" },
+  const restSelect = el("select", { id: "rest-seconds-select", className: "hud-select workout-tune-select", "aria-label": "Rest interval" },
     restChoices.map((sec) => el("option", { value: String(sec), selected: sec === initSnap.configuredRestSeconds, textContent: `Rest ${sec}s` })));
-  const soundSelect = el("select", { id: "sound-theme-select", className: "hud-select", "aria-label": "Sound theme" },
+  restSelect.value = String(initSnap.configuredRestSeconds);
+  const soundSelect = el("select", { id: "sound-theme-select", className: "hud-select workout-tune-select", "aria-label": "Sound theme" },
     SOUND_THEMES.map((opt) => el("option", { value: opt.id, textContent: opt.label })));
+  const tuneBtn = el("button", { type: "button", id: "workout-tune-btn", className: "hud-icon-btn", "aria-label": "Workout settings" }, [makeTuneIcon()]);
   const iconVolOn = makeVolumeOnIcon();
   const iconVolOff = makeVolumeOffIcon();
   const soundBtn = el("button", { type: "button", id: "sound-toggle", className: "hud-icon-btn", "aria-label": "Sound" }, [iconVolOn, iconVolOff]);
-  const canFullscreen = Boolean(document.fullscreenEnabled && typeof document.documentElement?.requestFullscreen === "function");
-  const fsBtn = el("button", { type: "button", id: "fs-toggle", className: "hud-icon-btn", hidden: !canFullscreen, "aria-label": "Fullscreen" }, [makeFullscreenIcon()]);
 
   const getExSvgMarkup = (ex) => ex.svg_markup || resolveSvgMarkup(catalog, ex.svg_key || ex.archetype, ex.eq_mode);
   const svgHolder = el("div", { id: "svg-holder" });
@@ -99,7 +100,7 @@ export function renderWorkoutView(ctx) {
   const stageEl = el("div", { id: "coach-stage" }, [
     el("header", { className: "workout-hud-top" }, [
       el("div", { className: "hud-title-cluster" }, [exitBtn, stepProgressEl, el("div", { className: "min-w-0" }, [titleEl, howToEl]), weightEl]),
-      el("div", { className: "hud-actions" }, [speedSelect, restSelect, soundSelect, soundBtn, fsBtn]),
+      el("div", { className: "hud-actions" }, [tuneBtn, soundBtn]),
     ]),
     canvasTapArea,
     phaseCueEl,
@@ -272,9 +273,40 @@ export function renderWorkoutView(ctx) {
   }
 
   scope.on(soundBtn, "click", () => { store.setSoundTheme(sound.toggleMute()); sound.ensureAudio(); syncSoundUi(); });
-  scope.on(fsBtn, "click", () => {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
-    else if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  scope.on(tuneBtn, "click", () => {
+    const snap = session.getSnapshot();
+    const wasRunning = snap.state !== "IDLE" && snap.state !== "FINISHED" && !snap.paused;
+    if (wasRunning) togglePlayPause();
+    const closeTuneModal = () => {
+      closeModal();
+      if (wasRunning && session.getSnapshot().paused) togglePlayPause();
+    };
+    openModal((mScope) => {
+      const curSnap = session.getSnapshot();
+      speedSelect.value = curSnap.speedMode;
+      restSelect.value = String(curSnap.configuredRestSeconds);
+      soundSelect.value = sound.getTheme();
+      const doneBtn = el("button", { type: "button", id: "workout-tune-close-btn", className: "btn-primary", textContent: "Done" });
+      mScope.on(doneBtn, "click", closeTuneModal);
+      return el("div", { className: "modal-card", role: "dialog", "aria-modal": "true" }, [
+        el("h2", { className: "modal-title", textContent: "Workout Settings" }),
+        el("div", { className: "workout-tune-fields" }, [
+          el("label", { className: "field-block" }, [
+            el("span", { className: "field-label", textContent: "Exercise Speed" }),
+            speedSelect,
+          ]),
+          el("label", { className: "field-block" }, [
+            el("span", { className: "field-label", textContent: "Rest Interval" }),
+            restSelect,
+          ]),
+          el("label", { className: "field-block" }, [
+            el("span", { className: "field-label", textContent: "Sound Theme" }),
+            soundSelect,
+          ]),
+        ]),
+        el("div", { className: "modal-actions" }, [doneBtn]),
+      ]);
+    }, closeTuneModal);
   });
 
   scope.on(exitBtn, "click", () => {
