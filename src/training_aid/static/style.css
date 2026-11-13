@@ -24,6 +24,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -926,6 +930,229 @@ select {
 }
 
 /* ------------------------------------------------------------------
+   PWA Boot Shell, Portability Card, Inline SVG Chart & Modals
+------------------------------------------------------------------ */
+.boot-screen {
+  width: 100%;
+  height: calc(100dvh - var(--topbar-h));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.btn-primary:disabled,
+.btn-ghost:disabled,
+.hud-icon-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.portability-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.portability-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.portability-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.portability-divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0.1rem 0;
+}
+
+.portability-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.btn-compact {
+  padding: 0.42rem 0.8rem;
+  font-size: 0.82rem;
+}
+
+.file-btn-label {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  font-size: 0.83rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: var(--brand-bright);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.share-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.35rem;
+}
+
+.qr-frame {
+  width: 176px;
+  max-width: 100%;
+  align-self: center;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  padding: 0.35rem;
+}
+
+.qr-frame svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.share-url-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.share-url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.42rem 0.65rem;
+  font-size: 0.78rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.share-hint {
+  font-size: 0.77rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.share-tab-link {
+  color: var(--brand-bright);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.progress-svg-chart {
+  width: 100%;
+  height: 100%;
+  max-height: 540px;
+  display: block;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(9, 13, 22, 0.84);
+  backdrop-filter: blur(12px);
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 440px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  padding: 1.35rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.modal-card.is-error {
+  border-color: rgba(251, 191, 36, 0.55);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.modal-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.toast-region {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+
+.toast-pill {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+/* ------------------------------------------------------------------
    Responsive Mobile / Portrait Breakpoints
 ------------------------------------------------------------------ */
 @media (max-width: 860px) {
@@ -1028,6 +1255,7 @@ select {
   .tile-option,
   .minimal-input,
   .minimal-select,
+  .toast-pill,
   .nav-pills a {
     transition: none !important;
   }

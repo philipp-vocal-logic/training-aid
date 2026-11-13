@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Train</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link rel="stylesheet" href="./static/style.css" />
+  <script src="./static/motion.js" defer></script>
+  <script src="./static/sound.js" defer></script>
+  <script src="./store.js" defer></script>
+  <script src="./qr.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header id="app-topbar" class="topbar">
+    <a href="#plan" id="brand-home-link" class="brand-mark" aria-label="Home">
+      <span class="brand-dot"></span>
+      <span>TRAIN</span>
+    </a>
+    <nav id="primary-nav" class="nav-pills" aria-label="Primary" hidden>
+      <a href="#plan" data-nav="plan">Plan</a>
+      <a href="#progress" data-nav="progress">Stats</a>
+      <a href="#setup" data-nav="setup">Setup</a>
+    </nav>
+  </header>
+
+  <div id="app-root" class="app-root">
+    <main class="boot-screen" aria-busy="true">
+      <span class="brand-dot"></span>
+      <span class="muted">Loading trainer…</span>
+    </main>
+  </div>
+
+  <div id="modal-root" hidden></div>
+  <div id="toast-root" class="toast-region" aria-live="polite"></div>
+</body>
+</html>
