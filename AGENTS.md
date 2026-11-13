@@ -4,12 +4,17 @@
 
 Training Aid compiles static exercise catalogs and forward-kinematics SVGs via Python ≥3.13 into a self-contained offline PWA (`dist/`):
 
-- `src/training_aid/__init__.py`, `builder.py` — CLI (`training-aid`) & static bundle compiler (`dist/data/catalog.json` + 126 SVG thumbnails + 144 inline SVGs).
-- `src/training_aid/coaching.py`, `svg_assets.py` — `CatalogExercise` taxonomy, coaching cues, and 2D FK rig generator.
-- `src/training_aid/audit.py` — End-to-end catalog, kinematics, CSP/privacy, and Node bundle audit (`training-aid-check`).
-- `src/training_aid/pwa/{index.html,app.js,store.js,qr.js,sw.js,manifest.webmanifest,icon.svg}` — Offline PWA shell, SPA views, `localStorage` + `#import=` deflate portability, and offline QR SVG encoder (new modules belong in focused subdirectories such as `pwa/views/` and `pwa/vendor/`).
-- `src/training_aid/static/{motion.js,sound.js,style.css}` — Rig animator, Web Audio synth, and styles.
-- `tests/{test_app.py,test_e2e_catalog.py}` — Pytest + Node integration suites.
+- `src/training_aid/{__init__.py,cli.py}` — CLI entrypoint (`training-aid`).
+- `src/training_aid/compiler/{__init__.py,coaching.py,catalog_builder.py,bundler.py}` — `CatalogExercise` model, coaching metadata, `dist/data/catalog.json` (`schema_version = 2`, 876 exercises, 126 inline SVGs), 126 SVG thumbnails, and 1:1 `dist/` bundler with deterministic `sw.js` `APP_SHELL_ASSETS` + `CACHE_VERSION` stamping.
+- `src/training_aid/kinematics/{__init__.py,registry.py,ik_compiler.py,fk_solver.py,svg_renderer.py}` — Declarative `AnimationRegistry`, 2-link IK pose compiler, 2D FK solver, and interactive/thumbnail SVG renderer.
+- `src/training_aid/audit/{__init__.py,models.py,node_runner.py,bundle_security.py,catalog_checks.py,rig_checks.py}` — End-to-end catalog, kinematics, CSP/privacy, and Node ESM bundle audit (`training-aid-check`).
+- `src/training_aid/pwa/` — Unified 1:1 client tree copied directly into `dist/`:
+  - `{index.html,app.js,sw.js,manifest.webmanifest,icon.svg}` — Offline PWA shell, Service Worker template, and SPA router.
+  - `core/{constants,prescription,catalog,generator,projections,stats,workout-engine}.js` — Pure zero-DOM domain logic, compatibility/substitution, and workout state machine.
+  - `state/{codec,store}.js` — Schema v2 state validation and `localStorage` (`training_aid_state_v2`) store with unified routine/ad-hoc item CRUD.
+  - `rig/motion.js` & `audio/{presets,pattern,synth,controller}.js` — 2D FK rig animator and 4-layer Web Audio synth engine.
+  - `ui/{dom,scope,preview-loop,modal,progress-chart,widgets}.js`, `views/{setup,plan,quick,edit,workout,progress}.js`, `styles/{tokens,primitives,layout,workout,screens}.css` — Modular DOM primitives, screen views, and CSS.
+- `tests/{test_app.py,test_e2e_catalog.py,test_sw_cache_stamp.py,check_motion_rig.mjs,pwa_*.test.mjs,helpers/dom_harness.mjs}` — Pytest and Node native ESM suites.
 
 ## 2. Core Engineering Principles (KISS, YAGNI, Reuse & Modularity)
 
@@ -17,19 +22,19 @@ Training Aid compiles static exercise catalogs and forward-kinematics SVGs via P
   - Implement the simplest solution that satisfies the stated task and testable acceptance criteria (`AC-1..AC-N`)—nothing more.
   - Never add speculative generality, unrequested config flags, unused modes/versions, plugin layers, or gold-plating for hypothetical future needs.
 - **Do Not Reinvent the Wheel (3-Tier Reuse Hierarchy)**:
-  1. **Standard Libraries First**: Always prefer Python ≥3.13 stdlib (`pathlib`, `json`, `tomllib`, `zlib`, `http.server`, `urllib`, `dataclasses`) and native Web Platform APIs (`CompressionStream`, `crypto.subtle`, `URL`, `Intl`, `<dialog>`, native `<svg>`, CSS Grid/Flex).
-  2. **Stable, Permissively Licensed Third-Party Libraries (`MIT`, `Apache-2.0`, `BSD`, `ISC`)**: For solved commodity problems (e.g., QR/barcodes, parsers, schema validation, cryptography, rich charting), use mature, actively maintained, lightweight open-source libraries—added cleanly via `pyproject.toml`/`uv` for Python (updating `tests/test_app.py` dependency assertions intentionally) or vendored offline with version + license header under `src/training_aid/pwa/vendor/` for client JS. Never reimplement complex RFC/ISO specs from scratch. *(In swarms, new packages are approved in Phase 0 by the coordinator with a single designated file owner.)*
+  1. **Standard Libraries First**: Always prefer Python ≥3.13 stdlib (`pathlib`, `json`, `tomllib`, `hashlib`, `html.parser`, `http.server`, `urllib`, `dataclasses`) and native Web Platform APIs (`structuredClone`, `Web Audio API`, `AbortController`, `URL`, `Intl`, `<dialog>`, native `<svg>`, CSS Grid/Flex).
+  2. **Stable, Permissively Licensed Third-Party Libraries (`MIT`, `Apache-2.0`, `BSD`, `ISC`)**: For solved commodity problems (e.g., parsers, schema validation, cryptography, rich charting), use mature, actively maintained, lightweight open-source libraries—added cleanly via `pyproject.toml`/`uv` for Python (updating `tests/test_app.py` dependency assertions intentionally) or vendored offline with version + license header under `src/training_aid/pwa/vendor/` for client JS. Never reimplement complex RFC/ISO specs from scratch. *(In swarms, new packages are approved in Phase 0 by the coordinator with a single designated file owner.)*
   3. **Custom Code Only for Root Domain Logic**: Write bespoke code strictly for Training Aid's core domain value (exercise taxonomy/cues, workout progression/scaling rules, 2D kinematic pose rigs, and guided workout UX).
 - **Separation of Concerns & Lean Modular Design**:
-  - Separate **pure domain logic/math**, **storage & codec adapters**, **routing**, **per-screen UI views** (one module per screen/component under `pwa/views/`), **CLI/build compiler**, and **standalone test modules** (`tests/`, avoiding multi-hundred-line JS strings embedded inside Python).
+  - Separate **pure domain logic/math** (`pwa/core/`), **storage & codec adapters** (`pwa/state/`), **rig & audio engines** (`pwa/rig/`, `pwa/audio/`), **UI primitives & per-screen views** (`pwa/ui/`, `pwa/views/`), **CLI/build compiler** (`compiler/`, `kinematics/`, `audit/`), and **standalone test modules** (`tests/`).
   - Target `~100–350` LOC per module; split responsibilities into focused files before exceeding `~500` LOC instead of growing multi-concern monoliths.
 
 ## 3. Hard Security & Quality Invariants
 
 - **Strict Ruff**: All Python code must pass `ruff check .` (`select = ["ALL"]`, Google docstrings, 88-char lines) and `ruff format --check .`.
 - **Zero External Runtime Network / CDNs**: Never reference external `http://` or `https://` URLs in PWA/static assets (only W3C SVG `xmlns` namespaces). Preserve the strict `Content-Security-Policy` in `index.html` and relative `./` paths for subdirectory hosting; bundle/vendor any third-party client libraries locally.
-- **XSS Safety**: Render all user/imported strings strictly via DOM nodes and `textContent`. Only precompiled `catalog.svgs` or trusted local SVG encoders (`TrainingQR.renderSvg()`) may pass through `setTrustedSvg()`.
-- **Testable Client JS Modules**: Client JS modules must remain cleanly importable under both browser execution (`window.Training*` or ES modules) and Node CommonJS/ESM test suites.
+- **XSS Safety**: Render all user/imported strings strictly via DOM nodes and `textContent`. Only precompiled `catalog.svgs` may pass through `setTrustedSvg()`.
+- **Native ES Modules**: Client JS modules (except Service Worker `sw.js`) use standard ES module `import` / `export` syntax with explicit relative `./...js` / `../...js` specifiers, cleanly importable in both browser execution and Node `node:test` `.mjs` suites.
 
 ## 4. Fast Verification & Tool Resolution
 

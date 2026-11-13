@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import threading
 import tomllib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -21,19 +20,17 @@ from training_aid.audit import (
     EXPECTED_CATALOG_COUNT,
     EXPECTED_SVG_COMBO_COUNT,
     REPO_ROOT,
-    find_node_binary,
 )
-from training_aid.builder import (
-    CANONICAL_EQUIPMENT_MODES,
+from training_aid.compiler import (
+    CATALOG_SCHEMA_VERSION,
+    build_exercise_metadata,
     build_pwa,
+    compute_required_equipment,
     load_catalog_exercises,
     load_programs_config,
 )
-from training_aid.coaching import (
-    build_exercise_metadata,
-    load_archetype_coaching,
-)
-from training_aid.svg_assets import (
+from training_aid.kinematics import (
+    CANONICAL_EQUIPMENT_MODES,
     compute_shadow,
     lerp_pose,
     load_animation_registry,
@@ -60,6 +57,7 @@ EXPECTED_COMPILED_KEYS: set[str] = {
     "cue_return",
     "tempo_mode",
     "is_alternating",
+    "required_equipment",
 }
 
 
@@ -77,42 +75,60 @@ def built_pwa(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
-    """Verify static PWA bundle files, compiled catalog schema, and zero deps."""
+    """Verify 1:1 static PWA bundle files, schema v2 catalog, and zero deps."""
     required_files = [
         "index.html",
         "manifest.webmanifest",
         "sw.js",
         "icon.svg",
-        "domain.js",
-        "recommender.js",
-        "codec.js",
-        "store.js",
-        "qr.js",
-        "dom.js",
+        "app.js",
+        "core/constants.js",
+        "core/prescription.js",
+        "core/catalog.js",
+        "core/generator.js",
+        "core/projections.js",
+        "core/stats.js",
+        "core/workout-engine.js",
+        "state/codec.js",
+        "state/store.js",
+        "rig/motion.js",
+        "audio/presets.js",
+        "audio/pattern.js",
+        "audio/synth.js",
+        "audio/controller.js",
+        "ui/dom.js",
+        "ui/scope.js",
+        "ui/preview-loop.js",
+        "ui/modal.js",
+        "ui/progress-chart.js",
+        "ui/widgets.js",
         "views/setup.js",
         "views/plan.js",
         "views/quick.js",
         "views/edit.js",
         "views/workout.js",
         "views/progress.js",
-        "app.js",
-        "static/style.css",
-        "static/motion.js",
-        "static/sound-presets.js",
-        "static/sound-pattern.js",
-        "static/sound-synth.js",
-        "static/sound.js",
+        "styles/tokens.css",
+        "styles/primitives.css",
+        "styles/layout.css",
+        "styles/workout.css",
+        "styles/screens.css",
         "data/catalog.json",
     ]
     for rel in required_files:
         assert (built_pwa / rel).is_file(), f"Missing bundle file: {rel}"
 
-    assert not (built_pwa / "static" / "svgs").exists()
+    assert not (built_pwa / "static").exists()
+    assert not (built_pwa / "qr.js").exists()
     thumbs = list((built_pwa / "svgs" / "thumbs").glob("*.svg"))
     assert len(thumbs) == EXPECTED_SVG_COMBO_COUNT
 
     payload = json.loads((built_pwa / "data" / "catalog.json").read_text("utf-8"))
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == CATALOG_SCHEMA_VERSION == 2
+    assert set(payload["programs"].keys()) == {
+        "equipment_programs",
+        "intensity_labels",
+    }
     assert len(payload["exercises"]) == EXPECTED_CATALOG_COUNT
     assert len(payload["svgs"]) == EXPECTED_SVG_COMBO_COUNT
     for svg_key, markup in payload["svgs"].items():
@@ -123,12 +139,24 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
     sample_ex = payload["exercises"][0]
     assert set(sample_ex.keys()) == EXPECTED_COMPILED_KEYS
     assert sample_ex["svg_key"] in payload["svgs"]
+    assert isinstance(sample_ex["required_equipment"], list)
     assert str(sample_ex["thumb_url"]).removeprefix("./").startswith("svgs/thumbs/")
+
+    by_id = {ex["id"]: ex for ex in payload["exercises"]}
+    assert by_id["Pullups"]["required_equipment"] == ["pull_up_bar"]
+    assert by_id["Bench_Dips"]["required_equipment"] == ["bench"]
+    assert by_id["Dumbbell_Bench_Press"]["required_equipment"] == [
+        "dumbbell",
+        "bench",
+    ]
+    assert by_id["Bodyweight_Squat"]["required_equipment"] == []
 
     index_html = (built_pwa / "index.html").read_text("utf-8")
     assert "Content-Security-Policy" in index_html
     assert "default-src 'self'" in index_html
     assert "script-src 'self'" in index_html
+    assert '<script type="module" src="./app.js"></script>' in index_html
+    assert "toast-root" not in index_html
 
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text("utf-8"))
     assert pyproject["project"]["dependencies"] == []
@@ -147,7 +175,7 @@ def test_cli_build_only_entrypoint(tmp_path: Path) -> None:
 
 
 def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
-    """Serve the built PWA over ThreadingHTTPServer and verify static routes."""
+    """Serve the built PWA over ThreadingHTTPServer and verify 1:1 static routes."""
 
     class QuietHandler(SimpleHTTPRequestHandler):
         def __init__(self, *args: object, **kwargs: object) -> None:
@@ -167,19 +195,15 @@ def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
             "/index.html",
             "/sw.js",
             "/manifest.webmanifest",
-            "/domain.js",
-            "/codec.js",
-            "/store.js",
-            "/qr.js",
-            "/dom.js",
-            "/views/workout.js",
             "/app.js",
-            "/static/style.css",
-            "/static/motion.js",
-            "/static/sound-presets.js",
-            "/static/sound-pattern.js",
-            "/static/sound-synth.js",
-            "/static/sound.js",
+            "/core/constants.js",
+            "/core/workout-engine.js",
+            "/state/store.js",
+            "/rig/motion.js",
+            "/audio/controller.js",
+            "/ui/dom.js",
+            "/views/workout.js",
+            "/styles/tokens.css",
             "/data/catalog.json",
         ):
             with urlopen(f"{base}{route}", timeout=5) as resp:  # noqa: S310
@@ -196,51 +220,28 @@ def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
             assert b"js-kb-handle-f" not in body
             assert b"data-pose-a" not in body
 
-        with pytest.raises(HTTPError) as exc_info:
-            urlopen(f"{base}/svgs/thumbs/nonexistent.svg", timeout=5)  # noqa: S310
-        assert exc_info.value.code == 404
+        for missing_route in ("/qr.js", "/svgs/thumbs/nonexistent.svg"):
+            with pytest.raises(HTTPError) as exc_info:
+                urlopen(f"{base}{missing_route}", timeout=5)  # noqa: S310
+            assert exc_info.value.code == 404
     finally:
         server.shutdown()
         server.server_close()
 
 
-def test_node_standalone_test_suites(built_pwa: Path) -> None:
-    """Execute the standalone Node test suites against the built PWA bundle."""
-    node_bin = find_node_binary()
-    assert node_bin is not None, "Node binary is required for client JS test suites"
-    env = {**os.environ, "TA_DIST_DIR": str(built_pwa)}
-    proc = subprocess.run(  # noqa: S603
-        [
-            node_bin,
-            "--test",
-            str(REPO_ROOT / "tests" / "pwa_store_qr.test.cjs"),
-            str(REPO_ROOT / "tests" / "pwa_ui_audio.test.cjs"),
-            str(REPO_ROOT / "tests" / "pwa_sound_layers.test.cjs"),
-        ],
-        cwd=str(REPO_ROOT),
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=60,
-        check=False,
-    )
-    assert proc.returncode == 0, f"Node tests failed:\n{proc.stdout}\n{proc.stderr}"
-
-
 def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
     """Verify Python 2D FK rig solver, coaching metadata, and lean thumbnails."""
-    _std_bones, _aliases, specs = load_animation_registry()
+    registry = load_animation_registry()
+    specs = registry.specs
+    arch_coaching = registry.coaching
     assert len(specs) == EXPECTED_ARCHETYPE_COUNT
-
-    arch_coaching = load_archetype_coaching()
     assert set(arch_coaching.keys()) == set(specs.keys())
-    assert not (REPO_ROOT / "data" / "exercise_coaching.json").exists()
+    assert {"barbell", "dumbbell", "kettlebells"} <= set(registry.prop_geometry.keys())
 
     catalog = load_catalog_exercises()
     assert len(catalog) == EXPECTED_CATALOG_COUNT
     programs = load_programs_config()
-    assert "equipment_programs" in programs
-    assert "setup_equipment_props" in programs
+    assert set(programs.keys()) == {"equipment_programs", "intensity_labels"}
 
     sample = catalog[0]
     meta = build_exercise_metadata(
@@ -251,7 +252,10 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
     assert meta["how_to"]
     assert meta["cue_work"]
     assert meta["cue_return"]
-    assert normalize_equipment("kettlebells", "squat") == "kettlebells"
+    assert isinstance(compute_required_equipment(sample), list)
+    assert normalize_equipment("kettlebells", "squat", registry=registry) == (
+        "kettlebells"
+    )
 
     for arch_name in ("squat", "plank", "hinge"):
         spec = specs[arch_name]
@@ -262,8 +266,12 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
         assert 40.0 <= sh_cx <= 200.0
 
     for eq_mode in CANONICAL_EQUIPMENT_MODES:
-        full_svg = render_archetype_svg("squat", equipment=eq_mode, thumbnail=False)
-        thumb_svg = render_archetype_svg("squat", equipment=eq_mode, thumbnail=True)
+        full_svg = render_archetype_svg(
+            "squat", equipment=eq_mode, thumbnail=False, registry=registry
+        )
+        thumb_svg = render_archetype_svg(
+            "squat", equipment=eq_mode, thumbnail=True, registry=registry
+        )
         assert "data-pose-a=" in full_svg
         assert 'class="js-' in full_svg
         assert "data-pose-a=" not in thumb_svg
