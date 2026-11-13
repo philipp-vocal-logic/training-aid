@@ -67,11 +67,15 @@ trap cleanup EXIT
 
 echo "[verify_gate] 3. Static PWA CLI build smoke check..."
 uv run training-aid --build-only --out-dir "$TMP_DIST/dist" >/dev/null
+export TA_DIST_DIR="$TMP_DIST/dist"
 
-echo "[verify_gate] 4. Pytest suite..."
+echo "[verify_gate] 4. Standalone Node test suites ($NODE_BIN)..."
+"$NODE_BIN" --test tests/*.test.cjs
+
+echo "[verify_gate] 5. Pytest suite..."
 uv run pytest -q
 
-echo "[verify_gate] 5. End-to-end catalog, kinematics & PWA bundle audit..."
+echo "[verify_gate] 6. End-to-end catalog, kinematics & PWA bundle audit..."
 uv run training-aid-check
 
 if [[ "$ALLOW_DIRTY" -eq 0 ]]; then
