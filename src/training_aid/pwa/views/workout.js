@@ -5,6 +5,7 @@ import { bindSvg, prefersReducedMotion, tempoCurve, turnaroundForMode } from "..
 import { el, makeFullscreenIcon, makeVolumeOffIcon, makeVolumeOnIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
 import { closeModal, openModal } from "../ui/modal.js";
 import { createViewScope } from "../ui/scope.js";
+import { createWakeLock } from "../ui/wake-lock.js";
 
 const HUD_SPEED_LABELS = { slow: "0.75\u00d7 Slow", normal: "1\u00d7 Tempo", fast: "1.25\u00d7 Fast" };
 const EVENT_AUDIO_MAP = {
@@ -81,7 +82,8 @@ export function renderWorkoutView(ctx) {
   const iconVolOn = makeVolumeOnIcon();
   const iconVolOff = makeVolumeOffIcon();
   const soundBtn = el("button", { type: "button", id: "sound-toggle", className: "hud-icon-btn", "aria-label": "Sound" }, [iconVolOn, iconVolOff]);
-  const fsBtn = el("button", { type: "button", id: "fs-toggle", className: "hud-icon-btn", "aria-label": "Fullscreen" }, [makeFullscreenIcon()]);
+  const canFullscreen = Boolean(document.fullscreenEnabled && typeof document.documentElement?.requestFullscreen === "function");
+  const fsBtn = el("button", { type: "button", id: "fs-toggle", className: "hud-icon-btn", hidden: !canFullscreen, "aria-label": "Fullscreen" }, [makeFullscreenIcon()]);
 
   const getExSvgMarkup = (ex) => ex.svg_markup || resolveSvgMarkup(catalog, ex.svg_key || ex.archetype, ex.eq_mode);
   const svgHolder = el("div", { id: "svg-holder" });
@@ -194,6 +196,8 @@ export function renderWorkoutView(ctx) {
     }
   }
 
+  const wakeLock = createWakeLock(scope);
+  const shouldHoldWakeLock = (s) => !s.paused && s.state !== "IDLE" && s.state !== "FINISHED" && !document.hidden;
   const shouldRunLoop = (s) => !s.paused && s.state !== "FINISHED" && !document.hidden && !(s.state === "IDLE" && prefersReducedMotion());
   const stopLoop = () => { if (rafId !== null) { scope.cancelFrame(rafId); rafId = null; } lastFrameTs = null; };
   const ensureLoop = () => {
@@ -225,6 +229,7 @@ export function renderWorkoutView(ctx) {
       finishScreenEl.style.display = "flex";
     }
     applyPose(snapshot.pose);
+    wakeLock.sync(shouldHoldWakeLock(snapshot));
     ensureLoop();
   }
 
@@ -306,8 +311,12 @@ export function renderWorkoutView(ctx) {
 
   scope.on(document, "visibilitychange", () => {
     const snap = session.getSnapshot();
-    if (document.hidden) { sound.pause(); stopLoop(); }
-    else { if (!snap.paused && snap.state !== "IDLE" && snap.state !== "FINISHED") sound.resume(); ensureLoop(); }
+    if (document.hidden) { wakeLock.release(); sound.pause(); stopLoop(); }
+    else {
+      if (!snap.paused && snap.state !== "IDLE" && snap.state !== "FINISHED") sound.resume();
+      wakeLock.sync(shouldHoldWakeLock(snap));
+      ensureLoop();
+    }
   });
   const mql = typeof globalThis.matchMedia === "function" ? globalThis.matchMedia("(prefers-reduced-motion: reduce)") : null;
   scope.onMediaChange(mql, () => { lastDiscretePoseKey = null; syncSnapshot(session.getSnapshot()); });

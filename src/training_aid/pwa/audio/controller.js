@@ -15,10 +15,24 @@ const validThemeSet = new Set(VALID_SOUND_THEMES);
 export function createController(options) {
   const opts = options || {};
   const win = opts.windowObj || (typeof window !== "undefined" ? window : globalThis);
+  const getNav = () =>
+    opts.navigatorObj !== undefined
+      ? opts.navigatorObj
+      : (typeof navigator !== "undefined" ? navigator : win?.navigator || null);
   const turnaroundFn = typeof opts.turnaroundForMode === "function"
     ? opts.turnaroundForMode
     : resolveTurnaroundDefault;
   const initialTheme = opts.theme || opts.initialTheme;
+
+  function syncAudioSession(active) {
+    const nav = getNav();
+    if (!nav?.audioSession) return;
+    try {
+      nav.audioSession.type = active ? "playback" : "auto";
+    } catch {
+      /* ignore */
+    }
+  }
 
   let currentTheme = validThemeSet.has(initialTheme) ? initialTheme : "minimal";
   let lastActiveTheme = currentTheme !== "off" ? currentTheme : "minimal";
@@ -173,6 +187,7 @@ export function createController(options) {
 
   function ensureAudio() {
     if (currentTheme === "off") return null;
+    syncAudioSession(true);
     if (!audioCtx) {
       try {
         if (typeof opts.audioContextFactory === "function") audioCtx = opts.audioContextFactory();
@@ -201,6 +216,7 @@ export function createController(options) {
   function setTheme(themeId) {
     if (!themeId || !validThemeSet.has(themeId)) return currentTheme;
     if (themeId !== "off") lastActiveTheme = themeId;
+    if (themeId === "off") syncAudioSession(false);
     if (themeId === currentTheme) return currentTheme;
     if (!paused && currentTheme !== "off" && audioAnchorTime !== null && audioCtx?.state === "running") {
       phaseElapsed = Math.max(phaseElapsed, audioCtx.currentTime - audioAnchorTime);
@@ -209,11 +225,14 @@ export function createController(options) {
     currentTheme = themeId;
     scheduledUntilSec = phaseElapsed - 0.0001;
     if (currentTheme === "off") audioAnchorTime = null;
-    else if (!paused && audioCtx?.state === "running") {
-      audioAnchorTime = audioCtx.currentTime - phaseElapsed;
-      if (phaseName === "ACTIVE" || phaseName === "REST") scheduleLookahead();
-    } else {
-      audioAnchorTime = null;
+    else {
+      if (audioCtx) syncAudioSession(true);
+      if (!paused && audioCtx?.state === "running") {
+        audioAnchorTime = audioCtx.currentTime - phaseElapsed;
+        if (phaseName === "ACTIVE" || phaseName === "REST") scheduleLookahead();
+      } else {
+        audioAnchorTime = null;
+      }
     }
     return currentTheme;
   }
@@ -298,6 +317,7 @@ export function createController(options) {
   const stopAll = () => {
     audioAnchorTime = null;
     stopAllNodes();
+    syncAudioSession(false);
   };
 
   function playCue(cueName, params) {
