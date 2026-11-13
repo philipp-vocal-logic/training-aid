@@ -18,11 +18,11 @@ export function renderEditView(ctx) {
   const leftPane = el("section", { className: "editor-pane" });
   const picker = renderCatalogPicker(scope, store, {
     resultsId: "search-results",
-    placeholder: "Search exercises...",
+    placeholder: "Search name, muscle, gear, or category...",
     ariaLabel: "Search exercises",
-    emptyText: "\u2014",
-    limit: 20,
-    showEquipment: false,
+    emptyText: "No matching exercises.",
+    limit: 48,
+    showEquipment: true,
     onAdd: (exId) => {
       store.addExerciseItem(targetId, exId);
       refreshRoutineExercises();

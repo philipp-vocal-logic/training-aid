@@ -23,10 +23,10 @@ export function renderQuickView(ctx) {
   const leftPane = el("section", { className: "editor-pane" });
   const picker = renderCatalogPicker(scope, store, {
     resultsId: "quick-search-results",
-    placeholder: "Search compatible exercises...",
-    ariaLabel: "Search compatible exercises",
-    emptyText: "No compatible exercises match.",
-    limit: 24,
+    placeholder: "Search name, muscle, gear, or category...",
+    ariaLabel: "Search exercises",
+    emptyText: "No matching exercises.",
+    limit: 48,
     showEquipment: true,
     onAdd: (exId) => {
       store.addExerciseItem(TARGET_ID, exId);

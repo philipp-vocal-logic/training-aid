@@ -181,3 +181,160 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   appMod.teardownActiveView();
   assert.equal(activeIntervals.size, 0);
 });
+
+test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope Jumping selection in #edit/r1 and #quick", async () => {
+  const env = installBrowserEnv({
+    catalog,
+    initialHash: "#setup",
+    manualBoot: true,
+  });
+  const { docRoot, appRoot, activeIntervals, getHash, setHash } = env;
+
+  const scopeMod = await importDistModule(distDir, "ui", "scope.js");
+  const widgetsMod = await importDistModule(distDir, "ui", "widgets.js");
+  const appMod = await importDistModule(distDir, "app.js");
+
+  const scope = scopeMod.createViewScope();
+  const mockExercises = Array.from({ length: 120 }, (_, i) => ({
+    id: `ex_${String(i + 1).padStart(3, "0")}`,
+    name: `Exercise ${String(i + 1).padStart(3, "0")}`,
+    primary_muscle: "quadriceps",
+    equipment: i % 2 === 0 ? "other" : "body only",
+    thumb_url: "./svgs/thumbs/squat__body_only.svg",
+  }));
+  const searchCalls = [];
+  const mockStore = {
+    searchCatalog(query, limit, opts) {
+      searchCalls.push({ query, limit, opts });
+      const q = String(query || "").trim().toLowerCase();
+      return mockExercises
+        .filter((ex) => !q || ex.name.toLowerCase().includes(q))
+        .slice(0, limit);
+    },
+  };
+
+  const pickedIds = [];
+  const picker = widgetsMod.renderCatalogPicker(scope, mockStore, {
+    onAdd: (id) => pickedIds.push(id),
+  });
+
+  assert.equal( picker.querySelectorAll("select").length, 0, "Picker must have zero filter dropdowns" );
+  assert.equal(
+    picker.searchInput.getAttribute("placeholder"),
+    "Search name, muscle, gear, or category..."
+  );
+  assert.equal(searchCalls.length, 1);
+  assert.equal(searchCalls[0].limit, 1000);
+  assert.equal(searchCalls[0].opts.compatibleOnly, false);
+
+  // Batch 1: 48 of 120
+  assert.equal(
+    picker.resultsWrap.querySelector(".picker-meta").textContent,
+    "Showing 48 of 120 exercises"
+  );
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 48);
+  const firstThumb = picker.resultsWrap.querySelector(".svg-thumb");
+  assert.equal(firstThumb.getAttribute("loading"), "lazy");
+  assert.equal(firstThumb.getAttribute("decoding"), "async");
+  assert.ok(picker.resultsWrap.textContent.includes("quadriceps \u00b7 other"));
+  const moreBtn1 = picker.resultsWrap.querySelector(".picker-more-btn");
+  assert.ok(Boolean(moreBtn1));
+  assert.equal(moreBtn1.textContent, "Show more (72 remaining)");
+
+  // Batch 2: 96 of 120
+  moreBtn1.click();
+  assert.equal(
+    picker.resultsWrap.querySelector(".picker-meta").textContent,
+    "Showing 96 of 120 exercises"
+  );
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 96);
+  const moreBtn2 = picker.resultsWrap.querySelector(".picker-more-btn");
+  assert.ok(Boolean(moreBtn2));
+  assert.equal(moreBtn2.textContent, "Show more (24 remaining)");
+
+  // Batch 3: 120 of 120 (no more button)
+  moreBtn2.click();
+  assert.equal(
+    picker.resultsWrap.querySelector(".picker-meta").textContent,
+    "120 exercises"
+  );
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 120);
+  assert.equal(picker.resultsWrap.querySelector(".picker-more-btn"), null);
+
+  // Query change resets pagination and handles singular count
+  picker.searchInput.value = "Exercise 001";
+  picker.searchInput.dispatchEvent({ type: "input" });
+  assert.equal(
+    picker.resultsWrap.querySelector(".picker-meta").textContent,
+    "1 exercise"
+  );
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 1);
+  assert.equal(picker.resultsWrap.querySelector(".picker-more-btn"), null);
+
+  // Clearing query resets back to initial 48 batch
+  picker.searchInput.value = "";
+  picker.searchInput.dispatchEvent({ type: "search" });
+  assert.equal(
+    picker.resultsWrap.querySelector(".picker-meta").textContent,
+    "Showing 48 of 120 exercises"
+  );
+  assert.equal(picker.resultsWrap.querySelectorAll(".catalog-card").length, 48);
+
+  // Empty state when no exercises match
+  picker.searchInput.value = "nonexistent-exercise-xyz";
+  picker.searchInput.dispatchEvent({ type: "input" });
+  assert.equal(picker.resultsWrap.textContent, "No matching exercises.");
+  scope.dispose();
+
+  // Boot app and verify searching & adding "Rope Jumping" ("other" equipment) in #edit/r1 and #quick
+  await appMod.boot();
+  assert.equal(getHash(), "#setup");
+  const setupForm = appRoot.querySelector(".setup-form");
+  setupForm.dispatchEvent({ type: "submit" });
+  assert.equal(getHash(), "#plan");
+
+  setHash("#edit/r1");
+  const editSearch = appRoot.querySelector(".minimal-input");
+  assert.equal(
+    editSearch.getAttribute("placeholder"),
+    "Search name, muscle, gear, or category..."
+  );
+  editSearch.value = "Rope Jumping";
+  editSearch.dispatchEvent({ type: "input" });
+  const editResults = docRoot.getElementById("search-results");
+  assert.ok(editResults.textContent.includes("Rope Jumping"));
+  assert.ok(editResults.textContent.includes("quadriceps \u00b7 other"));
+  const addRopeEditBtn = editResults
+    .querySelectorAll("button")
+    .find((b) => b.attrs["aria-label"] === "Add Rope Jumping");
+  assert.ok(Boolean(addRopeEditBtn), "Rope Jumping must be selectable in #edit/r1");
+  addRopeEditBtn.click();
+  assert.ok(
+    appRoot.querySelector(".ex-list").textContent.includes("Rope Jumping"),
+    "Rope Jumping must be added to routine r1"
+  );
+
+  setHash("#quick");
+  const quickSearch = appRoot.querySelector(".minimal-input");
+  assert.equal(
+    quickSearch.getAttribute("placeholder"),
+    "Search name, muscle, gear, or category..."
+  );
+  quickSearch.value = "Rope Jumping";
+  quickSearch.dispatchEvent({ type: "input" });
+  const quickResults = docRoot.getElementById("quick-search-results");
+  assert.ok(quickResults.textContent.includes("Rope Jumping"));
+  assert.ok(quickResults.textContent.includes("quadriceps \u00b7 other"));
+  const addRopeQuickBtn = quickResults
+    .querySelectorAll("button")
+    .find((b) => b.attrs["aria-label"] === "Add Rope Jumping");
+  assert.ok(Boolean(addRopeQuickBtn), "Rope Jumping must be selectable in #quick");
+  addRopeQuickBtn.click();
+  assert.ok(
+    appRoot.querySelector(".ex-list").textContent.includes("Rope Jumping"),
+    "Rope Jumping must be added to On-the-Fly session"
+  );
+
+  appMod.teardownActiveView();
+  assert.equal(activeIntervals.size, 0);
+});

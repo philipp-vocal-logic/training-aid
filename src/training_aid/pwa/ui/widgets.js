@@ -155,12 +155,14 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
   const scope = isObjCall ? opts.scope : scopeOrOpts;
   const store = isObjCall ? opts.store : maybeStore;
 
-  const placeholder = opts.placeholder || "Search exercises...";
+  const placeholder = opts.placeholder || "Search name, muscle, gear, or category...";
   const ariaLabel = opts.ariaLabel || placeholder.replace(/\.+$/, "");
   const resultsId = opts.resultsId || "search-results";
-  const emptyText = opts.emptyText || "No compatible exercises match.";
-  const limit = Number(opts.limit) > 0 ? Number(opts.limit) : 24;
-  const showEquipment = Boolean(opts.showEquipment);
+  const emptyText = opts.emptyText || "No matching exercises.";
+  const pageSize = Number(opts.limit) > 0 ? Math.trunc(Number(opts.limit)) : 48;
+  const compatibleOnly = Boolean(opts.compatibleOnly);
+  const showEquipment = opts.showEquipment !== false;
+  const fetchLimit = 1000;
   const onSelect = opts.onAdd || opts.onSelect || (() => {});
 
   const searchInput = el("input", {
@@ -173,17 +175,28 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
   const resultsWrap = el("div", { id: resultsId });
   const pane = el("section", { className: "editor-pane" }, [searchInput, resultsWrap]);
 
-  function refresh() {
-    const results = store.searchCatalog(searchInput.value, limit, { compatibleOnly: true }) || [];
+  let visibleCount = pageSize;
+  let lastQuery = searchInput.value;
+
+  function renderSlice(results) {
     if (results.length === 0) {
       resultsWrap.replaceChildren(el("div", { className: "muted", textContent: emptyText }));
       return;
     }
 
+    const shown = results.slice(0, visibleCount);
+    const metaRow = el("div", {
+      className: "picker-meta muted text-xs",
+      textContent:
+        results.length > shown.length
+          ? `Showing ${shown.length} of ${results.length} exercises`
+          : `${results.length} ${results.length === 1 ? "exercise" : "exercises"}`,
+    });
+
     const grid = el(
       "div",
       { className: "catalog-grid" },
-      results.map((ex) => {
+      shown.map((ex) => {
         const thumbSrc = ex.thumb_url || "./svgs/thumbs/squat__body_only.svg";
         const addBtn = el("button", {
           type: "button",
@@ -199,7 +212,13 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
 
         return el("div", { className: "catalog-card" }, [
           el("div", { className: "ex-row-left" }, [
-            el("img", { src: thumbSrc, alt: "", className: "svg-thumb" }),
+            el("img", {
+              src: thumbSrc,
+              alt: "",
+              className: "svg-thumb",
+              loading: "lazy",
+              decoding: "async",
+            }),
             el("div", { className: "min-w-0" }, [
               el("div", { className: "ex-row-name", textContent: ex.name }),
               el("div", { className: "muted text-xs text-cap", textContent: subText }),
@@ -209,7 +228,30 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
         ]);
       })
     );
-    resultsWrap.replaceChildren(grid);
+
+    if (results.length > shown.length) {
+      const moreBtn = el("button", {
+        type: "button",
+        className: "btn-ghost btn-compact picker-more-btn",
+        textContent: `Show more (${results.length - shown.length} remaining)`,
+      });
+      scope.on(moreBtn, "click", () => {
+        visibleCount += pageSize;
+        renderSlice(results);
+      });
+      resultsWrap.replaceChildren(metaRow, grid, moreBtn);
+    } else {
+      resultsWrap.replaceChildren(metaRow, grid);
+    }
+  }
+
+  function refresh() {
+    if (searchInput.value !== lastQuery) {
+      visibleCount = pageSize;
+      lastQuery = searchInput.value;
+    }
+    const results = store.searchCatalog(searchInput.value, fetchLimit, { compatibleOnly }) || [];
+    renderSlice(results);
   }
 
   scope.on(searchInput, "input", refresh);
