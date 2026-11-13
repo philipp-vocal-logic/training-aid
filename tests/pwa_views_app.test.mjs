@@ -338,3 +338,141 @@ test("renderCatalogPicker batch pagination, query reset, lazy thumbs, and Rope J
   appMod.teardownActiveView();
   assert.equal(activeIntervals.size, 0);
 });
+
+test("makeEquipmentIcon SVG symbols, .equip-chip & #setup tile icons, and #setup newly-checked preview", async () => {
+  const env = installBrowserEnv({
+    catalog,
+    initialHash: "#setup",
+    manualBoot: true,
+  });
+  const { docRoot, appRoot, activeIntervals, setHash } = env;
+
+  const constantsMod = await importDistModule(distDir, "core", "constants.js");
+  const domMod = await importDistModule(distDir, "ui", "dom.js");
+  const appMod = await importDistModule(distDir, "app.js");
+
+  const consolidatedIds = [
+    "body_only",
+    "dumbbell",
+    "kettlebells",
+    "bands",
+    "barbell",
+    "pull_up_bar",
+    "bench",
+    "machine",
+    "cable",
+    "unknown_fallback_id",
+  ];
+  for (const id of consolidatedIds) {
+    const icon = domMod.makeEquipmentIcon(id, 15);
+    assert.equal(icon.tagName, "SVG");
+    assert.equal(icon.classList.contains("equip-icon"), true);
+    assert.equal(icon.getAttribute("aria-hidden"), "true");
+    assert.equal(icon.getAttribute("data-equip-icon"), id);
+    assert.equal(icon.dataset.equipIcon, id);
+    assert.equal(icon.getAttribute("width"), "15");
+    assert.equal(icon.getAttribute("height"), "15");
+    assert.ok(
+      icon.children.length >= 1 && icon.children.length <= 3,
+      `Expected 1..3 child nodes for ${id}, got ${icon.children.length}`
+    );
+    assert.equal(icon.textContent, "", `Icon for ${id} must have zero textContent`);
+  }
+
+  // Verify "cable" alias matches "machine" glyph structure and unknown ID falls back to circle
+  const machineIcon = domMod.makeEquipmentIcon("machine", 14);
+  const cableIcon = domMod.makeEquipmentIcon("cable", 14);
+  assert.equal(cableIcon.children.length, machineIcon.children.length);
+  assert.equal(
+    cableIcon.children[1].getAttribute("d"),
+    machineIcon.children[1].getAttribute("d")
+  );
+  const fallbackIcon = domMod.makeEquipmentIcon("unknown_fallback_id");
+  assert.equal(fallbackIcon.children.length, 1);
+  assert.equal(fallbackIcon.children[0].tagName, "CIRCLE");
+
+  // Boot at #setup and verify .setup-equip-grid tiles & newly-checked preview behavior
+  await appMod.boot();
+  const equipGrid = appRoot.querySelector(".setup-equip-grid");
+  assert.ok(Boolean(equipGrid), "#setup must render .setup-equip-grid container");
+  const tileLabels = equipGrid.querySelectorAll(".tile-option");
+  assert.equal(tileLabels.length, constantsMod.EQUIPMENT_OPTIONS.length);
+
+  constantsMod.EQUIPMENT_OPTIONS.forEach((opt, idx) => {
+    const label = tileLabels[idx];
+    const icon = label.querySelector(".equip-icon");
+    assert.ok(Boolean(icon), `Tile for ${opt.id} must contain .equip-icon`);
+    assert.equal(icon.getAttribute("data-equip-icon"), opt.id);
+    assert.equal(icon.getAttribute("width"), "16");
+    assert.equal(label.textContent, opt.label);
+  });
+
+  const svgWrap = docRoot.getElementById("setup-svg-wrap");
+  const eqInputs = equipGrid.querySelectorAll("input");
+  const dumbbellOpt = constantsMod.EQUIPMENT_OPTIONS.find((o) => o.id === "dumbbell");
+  const laterOpt =
+    constantsMod.EQUIPMENT_OPTIONS.find((o) => o.id === "barbell") ||
+    constantsMod.EQUIPMENT_OPTIONS[1];
+  const dumbbellInput = eqInputs.find((i) => i.value === dumbbellOpt.id);
+  const laterInput = eqInputs.find((i) => i.value === laterOpt.id);
+
+  dumbbellInput.checked = true;
+  dumbbellInput.dispatchEvent({ type: "change" });
+  assert.equal(
+    svgWrap.innerHTML,
+    domMod.resolveSvgMarkup(catalog, dumbbellOpt.arch, dumbbellOpt.prop).trim()
+  );
+  assert.equal(
+    svgWrap.querySelector("svg").getAttribute("data-archetype"),
+    dumbbellOpt.arch
+  );
+
+  // Checking a second option after "dumbbell" previews that newly checked option
+  laterInput.checked = true;
+  laterInput.dispatchEvent({ type: "change" });
+  assert.equal(
+    svgWrap.innerHTML,
+    domMod.resolveSvgMarkup(catalog, laterOpt.arch, laterOpt.prop).trim()
+  );
+  assert.equal(
+    svgWrap.querySelector("svg").getAttribute("data-archetype"),
+    laterOpt.arch
+  );
+
+  // Unchecking the second option falls back to the remaining checked "dumbbell" option
+  laterInput.checked = false;
+  laterInput.dispatchEvent({ type: "change" });
+  assert.equal(
+    svgWrap.innerHTML,
+    domMod.resolveSvgMarkup(catalog, dumbbellOpt.arch, dumbbellOpt.prop).trim()
+  );
+
+  // Submit setup and verify .equip-chip-bar icons in #plan and #quick
+  appRoot.querySelector(".setup-form").dispatchEvent({ type: "submit" });
+  for (const route of ["#plan", "#quick"]) {
+    setHash(route);
+    const chipBar = appRoot.querySelector(".equip-chip-bar");
+    assert.ok(Boolean(chipBar), `${route} must render .equip-chip-bar`);
+    const baselineChip = chipBar.querySelector(".is-baseline");
+    assert.ok(Boolean(baselineChip));
+    assert.equal(
+      baselineChip.querySelector(".equip-icon").getAttribute("data-equip-icon"),
+      "body_only"
+    );
+    assert.equal(baselineChip.textContent, "Bodyweight \u2713");
+
+    const toggleBtns = chipBar.querySelectorAll("button");
+    assert.equal(toggleBtns.length, constantsMod.EQUIPMENT_OPTIONS.length);
+    constantsMod.EQUIPMENT_OPTIONS.forEach((opt, idx) => {
+      const btn = toggleBtns[idx];
+      const icon = btn.querySelector(".equip-icon");
+      assert.ok(Boolean(icon), `Chip button for ${opt.id} in ${route} must contain .equip-icon`);
+      assert.equal(icon.getAttribute("data-equip-icon"), opt.id);
+      assert.equal(icon.getAttribute("width"), "14");
+      assert.equal(btn.textContent, opt.label);
+    });
+  }
+
+  appMod.teardownActiveView();
+  assert.equal(activeIntervals.size, 0);
+});
