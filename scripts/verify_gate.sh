@@ -39,9 +39,15 @@ uv run ruff check .
 uv run ruff format --check .
 
 echo "[verify_gate] 2. JavaScript syntax check ($NODE_BIN)..."
-for js_file in src/training_aid/pwa/*.js src/training_aid/static/*.js; do
+JS_COUNT=0
+while IFS= read -r -d '' js_file; do
   "$NODE_BIN" --check "$js_file"
-done
+  JS_COUNT=$((JS_COUNT + 1))
+done < <(find src/training_aid/pwa src/training_aid/static tests -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 2>/dev/null | sort -z)
+if [[ "$JS_COUNT" -eq 0 ]]; then
+  echo "[verify_gate] ERROR: No JavaScript files discovered for syntax check." >&2
+  exit 1
+fi
 
 if [[ "$QUICK" -eq 1 ]]; then
   if [[ "$ALLOW_DIRTY" -eq 0 && -n "$(git status --porcelain)" ]]; then
