@@ -102,7 +102,6 @@
     var tempoMode = svgEl.dataset.tempoMode || "standard";
     var holdStyle = svgEl.dataset.holdStyle || "settle";
     var eqMode = svgEl.dataset.equipment || "body_only";
-    var barMode = svgEl.dataset.barMode || "hands";
     var bandTarget = svgEl.dataset.bandTarget || "hand";
     var cableTarget = svgEl.dataset.cableTarget || "hand";
     var anchorX =
@@ -229,23 +228,21 @@
         setCircleEl(elWeightCap, handF[0], handF[1]);
         setCircleEl(elWeightB, handB[0], handB[1]);
       } else if (eqMode === "kettlebells") {
-        var kbFy = Math.min(165.0, handF[1] + 9.0);
-        var kbBy = Math.min(165.0, handB[1] + 8.0);
-        var hdlFy = Math.min(159.0, handF[1] + 2.5);
+        var kbFy = handF[1] + 9.0;
+        var kbBy = handB[1] + 8.0;
+        var hdlFy = handF[1] + 2.5;
         setCircleEl(elKbHandleF, handF[0], hdlFy);
         setCircleEl(elWeightF, handF[0], kbFy);
         setCircleEl(elWeightB, handB[0], kbBy);
       } else if (eqMode === "barbell") {
-        var pb = barMode === "shoulder" ? shoulderB : handB;
-        var pf = barMode === "shoulder" ? shoulder : handF;
-        setCircleEl(elWeightB, pb[0], pb[1]);
+        setCircleEl(elWeightB, handB[0], handB[1]);
         setLineEl(
           elBarShaft,
-          [pb[0] - 6.0, pb[1] - 2.0],
-          [pf[0] + 6.0, pf[1] + 2.0]
+          [handB[0] - 6.0, handB[1] - 2.0],
+          [handF[0] + 6.0, handF[1] + 2.0]
         );
-        setCircleEl(elWeightF, pf[0], pf[1]);
-        setCircleEl(elBarHub, pf[0], pf[1]);
+        setCircleEl(elWeightF, handF[0], handF[1]);
+        setCircleEl(elBarHub, handF[0], handF[1]);
       } else if (eqMode === "bands" && anchorX !== null && anchorY !== null) {
         var anchor = [anchorX, anchorY];
         var bTargetB = handB;
