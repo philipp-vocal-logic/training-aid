@@ -16,10 +16,8 @@ from training_aid.coaching import (
 )
 from training_aid.svg_assets import (
     CANONICAL_EQUIPMENT_MODES,
-    SVGS_DIR,
     load_animation_registry,
     normalize_equipment,
-    pregenerate_all_svgs,
     render_archetype_svg,
 )
 
@@ -63,19 +61,13 @@ def load_catalog_exercises(
     exercises: list[CatalogExercise] = []
     for item in raw_items:
         primary_list = item.get("primaryMuscles") or []
-        secondary_list = item.get("secondaryMuscles") or []
         exercises.append(
             CatalogExercise(
                 id=str(item["id"]),
                 name=str(item["name"]),
                 category=str(item.get("category") or "strength"),
-                level=str(item.get("level") or "beginner"),
                 equipment=str(item.get("equipment") or "body only"),
                 primary_muscle=str(primary_list[0]) if primary_list else "other",
-                secondary_muscles=", ".join(str(m) for m in secondary_list),
-                instructions=tuple(
-                    str(step) for step in (item.get("instructions") or [])
-                ),
             )
         )
     return exercises
@@ -115,7 +107,8 @@ def load_programs_config(
             str(k): str(v) for k, v in raw["equipment_archetypes"].items()
         },
         "setup_equipment_props": {
-            str(k): str(v) for k, v in raw["setup_equipment_props"].items()
+            str(k): normalize_equipment(str(v))
+            for k, v in raw["setup_equipment_props"].items()
         },
     }
 
@@ -139,10 +132,8 @@ def _compile_exercise_record(
         "id": exercise.id,
         "name": exercise.name,
         "category": exercise.category,
-        "level": exercise.level,
         "equipment": exercise.equipment,
         "primary_muscle": exercise.primary_muscle,
-        "secondary_muscles": exercise.secondary_muscles,
         "archetype": archetype,
         "eq_mode": eq_mode,
         "svg_key": f"{archetype}:{eq_mode}",
@@ -151,7 +142,6 @@ def _compile_exercise_record(
         "is_hold": bool(meta["is_hold"]),
         "unit": str(meta["unit"]),
         "how_to": str(meta["how_to"]),
-        "instructions": list(meta["instructions"]),
         "cue_work": str(meta["cue_work"]),
         "cue_return": str(meta["cue_return"]),
         "tempo_mode": str(meta["tempo_mode"]),
@@ -163,15 +153,13 @@ def _build_animated_svgs(
     archetype_specs: dict[str, dict[str, Any]],
 ) -> dict[str, str]:
     svgs: dict[str, str] = {}
-    for arch, spec in archetype_specs.items():
+    for arch in archetype_specs:
         for eq_mode in CANONICAL_EQUIPMENT_MODES:
             svgs[f"{arch}:{eq_mode}"] = render_archetype_svg(
                 arch,
                 equipment=eq_mode,
                 thumbnail=False,
             )
-        default_eq = normalize_equipment(str(spec["default_equipment"]), arch)
-        svgs[arch] = svgs[f"{arch}:{default_eq}"]
     return svgs
 
 
@@ -304,14 +292,7 @@ def build_pwa(
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if static_dir == STATIC_SRC_DIR and not all(
-        (SVGS_DIR / f"{arch}.svg").exists()
-        for arch in load_animation_registry(data_dir / "animations.json")[2]
-    ):
-        pregenerate_all_svgs(SVGS_DIR)
-
     _copy_asset_tree(static_dir, out_dir / "static")
-    pregenerate_all_svgs(out_dir / "static" / "svgs")
 
     if pwa_dir.is_dir() and any(pwa_dir.iterdir()):
         _copy_asset_tree(pwa_dir, out_dir)

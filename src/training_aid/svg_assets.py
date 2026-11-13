@@ -1,15 +1,29 @@
 # Copyright (c) 2026 Philipp Kaaden
 """2D forward-kinematics exercise rig and SVG asset generator."""
 
+import functools
 import json
 import math
-import sys
+import re
 from html import escape
 from pathlib import Path
 from typing import Any
 
-SVGS_DIR = Path(__file__).resolve().parent / "static" / "svgs"
 ANIMATIONS_JSON = Path(__file__).resolve().parents[2] / "data" / "animations.json"
+
+__all__ = [
+    "ANIMATIONS_JSON",
+    "BONE_KEYS",
+    "CANONICAL_EQUIPMENT_MODES",
+    "POSE_KEYS",
+    "compile_animation_spec",
+    "compute_shadow",
+    "lerp_pose",
+    "load_animation_registry",
+    "normalize_equipment",
+    "render_archetype_svg",
+    "solve_fk",
+]
 
 Point = tuple[float, float]
 LimbAngles = tuple[float, float]
@@ -17,6 +31,7 @@ SpineAngles = tuple[float, float, float]
 
 _HALF_TURN_DEG = 180.0
 _FULL_TURN_DEG = 360.0
+_JS_CLASS_RE = re.compile(r' class="js-[^"]+"')
 
 POSE_KEYS: tuple[str, ...] = (
     "hip_x",
@@ -295,7 +310,11 @@ def load_animation_registry(
     return (std_bones, aliases, specs)
 
 
-STD_BONES, _EQUIPMENT_ALIASES, ARCHETYPE_SPECS = load_animation_registry()
+@functools.lru_cache(maxsize=1)
+def _default_registry() -> tuple[
+    dict[str, float], dict[str, str], dict[str, dict[str, Any]]
+]:
+    return load_animation_registry()
 
 
 def lerp_pose(
@@ -364,18 +383,6 @@ def solve_fk(
     }
 
 
-def evaluate_archetype_pose(
-    archetype: str,
-    t: float,
-    *,
-    swap_sides: bool = False,
-) -> dict[str, Point]:
-    """Evaluate 2D joint coordinates for an exercise archetype at phase t."""
-    spec = ARCHETYPE_SPECS.get(archetype, ARCHETYPE_SPECS["squat"])
-    pose = lerp_pose(spec["pose_a"], spec["pose_b"], t)
-    return solve_fk(spec["bones"], pose, swap_sides=swap_sides)
-
-
 def compute_shadow(joints: dict[str, Point]) -> tuple[float, float]:
     """Compute floor shadow horizontal center and radius from joint coordinates."""
     xs = (
@@ -395,7 +402,8 @@ def compute_shadow(joints: dict[str, Point]) -> tuple[float, float]:
 
 def normalize_equipment(equipment: str | None, archetype: str = "squat") -> str:
     """Normalize raw equipment text into a supported SVG prop mode."""
-    spec = ARCHETYPE_SPECS.get(archetype, ARCHETYPE_SPECS["squat"])
+    _std_bones, aliases, specs = _default_registry()
+    spec = specs.get(archetype, specs["squat"])
     default_eq = str(spec["default_equipment"])
     if equipment is None:
         return default_eq
@@ -403,7 +411,7 @@ def normalize_equipment(equipment: str | None, archetype: str = "squat") -> str:
     raw = equipment.strip().lower().replace("-", "_").replace(" ", "_")
     if not raw:
         return "body_only"
-    return _EQUIPMENT_ALIASES.get(raw, default_eq)
+    return aliases.get(raw, default_eq)
 
 
 def _compute_aura_center(spec: dict[str, Any]) -> Point:
@@ -618,8 +626,9 @@ def render_archetype_svg(
     thumbnail: bool = False,
 ) -> str:
     """Render a complete exercise SVG document with FK rig metadata and props."""
-    arch = archetype if archetype in ARCHETYPE_SPECS else "squat"
-    spec = ARCHETYPE_SPECS[arch]
+    _std_bones, _aliases, specs = _default_registry()
+    arch = archetype if archetype in specs else "squat"
+    spec = specs[arch]
     bones = spec["bones"]
     pa = spec["pose_a"]
     pb = spec["pose_b"]
@@ -628,12 +637,7 @@ def render_archetype_svg(
     t_init = 0.9 if thumbnail else 0.0
     j = solve_fk(bones, lerp_pose(pa, pb, t_init))
 
-    pose_a_attr = escape(json.dumps(pa, separators=(",", ":")), quote=True)
-    pose_b_attr = escape(json.dumps(pb, separators=(",", ":")), quote=True)
-    bones_attr = escape(json.dumps(bones, separators=(",", ":")), quote=True)
     label = escape(str(spec["label"]), quote=True)
-    tempo_mode = escape(str(spec["coaching"]["tempo_mode"]), quote=True)
-    hold_style = escape(str(spec["hold_style"]), quote=True)
     grad_id = f"glow-{arch}"
 
     aura_cx, aura_cy = _compute_aura_center(spec)
@@ -649,16 +653,30 @@ def render_archetype_svg(
         spec.get("forefoot"), j
     )
     fixture_markup = _render_fixture(spec["fixture"], t_init, eq_mode)
-    extra_attr_str = " ".join(extra_svg_attrs)
 
-    svg_open = (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" '
-        'preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" '
-        f'aria-label="{label}" data-archetype="{arch}" '
-        f'data-tempo-mode="{tempo_mode}" data-hold-style="{hold_style}" '
-        f'data-bones="{bones_attr}" data-pose-a="{pose_a_attr}" '
-        f'data-pose-b="{pose_b_attr}" {extra_attr_str}>'
-    )
+    if thumbnail:
+        svg_open = (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" '
+            'preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" '
+            f'aria-label="{label}" data-archetype="{arch}" '
+            f'data-equipment="{eq_mode}">'
+        )
+    else:
+        pose_a_attr = escape(json.dumps(pa, separators=(",", ":")), quote=True)
+        pose_b_attr = escape(json.dumps(pb, separators=(",", ":")), quote=True)
+        bones_attr = escape(json.dumps(bones, separators=(",", ":")), quote=True)
+        tempo_mode = escape(str(spec["coaching"]["tempo_mode"]), quote=True)
+        hold_style = escape(str(spec["hold_style"]), quote=True)
+        extra_attr_str = " ".join(extra_svg_attrs)
+        svg_open = (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" '
+            'preserveAspectRatio="xMidYMid meet" class="exercise-svg" role="img" '
+            f'aria-label="{label}" data-archetype="{arch}" '
+            f'data-tempo-mode="{tempo_mode}" data-hold-style="{hold_style}" '
+            f'data-bones="{bones_attr}" data-pose-a="{pose_a_attr}" '
+            f'data-pose-b="{pose_b_attr}" {extra_attr_str}>'
+        )
+
     aura_line = (
         f'  <circle class="js-aura" cx="{aura_cx}" cy="{aura_cy}" '
         f'r="{aura_r:.2f}" fill="url(#{grad_id})" />'
@@ -695,8 +713,7 @@ def render_archetype_svg(
         'stroke-width="1.6" />'
     )
 
-    lines = [
-        svg_open,
+    body_lines = [
         "  <defs>",
         f'    <radialGradient id="{grad_id}" cx="50%" cy="50%" r="50%">',
         '      <stop offset="0%" stop-color="#10b981" stop-opacity="0.18" />',
@@ -751,36 +768,7 @@ def render_archetype_svg(
         "</svg>",
         "",
     ]
-    return "\n".join(lines)
-
-
-def pregenerate_all_svgs(output_dir: Path = SVGS_DIR) -> list[Path]:
-    """Pregenerate static peak-pose SVG thumbnails for all exercise archetypes."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    written: list[Path] = []
-    for archetype in ARCHETYPE_SPECS:
-        target = output_dir / f"{archetype}.svg"
-        target.write_text(
-            render_archetype_svg(archetype, equipment=None, thumbnail=True),
-            encoding="utf-8",
-        )
-        written.append(target)
-    return written
-
-
-def load_svg_markup(
-    archetype: str,
-    svg_dir: Path = SVGS_DIR,
-    equipment: str | None = None,
-) -> str:
-    """Ensure static SVGs exist and render live t=0 SVG markup for an archetype."""
-    arch = archetype if archetype in ARCHETYPE_SPECS else "squat"
-    target = svg_dir / f"{arch}.svg"
-    if not target.exists():
-        pregenerate_all_svgs(svg_dir)
-    return render_archetype_svg(arch, equipment=equipment, thumbnail=False)
-
-
-if __name__ == "__main__":
-    files = pregenerate_all_svgs()
-    sys.stdout.write(f"Pregenerated {len(files)} SVG files in {SVGS_DIR}\n")
+    body = "\n".join(body_lines)
+    if thumbnail:
+        body = _JS_CLASS_RE.sub("", body)
+    return f"{svg_open}\n{body}"

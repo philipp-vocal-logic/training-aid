@@ -433,7 +433,7 @@
     "full_gym": "bench_press"
   },
   "setup_equipment_props": {
-    "body_only": "body only",
+    "body_only": "body_only",
     "dumbbells": "dumbbell",
     "kettlebell_bands": "bands",
     "full_gym": "barbell"
