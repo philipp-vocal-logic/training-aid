@@ -497,3 +497,168 @@ test("manual out-of-profile and 'other' exercises stay preserved across plan, qu
     }
   }
 });
+
+test("matchesCatalogFilters unit checks for equipment OR, __other__ exclusion, and facet ANDing", () => {
+  const floorEx = {
+    id: "Pushups",
+    name: "Pushups",
+    primary_muscle: "chest",
+    category: "strength",
+    archetype: "pushup",
+    required_equipment: [],
+  };
+  const multiEx = {
+    id: "Dumbbell_Bench_Press",
+    name: "Dumbbell Bench Press",
+    primary_muscle: "chest",
+    category: "strength",
+    archetype: "bench_press",
+    required_equipment: ["dumbbell", "bench"],
+  };
+  const otherEx = {
+    id: "Ab_Roller",
+    name: "Ab Roller",
+    primary_muscle: "abdominals",
+    category: "strength",
+    archetype: "plank",
+    required_equipment: ["__other__"],
+  };
+  const kbEx = {
+    id: "Kettlebell_Swing",
+    name: "Kettlebell Swing",
+    primary_muscle: "hamstrings",
+    category: "strength",
+    archetype: "hinge",
+    required_equipment: ["kettlebells"],
+  };
+
+  assert.equal(catalogMod.matchesCatalogFilters(null, {}), false);
+  assert.equal(catalogMod.matchesCatalogFilters(otherEx, undefined), true);
+  assert.equal(catalogMod.matchesCatalogFilters(otherEx, null), true);
+  assert.equal(
+    catalogMod.matchesCatalogFilters(otherEx, { equipment: [], muscle: "", category: "", movement: "" }),
+    true,
+  );
+  assert.equal(catalogMod.matchesCatalogFilters(otherEx, { equipment: ["  "] }), true);
+
+  assert.equal(catalogMod.matchesCatalogFilters(floorEx, { equipment: ["body_only"] }), true);
+  assert.equal(catalogMod.matchesCatalogFilters(floorEx, { equipment: [" BODY_ONLY "] }), true);
+  assert.equal(catalogMod.matchesCatalogFilters(otherEx, { equipment: ["body_only"] }), false);
+  assert.equal(catalogMod.matchesCatalogFilters(multiEx, { equipment: ["body_only"] }), false);
+
+  assert.equal(catalogMod.matchesCatalogFilters(multiEx, { equipment: ["dumbbell"] }), true);
+  assert.equal(catalogMod.matchesCatalogFilters(multiEx, { equipment: ["bench"] }), true);
+  assert.equal(catalogMod.matchesCatalogFilters(multiEx, { equipment: ["kettlebells"] }), false);
+
+  assert.equal(catalogMod.matchesCatalogFilters(floorEx, { equipment: ["body_only", "kettlebells"] }), true);
+  assert.equal(catalogMod.matchesCatalogFilters(kbEx, { equipment: ["body_only", "kettlebells"] }), true);
+  assert.equal(catalogMod.matchesCatalogFilters(multiEx, { equipment: ["body_only", "kettlebells"] }), false);
+
+  assert.equal(
+    catalogMod.matchesCatalogFilters(multiEx, {
+      equipment: ["dumbbell"],
+      muscle: " Chest ",
+      category: "Strength",
+      movement: " Push ",
+    }),
+    true,
+  );
+  assert.equal(
+    catalogMod.matchesCatalogFilters(multiEx, {
+      equipment: ["dumbbell"],
+      muscle: "chest",
+      category: "cardio",
+      movement: "push",
+    }),
+    false,
+  );
+  assert.equal(
+    catalogMod.matchesCatalogFilters(multiEx, {
+      equipment: ["dumbbell"],
+      muscle: "chest",
+      category: "strength",
+      movement: "pull",
+    }),
+    false,
+  );
+});
+
+test("store.searchCatalog with filters enforces strict A-Z order and faceted filtering across all 876 exercises", () => {
+  const store = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
+  store.setupPlan({ name: "FacetUser", equipment_list: ["dumbbell"], starting_intensity: "moderate", days_per_week: 3 });
+
+  const allSorted = store.searchCatalog("", 1000, {
+    filters: { equipment: [], muscle: "", category: "", movement: "" },
+  });
+  assert.equal(allSorted.length, 876);
+  for (let i = 1; i < allSorted.length; i++) {
+    const cmp = allSorted[i - 1].name.localeCompare(allSorted[i].name, "en", { sensitivity: "base" });
+    assert.ok(cmp <= 0, `Expected '${allSorted[i - 1].name}' <= '${allSorted[i].name}'`);
+  }
+  const hasIncompatBeforeCompat = allSorted.some((ex, idx) => (
+    !catalogMod.isExerciseCompatible(ex, ["dumbbell"])
+    && idx < allSorted.findIndex((item) => item.id === "Dumbbell_Bench_Press")
+  ));
+  assert.equal(hasIncompatBeforeCompat, true);
+
+  const bodyOnly = store.searchCatalog("", 1000, { filters: { equipment: ["body_only"] } });
+  assert.equal(bodyOnly.length, 176);
+  assert.ok(bodyOnly.every((ex) => ex.required_equipment.length === 0));
+  assert.equal(bodyOnly.some((ex) => ex.required_equipment.includes("__other__")), false);
+
+  const dumbbell = store.searchCatalog("", 1000, { filters: { equipment: ["dumbbell"] } });
+  assert.ok(dumbbell.some((ex) => ex.id === "Dumbbell_Bench_Press"));
+  assert.ok(dumbbell.every((ex) => ex.required_equipment.includes("dumbbell")));
+
+  const kbOnly = store.searchCatalog("", 1000, { filters: { equipment: ["kettlebells"] } });
+  const bodyOrKb = store.searchCatalog("", 1000, { filters: { equipment: ["body_only", "kettlebells"] } });
+  assert.equal(bodyOrKb.length, bodyOnly.length + kbOnly.length);
+  assert.ok(bodyOrKb.every((ex) => ex.required_equipment.length === 0 || ex.required_equipment.includes("kettlebells")));
+
+  const combined = store.searchCatalog("", 1000, {
+    filters: { equipment: ["dumbbell"], muscle: "chest", category: "strength", movement: "push" },
+  });
+  assert.ok(combined.length > 0);
+  assert.ok(combined.some((ex) => ex.id === "Dumbbell_Bench_Press"));
+  for (const ex of combined) {
+    assert.equal(ex.required_equipment.includes("dumbbell"), true);
+    assert.equal(ex.primary_muscle.toLowerCase(), "chest");
+    assert.equal(ex.category.toLowerCase(), "strength");
+    assert.equal(catalogMod.familyForArchetype(ex.archetype), "push");
+  }
+
+  const queryResults = store.searchCatalog("rope jumping", 50, {
+    filters: { equipment: [], muscle: "", category: "", movement: "" },
+  });
+  assert.equal(queryResults[0].id, "Rope_Jumping");
+
+  const pullQuery = store.searchCatalog("pull-up", 50, {
+    filters: { equipment: [], muscle: "", category: "", movement: "pull" },
+  });
+  assert.ok(pullQuery.length > 0);
+  assert.equal(pullQuery[0].id, "Band_Assisted_Pull-Up");
+  assert.equal(catalogMod.isExerciseCompatible(pullQuery[0], ["dumbbell"]), false);
+  for (let i = 1; i < pullQuery.length; i++) {
+    assert.ok(pullQuery[i - 1].name.localeCompare(pullQuery[i].name, "en", { sensitivity: "base" }) <= 0);
+  }
+
+  const tierSynthetic = [
+    { id: "Meta_Chest_Builder", name: "Chest Builder", primary_muscle: "chest", equipment: "dumbbell", category: "press", archetype: "bench_press", required_equipment: ["dumbbell"] },
+    { id: "Z_Press_Tokens", name: "Zeta Press Move", primary_muscle: "chest", equipment: "dumbbell", category: "strength", archetype: "bench_press", required_equipment: ["dumbbell"] },
+    { id: "A_Press_Tokens", name: "Alpha Press Move", primary_muscle: "chest", equipment: "barbell", category: "strength", archetype: "bench_press", required_equipment: ["barbell"] },
+    { id: "Press_Prefix", name: "Press Away", primary_muscle: "chest", equipment: "barbell", category: "strength", archetype: "bench_press", required_equipment: ["barbell"] },
+    { id: "Press_Exact", name: "Press", primary_muscle: "chest", equipment: "barbell", category: "strength", archetype: "bench_press", required_equipment: ["barbell"] },
+  ];
+  const tiered = catalogMod.searchCompatibleCatalog(
+    tierSynthetic,
+    "press",
+    10,
+    ["dumbbell"],
+    false,
+    { equipment: [], muscle: "", category: "", movement: "" },
+  );
+  assert.deepEqual(
+    tiered.map((ex) => ex.id),
+    ["Press_Exact", "Press_Prefix", "A_Press_Tokens", "Z_Press_Tokens", "Meta_Chest_Builder"],
+  );
+});

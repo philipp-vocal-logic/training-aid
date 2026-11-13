@@ -107,12 +107,48 @@ function buildCatalogSynonyms(equipNorm, muscleNorm) {
   return syns.join(" ");
 }
 
-export function searchCompatibleCatalog(exerciseList, query, limit, equipFilter, enforceCompat) {
+export function matchesCatalogFilters(exercise, filters) {
+  if (!exercise || typeof exercise !== "object") return false;
+  if (!filters || typeof filters !== "object") return true;
+
+  if (Array.isArray(filters.equipment) && filters.equipment.length > 0) {
+    const equipIds = filters.equipment
+      .map((id) => String(id || "").trim().toLowerCase())
+      .filter(Boolean);
+    if (equipIds.length > 0) {
+      const req = getRequiredEquipment(exercise);
+      const matchesEquip = equipIds.some((id) =>
+        id === "body_only" ? req.length === 0 : req.includes(id),
+      );
+      if (!matchesEquip) return false;
+    }
+  }
+
+  const muscle = String(filters.muscle || "").trim().toLowerCase();
+  if (muscle && String(exercise.primary_muscle || "").trim().toLowerCase() !== muscle) {
+    return false;
+  }
+
+  const category = String(filters.category || "").trim().toLowerCase();
+  if (category && String(exercise.category || "").trim().toLowerCase() !== category) {
+    return false;
+  }
+
+  const movement = String(filters.movement || "").trim().toLowerCase();
+  if (movement && familyForArchetype(exercise.archetype) !== movement) {
+    return false;
+  }
+
+  return true;
+}
+
+export function searchCompatibleCatalog(exerciseList, query, limit, equipFilter, enforceCompat, filters) {
   const list = Array.isArray(exerciseList) ? exerciseList : [];
   const maxItems = limit !== undefined && limit !== null
     ? Math.max(1, Math.trunc(Number(limit)) || 16)
     : 16;
   const availSet = toAvailableSet(equipFilter);
+  const strictFacetMode = Boolean(filters && typeof filters === "object");
   const cleanQ = String(query ?? "").trim().toLowerCase();
   const tokens = cleanQ ? cleanQ.split(/[\s_/,-]+/).filter(Boolean) : [];
   const matches = [];
@@ -121,6 +157,7 @@ export function searchCompatibleCatalog(exerciseList, query, limit, equipFilter,
     if (!ex) continue;
     const compat = isExerciseCompatible(ex, availSet);
     if (enforceCompat && !compat) continue;
+    if (strictFacetMode && !matchesCatalogFilters(ex, filters)) continue;
     const compatRank = compat ? 0 : 1;
 
     let matchTier = 0;
@@ -150,8 +187,13 @@ export function searchCompatibleCatalog(exerciseList, query, limit, equipFilter,
     const aExact = tokens.length > 0 && a.matchTier === 0 ? 0 : 1;
     const bExact = tokens.length > 0 && b.matchTier === 0 ? 0 : 1;
     if (aExact !== bExact) return aExact - bExact;
-    if (a.compatRank !== b.compatRank) return a.compatRank - b.compatRank;
+    if (!strictFacetMode && a.compatRank !== b.compatRank) return a.compatRank - b.compatRank;
     if (a.matchTier !== b.matchTier) return a.matchTier - b.matchTier;
+    if (strictFacetMode) {
+      const cmp = String(a.ex.name || "").localeCompare(String(b.ex.name || ""), "en", { sensitivity: "base" });
+      if (cmp !== 0) return cmp;
+      return a.ex.id < b.ex.id ? -1 : a.ex.id > b.ex.id ? 1 : 0;
+    }
     return a.ex.name < b.ex.name ? -1 : a.ex.name > b.ex.name ? 1 : 0;
   });
 

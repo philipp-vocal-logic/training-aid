@@ -443,7 +443,14 @@ export function createStore(options = {}) {
 
   function searchCatalog(query, limit, searchOpts) {
     const equipFilter = searchOpts?.equipment !== undefined ? searchOpts.equipment : getSessionEquipment();
-    return searchCompatibleCatalog(exerciseList, query, limit, equipFilter, Boolean(searchOpts?.compatibleOnly));
+    return searchCompatibleCatalog(
+      exerciseList,
+      query,
+      limit,
+      equipFilter,
+      Boolean(searchOpts?.compatibleOnly),
+      searchOpts?.filters,
+    );
   }
 
   return {
