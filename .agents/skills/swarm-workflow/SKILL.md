@@ -46,8 +46,9 @@ Check live availability via `swarm{action:"models"}` if uncertain; never select 
 2. **Native Worktree Branches & Race-Free Barrier**:
    - Authors commit directly on their `share` worktree's auto-created branch (`git branch --show-current`; `.githooks/pre-commit` lints staged files only via `--staged` so unmerged sibling slices never block commits).
    - Authors synchronize via serialized board `seq` numbers (`AGENTS.md` §5.3) so exactly one last finisher wakes `@integrator` even on simultaneous completions.
-3. **Merge & Verification**:
-   - `integrator` merges the `<branch>` refs reported in `[READY]` posts via [swarm_merge.sh](../../../scripts/swarm_merge.sh) (which verifies disjoint file sets, merges, purges stale `__pycache__` dirs, and runs full [verify_gate.sh](../../../scripts/verify_gate.sh)), fixes only cross-slice seams, and posts `[MERGED] <sha> (refs #...) @verifier`.
-   - `verifier` runs [verify_gate.sh](../../../scripts/verify_gate.sh) **once**, audits `git diff <base_sha>..HEAD` against `AC-1..AC-N` and `AGENTS.md` invariants, routes defects directly to `@integrator`, or posts `[VERIFIED] <sha> @coordinator`.
+3. **Merge, Verification & Blocker Escalation**:
+   - `integrator` merges the `<branch>` refs reported in `[READY]` posts via [swarm_merge.sh](../../../scripts/swarm_merge.sh), fixes only cross-slice seams (routing ownership collisions or slice-logic bugs to `@<author>`), and posts `[MERGED] <sha> (refs #...) @verifier`.
+   - `verifier` runs [verify_gate.sh](../../../scripts/verify_gate.sh) **once**, audits `git diff <base_sha>..HEAD` against `AC-1..AC-N` and `AGENTS.md` invariants, routes seam defects to `@integrator`, slice bugs to `@<author>`, task/spec flaws to `[BLOCKED] @coordinator`, or posts `[VERIFIED] <sha> @coordinator`.
+   - **On `[BLOCKED] @coordinator`**: Resolve repo-factual contract/scope issues immediately (update `contract.md` and mention **only** affected `@<worker>`s); if user intent or trade-offs are ambiguous, ask the **user** directly before resuming workers.
 4. **Closeout**:
    - Verify clean `git status -sb` on `master`, `swarm{action:"kill"}` finished workers (`authors`, `integrator`, `verifier`—auto-removing both `share` worktrees and their `swarm-<name>-*` branches; leave `monitor` alive), post `[done] <one-line summary>` **with no `@`**, and summarize concisely for the user.

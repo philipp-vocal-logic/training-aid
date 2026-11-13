@@ -29,8 +29,9 @@ Acceptance Criteria:
 - AC-3: <Owned unit test + lint/syntax checks pass (`bash scripts/verify_gate.sh --quick --staged`)>
 
 Handoff:
-1. Stage & commit ONLY Owned Paths on your current worktree branch (`BRANCH=$(git branch --show-current)`).
-2. Read `read_board` + `swarm{action:"status"}`:
+1. If blocked on a contradictory AC, contract flaw, or out-of-scope file: do NOT guess—post `[BLOCKED] <issue + options> @coordinator` and `swarm_wait`.
+2. Stage & commit ONLY Owned Paths on your current worktree branch (`BRANCH=$(git branch --show-current)`).
+3. Read `read_board` + `swarm{action:"status"}`:
    - If all Phase-1 Siblings already posted `[READY]`, post `[READY] <BRANCH> @ <sha> | Files: ... | ACs: AC-1..3 @integrator` (<=12 lines) and `swarm_wait`.
    - Otherwise post `[READY] <BRANCH> @ <sha> | Files: ... | ACs: AC-1..3` (NO `@mention`), then check `read_board{since:<prev_head>}` once before `swarm_wait`: if concurrent posts just completed all sibling `[READY]` reports without `@integrator`, post `@integrator all slices ready (refs #...)`.
 ```
@@ -46,7 +47,7 @@ Contract Ref: `<absolute path to contract.md or brief seqs>`
 
 1. Startup: Call `swarm_wait{since:0}` immediately unless woken by `@integrator`.
 2. When woken: `read_board{since:0}` to collect the `<BRANCH>` refs from all Expected Phase-1 `[READY]` posts (if any expected author has not posted `[READY]`, `swarm_wait{since:<head>}`).
-3. Run `bash scripts/swarm_merge.sh <base_sha> <branch1> <branch2> ...` (on file collision, do NOT resolve manually—tag the offending `@<author>`).
+3. Run `bash scripts/swarm_merge.sh <base_sha> <branch1> <branch2> ...` (on file collision or slice-logic bug, tag `@<author>`; on contract/AC flaw, post `[BLOCKED] <issue> @coordinator` and `swarm_wait`).
 4. Fix ONLY genuine cross-slice seam mismatches, ensure full `bash scripts/verify_gate.sh` passes with clean `git status`, commit any seam fix, and post `[MERGED] <head_sha> (refs #...) @verifier` (<=10 lines).
 ```
 
@@ -60,7 +61,7 @@ Contract Ref: `<absolute path to contract.md or brief seqs>`
 
 1. Startup: Call `swarm_wait{since:0}` immediately unless woken by `@verifier`.
 2. When woken: Run `bash scripts/verify_gate.sh` ONCE, then audit `git diff <base_sha>..HEAD` against `AC-1..AC-N`, `contract.md`, and `AGENTS.md` (KISS/YAGNI, <500-LOC modularity, zero external URLs, `textContent` XSS safety, view/audio teardown).
-3. Handoff (<=12 lines): Send concrete `file:line` defects to `@integrator`, or post `[VERIFIED] <head_sha> @coordinator`.
+3. Handoff (<=12 lines): Seam defect -> `@integrator`; slice bug -> `@<author>`; spec/AC flaw -> `[BLOCKED] <issue> @coordinator`; all green -> `[VERIFIED] <head_sha> @coordinator`.
 ```
 
 ---
