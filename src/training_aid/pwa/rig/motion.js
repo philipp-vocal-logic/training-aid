@@ -32,6 +32,12 @@ export const RIG_SELECTORS = Object.freeze([
   ".js-aura",
   ".js-ring",
   ".js-pulse",
+  ".js-clavicle",
+  ".js-pelvis",
+  ".js-j-shoulder-b",
+  ".js-j-hip-b",
+  ".js-j-knee-b",
+  ".js-j-elbow-b",
 ]);
 
 const TURNAROUND_BY_MODE = Object.freeze({
@@ -108,6 +114,7 @@ export function bindSvg(svgEl) {
 
   const tempoMode = svgEl.dataset.tempoMode || "standard";
   const holdStyle = svgEl.dataset.holdStyle || "settle";
+  const isFront = svgEl.dataset.view === "front";
   const eqMode = svgEl.dataset.equipment || "body_only";
   const bandTarget = svgEl.dataset.bandTarget || "hand";
   const cableTarget = svgEl.dataset.cableTarget || "hand";
@@ -120,29 +127,63 @@ export function bindSvg(svgEl) {
   const els = Object.fromEntries(RIG_SELECTORS.map((sel) => [sel, svgEl.querySelector(sel)]));
 
   function renderPoseState(pose, auraAmt, swapSides) {
-    const uf = swapSides ? pose.uarm_b : pose.uarm_f;
-    const ffAngle = swapSides ? pose.farm_b : pose.farm_f;
-    const ub = swapSides ? pose.uarm_f : pose.uarm_b;
-    const fbAngle = swapSides ? pose.farm_f : pose.farm_b;
-    const tf = swapSides ? pose.thigh_b : pose.thigh_f;
-    const sf = swapSides ? pose.shin_b : pose.shin_f;
-    const tb = swapSides ? pose.thigh_f : pose.thigh_b;
-    const sb = swapSides ? pose.shin_f : pose.shin_b;
+    const reflectFront = isFront && swapSides;
+    const hipX = reflectFront ? 240.0 - pose.hip_x : pose.hip_x;
+    const hipY = pose.hip_y;
+    const lumbar = reflectFront ? -180.0 - pose.lumbar : pose.lumbar;
+    const thoracic = reflectFront ? -180.0 - pose.thoracic : pose.thoracic;
+    const neck = reflectFront ? -180.0 - pose.neck : pose.neck;
 
-    const hip = [pose.hip_x, pose.hip_y];
-    const midSpine = stepPt(hip, bones.lumbar, pose.lumbar);
-    const shoulder = stepPt(midSpine, bones.thoracic, pose.thoracic);
-    const head = stepPt(shoulder, bones.neck, pose.neck);
+    let uf = swapSides ? pose.uarm_b : pose.uarm_f;
+    let ffAngle = swapSides ? pose.farm_b : pose.farm_f;
+    let ub = swapSides ? pose.uarm_f : pose.uarm_b;
+    let fbAngle = swapSides ? pose.farm_f : pose.farm_b;
+    let tf = swapSides ? pose.thigh_b : pose.thigh_f;
+    let sf = swapSides ? pose.shin_b : pose.shin_f;
+    let tb = swapSides ? pose.thigh_f : pose.thigh_b;
+    let sb = swapSides ? pose.shin_f : pose.shin_b;
 
-    const hipB = [hip[0] + bones.back_dx, hip[1] + bones.back_dy];
-    const shoulderB = [shoulder[0] + bones.back_dx, shoulder[1] + bones.back_dy];
+    if (reflectFront) {
+      uf = 180.0 - uf;
+      ffAngle = 180.0 - ffAngle;
+      ub = 180.0 - ub;
+      fbAngle = 180.0 - fbAngle;
+      tf = 180.0 - tf;
+      sf = 180.0 - sf;
+      tb = 180.0 - tb;
+      sb = 180.0 - sb;
+    }
 
-    const kneeF = stepPt(hip, bones.thigh, tf);
+    const hip = [hipX, hipY];
+    const midSpine = stepPt(hip, bones.lumbar, lumbar);
+    const shoulder = stepPt(midSpine, bones.thoracic, thoracic);
+    const head = stepPt(shoulder, bones.neck, neck);
+
+    let hipF = hip;
+    let hipB = [hip[0] + bones.back_dx, hip[1] + bones.back_dy];
+    let shoulderF = shoulder;
+    let shoulderB = [shoulder[0] + bones.back_dx, shoulder[1] + bones.back_dy];
+    if (isFront) {
+      const pelvisR = bones.pelvis_r !== undefined ? bones.pelvis_r : 9.5;
+      const clavicleR = bones.clavicle_r !== undefined ? bones.clavicle_r : 14.5;
+      const lumRad = lumbar * DEG_TO_RAD;
+      const thoRad = thoracic * DEG_TO_RAD;
+      const nxL = -Math.sin(lumRad);
+      const nyL = Math.cos(lumRad);
+      const nxT = -Math.sin(thoRad);
+      const nyT = Math.cos(thoRad);
+      hipF = [hip[0] + pelvisR * nxL, hip[1] + pelvisR * nyL];
+      hipB = [hip[0] - pelvisR * nxL, hip[1] - pelvisR * nyL];
+      shoulderF = [shoulder[0] + clavicleR * nxT, shoulder[1] + clavicleR * nyT];
+      shoulderB = [shoulder[0] - clavicleR * nxT, shoulder[1] - clavicleR * nyT];
+    }
+
+    const kneeF = stepPt(hipF, bones.thigh, tf);
     const footF = stepPt(kneeF, bones.shin, sf);
     const kneeB = stepPt(hipB, bones.thigh, tb);
     const footB = stepPt(kneeB, bones.shin, sb);
 
-    const elbowF = stepPt(shoulder, bones.uarm, uf);
+    const elbowF = stepPt(shoulderF, bones.uarm, uf);
     const handF = stepPt(elbowF, bones.farm, ffAngle);
     const elbowB = stepPt(shoulderB, bones.uarm, ub);
     const handB = stepPt(elbowB, bones.farm, fbAngle);
@@ -155,13 +196,19 @@ export function bindSvg(svgEl) {
         `M ${hip[0].toFixed(2)} ${hip[1].toFixed(2)} Q ${midSpine[0].toFixed(2)} ${midSpine[1].toFixed(2)} ${shoulder[0].toFixed(2)} ${shoulder[1].toFixed(2)}`,
       );
     }
+    setLineEl(els[".js-clavicle"], shoulderB, shoulderF);
+    setLineEl(els[".js-pelvis"], hipB, hipF);
 
-    setCircleEl(els[".js-j-shoulder"], shoulder[0], shoulder[1]);
-    setCircleEl(els[".js-j-hip"], hip[0], hip[1]);
+    setCircleEl(els[".js-j-shoulder"], shoulderF[0], shoulderF[1]);
+    setCircleEl(els[".js-j-shoulder-b"], shoulderB[0], shoulderB[1]);
+    setCircleEl(els[".js-j-hip"], hipF[0], hipF[1]);
+    setCircleEl(els[".js-j-hip-b"], hipB[0], hipB[1]);
     setCircleEl(els[".js-j-knee"], kneeF[0], kneeF[1]);
+    setCircleEl(els[".js-j-knee-b"], kneeB[0], kneeB[1]);
     setCircleEl(els[".js-j-elbow"], elbowF[0], elbowF[1]);
+    setCircleEl(els[".js-j-elbow-b"], elbowB[0], elbowB[1]);
 
-    setLineEl(els[".js-thigh-f"], hip, kneeF);
+    setLineEl(els[".js-thigh-f"], hipF, kneeF);
     setLineEl(els[".js-shin-f"], kneeF, footF);
     setLineEl(els[".js-thigh-b"], hipB, kneeB);
     setLineEl(els[".js-shin-b"], kneeB, footB);
@@ -171,7 +218,7 @@ export function bindSvg(svgEl) {
       setLineEl(els[".js-forefoot-b"], footB, [forefootX - 5.0, forefootY - 1.0]);
     }
 
-    setLineEl(els[".js-uarm-f"], shoulder, elbowF);
+    setLineEl(els[".js-uarm-f"], shoulderF, elbowF);
     setLineEl(els[".js-farm-f"], elbowF, handF);
     setLineEl(els[".js-uarm-b"], shoulderB, elbowB);
     setLineEl(els[".js-farm-b"], elbowB, handB);
@@ -186,35 +233,50 @@ export function bindSvg(svgEl) {
       setCircleEl(els[".js-weight-b"], handB[0], handB[1] + 8.0);
     } else if (eqMode === "barbell") {
       setCircleEl(els[".js-weight-b"], handB[0], handB[1]);
-      setLineEl(
-        els[".js-bar-shaft"],
-        [handB[0] - 6.0, handB[1] - 2.0],
-        [handF[0] + 6.0, handF[1] + 2.0],
-      );
+      if (isFront) {
+        const [leftH, rightH] = handB[0] <= handF[0] ? [handB, handF] : [handF, handB];
+        setLineEl(
+          els[".js-bar-shaft"],
+          [leftH[0] - 8.0, leftH[1]],
+          [rightH[0] + 8.0, rightH[1]],
+        );
+      } else {
+        setLineEl(
+          els[".js-bar-shaft"],
+          [handB[0] - 6.0, handB[1] - 2.0],
+          [handF[0] + 6.0, handF[1] + 2.0],
+        );
+      }
       setCircleEl(els[".js-weight"], handF[0], handF[1]);
       setCircleEl(els[".js-bar-hub"], handF[0], handF[1]);
-    } else if (eqMode === "bands" && anchorX !== null && anchorY !== null) {
-      const anchor = [anchorX, anchorY];
-      let bTargetB = handB;
-      let bTargetF = handF;
-      if (bandTarget === "shoulder") {
-        bTargetB = shoulderB;
-        bTargetF = shoulder;
-      } else if (bandTarget === "foot") {
-        bTargetB = footB;
-        bTargetF = footF;
+    } else if (eqMode === "bands" && (bandTarget === "span" || (anchorX !== null && anchorY !== null))) {
+      if (bandTarget === "span") {
+        setLineEl(els[".js-band-b"], handB, handF);
+        setLineEl(els[".js-band-f"], handB, handF);
+      } else {
+        const anchor = [reflectFront ? 240.0 - anchorX : anchorX, anchorY];
+        let bTargetB = handB;
+        let bTargetF = handF;
+        if (bandTarget === "shoulder") {
+          bTargetB = shoulderB;
+          bTargetF = shoulderF;
+        } else if (bandTarget === "foot") {
+          bTargetB = footB;
+          bTargetF = footF;
+        }
+        setLineEl(els[".js-band-b"], anchor, bTargetB);
+        setLineEl(els[".js-band-f"], anchor, bTargetF);
       }
-      setLineEl(els[".js-band-b"], anchor, bTargetB);
-      setLineEl(els[".js-band-f"], anchor, bTargetF);
     } else if ((eqMode === "cable" || eqMode === "machine") && anchorX !== null && anchorY !== null) {
+      const cAnchorX = reflectFront ? 240.0 - anchorX : anchorX;
       const cAtt = cableTarget === "foot" ? footF : handF;
-      setLineEl(els[".js-cable"], [anchorX, anchorY], cAtt);
+      setLineEl(els[".js-cable"], [cAnchorX, anchorY], cAtt);
       setCircleEl(els[".js-cable-grip"], cAtt[0], cAtt[1]);
     }
 
     if (els[".js-shadow"]) {
-      const minX = Math.min(head[0], shoulder[0], hip[0], footF[0], footB[0], handF[0]);
-      const maxX = Math.max(head[0], shoulder[0], hip[0], footF[0], footB[0], handF[0]);
+      const minX = Math.min(head[0], shoulder[0], hip[0], footF[0], footB[0], handF[0], handB[0]);
+      const maxX = Math.max(head[0], shoulder[0], hip[0], footF[0], footB[0], handF[0], handB[0]);
       const sx = (minX + maxX) * 0.5;
       const rx = Math.max(22.0, Math.min(82.0, (maxX - minX) * 0.5 + 12.0));
       els[".js-shadow"].setAttribute("cx", sx.toFixed(2));
@@ -248,21 +310,37 @@ export function bindSvg(svgEl) {
   function applyRestBreath(phase) {
     const wave = Math.sin((phase || 0) * 1.9);
     const breathAmt = 0.3 * (0.5 + 0.5 * wave);
-    const pose = {
-      hip_x: poseA.hip_x,
-      hip_y: poseA.hip_y,
-      lumbar: poseA.lumbar - 0.7 * wave,
-      thoracic: poseA.thoracic - 1.7 * wave,
-      neck: poseA.neck + 1.0 * wave,
-      uarm_f: poseA.uarm_f + 1.2 * wave,
-      farm_f: poseA.farm_f,
-      uarm_b: poseA.uarm_b + 1.2 * wave,
-      farm_b: poseA.farm_b,
-      thigh_f: poseA.thigh_f,
-      shin_f: poseA.shin_f,
-      thigh_b: poseA.thigh_b,
-      shin_b: poseA.shin_b,
-    };
+    const pose = isFront
+      ? {
+          hip_x: poseA.hip_x,
+          hip_y: poseA.hip_y - 0.4 * wave,
+          lumbar: poseA.lumbar,
+          thoracic: poseA.thoracic,
+          neck: poseA.neck,
+          uarm_f: poseA.uarm_f - 1.4 * wave,
+          farm_f: poseA.farm_f,
+          uarm_b: poseA.uarm_b + 1.4 * wave,
+          farm_b: poseA.farm_b,
+          thigh_f: poseA.thigh_f,
+          shin_f: poseA.shin_f,
+          thigh_b: poseA.thigh_b,
+          shin_b: poseA.shin_b,
+        }
+      : {
+          hip_x: poseA.hip_x,
+          hip_y: poseA.hip_y,
+          lumbar: poseA.lumbar - 0.7 * wave,
+          thoracic: poseA.thoracic - 1.7 * wave,
+          neck: poseA.neck + 1.0 * wave,
+          uarm_f: poseA.uarm_f + 1.2 * wave,
+          farm_f: poseA.farm_f,
+          uarm_b: poseA.uarm_b + 1.2 * wave,
+          farm_b: poseA.farm_b,
+          thigh_f: poseA.thigh_f,
+          shin_f: poseA.shin_f,
+          thigh_b: poseA.thigh_b,
+          shin_b: poseA.shin_b,
+        };
     renderPoseState(pose, breathAmt, false);
   }
 
