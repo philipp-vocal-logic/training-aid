@@ -4,11 +4,6 @@
 
   const root = typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this;
   const REST_SECONDS = 20;
-  const DEFAULT_SOUND_THEMES = [
-    { id: "off", label: "Off" }, { id: "minimal", label: "Minimal Cues" },
-    { id: "techno", label: "Techno Pulse" }, { id: "trance", label: "Trance Arp" },
-    { id: "studio", label: "Studio Kit" },
-  ];
   const getDom = () => root.TrainingDom || (typeof require === "function" ? require("../dom.js") : null);
 
   function renderWorkoutView(ctx) {
@@ -46,7 +41,10 @@
 
     sound.setTheme(store.getSoundTheme());
     const firstEx = playlist[0];
-    const themeOptions = root.TrainingSound && Array.isArray(root.TrainingSound.THEMES) ? root.TrainingSound.THEMES : DEFAULT_SOUND_THEMES;
+    const themeOptions =
+      (root.TrainingSound && Array.isArray(root.TrainingSound.THEMES) && root.TrainingSound.THEMES) ||
+      (root.TrainingSoundPresets && Array.isArray(root.TrainingSoundPresets.THEMES) && root.TrainingSoundPresets.THEMES) ||
+      [];
 
     const stepProgressEl = el("span", { id: "step-progress", className: "pill", textContent: `1/${playlist.length} \u00b7 S1/${firstEx.sets}` });
     const titleEl = el("h1", { id: "ex-title", className: "hud-ex-title", textContent: firstEx.name });

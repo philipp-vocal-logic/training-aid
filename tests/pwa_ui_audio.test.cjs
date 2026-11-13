@@ -188,9 +188,11 @@ test("motion.js FK parity & safe-grip bounds across all 126 catalog.svgs", () =>
 });
 
 test("sound.js 5 themes, {2, 4, 8} subdivisions, zero localStorage, and node cleanup", () => {
-  const soundSrc = fs.readFileSync(path.join(distDir, "static", "sound.js"), "utf8");
-  assert.ok(!soundSrc.includes("localStorage"));
-  new Function(soundSrc)();
+  for (const rel of ["sound-presets.js", "sound-pattern.js", "sound-synth.js", "sound.js"]) {
+    const src = fs.readFileSync(path.join(distDir, "static", rel), "utf8");
+    assert.ok(!src.includes("localStorage"), `${rel} must not reference localStorage`);
+    new Function(src)();
+  }
   const TM = globalThis.TrainingMotion;
   const TS = globalThis.TrainingSound;
   assert.deepEqual(TS.THEMES.map((t) => [t.id, t.label]), [

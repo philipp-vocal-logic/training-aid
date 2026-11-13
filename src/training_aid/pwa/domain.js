@@ -1,8 +1,16 @@
 (function (root, factory) {
-  const api = factory();
+  function resolveSoundPresets() {
+    if (root && root.TrainingSoundPresets) return root.TrainingSoundPresets;
+    if (typeof require === "function") {
+      try { return require("./static/sound-presets.js"); } catch { /* dist layout */ }
+      try { return require("../static/sound-presets.js"); } catch { /* src layout */ }
+    }
+    return null;
+  }
+  const api = factory(resolveSoundPresets());
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.TrainingDomain = api;
-})(typeof window !== "undefined" ? window : globalThis, function () {
+})(typeof window !== "undefined" ? window : globalThis, function (soundPresets) {
   "use strict";
 
   const VALID_EQUIPMENT = Object.freeze([
@@ -12,13 +20,10 @@
     "full_gym",
   ]);
   const VALID_INTENSITY = Object.freeze(["light", "moderate", "intense"]);
-  const VALID_SOUND_THEMES = Object.freeze([
-    "off",
-    "minimal",
-    "techno",
-    "trance",
-    "studio",
-  ]);
+  const VALID_SOUND_THEMES =
+    soundPresets && Array.isArray(soundPresets.VALID_SOUND_THEMES)
+      ? soundPresets.VALID_SOUND_THEMES
+      : Object.freeze(["off", "minimal"]);
   const WEIGHTED_EQUIPMENT = new Set([
     "barbell",
     "dumbbell",

@@ -66,8 +66,9 @@ EXPECTED_COMPILED_EXERCISE_KEYS = EXPECTED_METADATA_KEYS | frozenset(_COMP_1 + _
 _SCAN_1 = ("index.html", "manifest.webmanifest", "icon.svg", "sw.js", "app.js")
 _SCAN_2 = ("domain.js", "codec.js", "store.js", "qr.js", "dom.js", "static/style.css")
 _SCAN_3 = ("views/setup.js", "views/plan.js", "views/edit.js", "views/workout.js")
-_SCAN_4 = ("views/progress.js", "static/motion.js", "static/sound.js")
-PRIVACY_SCAN_FILES = _SCAN_1 + _SCAN_2 + _SCAN_3 + _SCAN_4
+_SCAN_4 = ("views/progress.js", "static/motion.js", "static/sound-presets.js")
+_SCAN_5 = ("static/sound-pattern.js", "static/sound-synth.js", "static/sound.js")
+PRIVACY_SCAN_FILES = _SCAN_1 + _SCAN_2 + _SCAN_3 + _SCAN_4 + _SCAN_5
 _PRECACHE_REL = tuple(f"./{p}" for p in PRIVACY_SCAN_FILES if p != "sw.js")
 REQUIRED_PRECACHE_ASSETS = frozenset(("./", "./data/catalog.json", *_PRECACHE_REL))
 _W3C_URLS = ("http://www.w3.org/2000/svg", "http://www.w3.org/1999/xlink")
@@ -523,8 +524,12 @@ def verify_pwa_bundle_with_node(dist_dir: Path) -> list[str]:
     if (node_bin := find_node_binary()) is None:
         return ["Node.js binary not found for static PWA E2E suite"]
     t_dir, env = REPO_ROOT / "tests", {**os.environ, "TA_DIST_DIR": str(dist_dir)}
-    s1, s2 = str(t_dir / "pwa_store_qr.test.cjs"), str(t_dir / "pwa_ui_audio.test.cjs")
-    proc = _run_cmd([node_bin, "--test", s1, s2], env)
+    suites = (
+        str(t_dir / "pwa_store_qr.test.cjs"),
+        str(t_dir / "pwa_ui_audio.test.cjs"),
+        str(t_dir / "pwa_sound_layers.test.cjs"),
+    )
+    proc = _run_cmd([node_bin, "--test", *suites], env)
     if proc.returncode != 0:
         return [f"Node PWA E2E failed:\n{(proc.stderr or proc.stdout).strip()}"]
     return []

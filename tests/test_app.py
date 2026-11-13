@@ -96,6 +96,9 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
         "app.js",
         "static/style.css",
         "static/motion.js",
+        "static/sound-presets.js",
+        "static/sound-pattern.js",
+        "static/sound-synth.js",
         "static/sound.js",
         "data/catalog.json",
     ]
@@ -171,6 +174,9 @@ def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
             "/app.js",
             "/static/style.css",
             "/static/motion.js",
+            "/static/sound-presets.js",
+            "/static/sound-pattern.js",
+            "/static/sound-synth.js",
             "/static/sound.js",
             "/data/catalog.json",
         ):
@@ -207,6 +213,7 @@ def test_node_standalone_test_suites(built_pwa: Path) -> None:
             "--test",
             str(REPO_ROOT / "tests" / "pwa_store_qr.test.cjs"),
             str(REPO_ROOT / "tests" / "pwa_ui_audio.test.cjs"),
+            str(REPO_ROOT / "tests" / "pwa_sound_layers.test.cjs"),
         ],
         cwd=str(REPO_ROOT),
         env=env,
