@@ -14,8 +14,16 @@
     "./static/style.css",
     "./static/motion.js",
     "./static/sound.js",
+    "./domain.js",
+    "./codec.js",
     "./store.js",
     "./qr.js",
+    "./dom.js",
+    "./views/setup.js",
+    "./views/plan.js",
+    "./views/edit.js",
+    "./views/workout.js",
+    "./views/progress.js",
     "./app.js",
     "./data/catalog.json",
   ];
@@ -56,7 +64,6 @@
   function isRuntimeCacheable(pathname) {
     return (
       pathname.indexOf("/svgs/thumbs/") !== -1 ||
-      pathname.indexOf("/static/svgs/") !== -1 ||
       pathname.endsWith(".svg") ||
       pathname.endsWith(".css") ||
       pathname.endsWith(".js") ||
