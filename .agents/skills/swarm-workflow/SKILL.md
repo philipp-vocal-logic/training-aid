@@ -8,71 +8,46 @@ description: >-
 
 # Training Aid Swarm Orchestration Runbook
 
-Follow this runbook alongside the built-in `swarm` skill to enforce separation of concerns, prevent wheel reinvention and monolithic files, eliminate serial integration tails, and avoid unpinned heavy-model burn.
+Use alongside the built-in `swarm` skill to keep coordination lean, prevent context bloat, enforce disjoint modular slices, and run zero-bottleneck peer pipelines.
 
-## 1. Phase 0: Entry Gate, Separation of Concerns & Reuse Planning
+## 1. Phase 0: Entry Gate, Context Budget & Slice Design
 
-Before spawning any worker, complete these four coordinator checks:
-
-1. **Swarm Entry Gate (YAGNI Check First)**:
-   - **Solo Execution (0 workers)**: `<3` files touched, `<200` LOC delta, or tightly coupled single-module changes. Execute directly (or explain why solo execution is faster if `/swarm` was not explicitly forced).
-   - **2-Worker Pair (`author` + `verifier`)**: Security-critical, kinematic, or algorithmic change confined to 1–2 modules (`author` on `inherit` or `share` → `@verifier` → `@coordinator`).
-   - **Full Parallel DAG (`3–4 authors` + `integrator` + `verifier` + `monitor`)**: `≥3` strictly disjoint module/directory slices (`>300` LOC total) with an upfront interface contract.
-2. **Separation of Concerns in Planning & Module Boundaries**:
-   - **Role Separation**: `coordinator` plans contracts, dependencies, and `AC-1..AC-N` (never edits app code); slice authors own one cohesive architectural concern each (pure domain logic, storage/codecs, per-screen UI views, CLI/builder, or tests); `integrator` merges and wires cross-slice seams only; `verifier` performs read-only `AC` + architectural/security review.
-   - **Directory/Glob Ownership & Suggested Modular Files**: Never lock a feature author into a single mega-file (e.g., *"only touch `app.js`"*). Grant ownership of a cohesive directory/glob (e.g., `src/training_aid/pwa/views/**`) with explicit **Suggested Modular Files to Create/Modify** (`~100–350` LOC per file; split before `~500` LOC).
-   - **Parallel `test-author` Slice**: Whenever `tests/*` or `src/training_aid/audit.py` need `>40` LOC of updates, spawn a dedicated Phase-1 `test-author` (`workspace:"share"`, `model:"gemini-4-argon-high"`) writing standalone `.py`/`.mjs` tests concurrently against `AC-1..AC-N`—never defer test authoring to `integrator`.
-3. **Upfront Stdlib & Permissive Third-Party Library Selection (No Wheel Reinvention)**:
-   - Decide reuse in Phase 0 using the 3-tier hierarchy in `AGENTS.md`: **(1) Python ≥3.13 stdlib & Web Platform APIs** → **(2) Stable permissive OSS libraries (`MIT`/`Apache-2.0`/`BSD`/`ISC`)** → **(3) Custom code strictly for root workout/kinematic domain logic**.
-   - If a third-party library is warranted, name the exact package/vendored module in the contract and assign `pyproject.toml` + `uv.lock` (plus `builder.py` copying if needed) or `src/training_aid/pwa/vendor/` to **one** designated slice so parallel branches never collide.
-4. **Sufficient, Self-Contained Briefs with Testable Acceptance Criteria (`AC-1..AC-N`)**:
-   - Every worker starts cold with zero conversation history. Write complete, structured briefs using [brief_templates.md](./references/brief_templates.md) containing:
-     1. **Context & Objective** (why and what)
-     2. **Owned Scope & Suggested Modular Files** (each with a 1-line responsibility)
-     3. **Shared Contract & Approved Libraries** (exact signatures + stdlib/3rd-party APIs to use)
-     4. **KISS / YAGNI Non-Goals** (explicit out-of-scope items so workers only do what is asked)
-     5. **Testable Acceptance Criteria (`AC-1` … `AC-N`)** (concrete inputs → expected outputs, error cases, and verification commands)
+1. **Swarm Entry Gate (YAGNI First)**:
+   - **Solo (0 workers)**: `<3` files, `<200` LOC delta, or a tightly coupled single-module change. Execute directly unless `/swarm` was explicitly requested.
+   - **2-Worker Pair (`author` + `verifier`)**: Security-critical, kinematic, or math change confined to 1–2 modules (`author` on `share` or `inherit` → `@verifier` → `@coordinator`).
+   - **Full Parallel DAG (`3–4 authors` + `integrator` + `verifier` + `monitor`)**: `≥3` strictly disjoint directory/glob slices (`>300` LOC total) backed by a shared interface contract.
+2. **Coordinator Context Budget (Avoid Mid-Turn Compaction)**:
+   - Never read `>15` repository files directly in the coordinator's main context during Phase 0. Delegate broad file inventories, export mapping, and dead-code greps to the read-only `research` subagent and have it return a compact `<150`-line summary.
+3. **Disjoint Directory Ownership & Co-Located Unit Tests**:
+   - Assign cohesive directory/glob globs (e.g., `src/training_aid/pwa/core/**`) with suggested single-concern files (`~100–350` LOC; `<500` LOC cap).
+   - **Co-locate unit tests on structural refactors**: When splitting or renaming modules across slices, assign each unit test file (`tests/pwa_core_state.test.mjs`, `tests/test_sw_cache_stamp.py`, etc.) to the slice that owns the tested code so authors execute **live** `pytest` / `node --test` runs in their own worktree before committing. Use a dedicated Phase-1 `test-author` slice only for additive features on stable module paths or cross-slice E2E harnesses.
+4. **Single-Source-of-Truth Interface Contract (`<artifactDir>/scratch/contract.md`)**:
+   - Write multi-slice contracts once to `<artifactDir>/scratch/contract.md` instead of duplicating signatures across board briefs:
+     - Select reuse upfront per `AGENTS.md` (stdlib/Web APIs → permissive OSS with **1** designated lockfile/vendor owner → custom domain code).
+     - Specify exact exported signatures, DOM IDs, and schema fields directly in code/JSON blocks—**never** pair explicit key lists with redundant prose counts (e.g., do not write `"exact 19 keys"` above an 18-key list).
 
 ## 2. Gemini-Only Model Routing Matrix
 
-Per `AGENTS.md`, **only Gemini models are permitted** (never select `claude-*` or `gpt-*`). Check live availability via `swarm{action:"models"}` first:
+Check live availability via `swarm{action:"models"}` if uncertain; never select `claude-*` or `gpt-*`, and always set `model` explicitly on `swarm{action:"add"}`:
 
-1. **Pin Coordinator to Gemini Carbon**:
-   - Run `coordinator` on `gemini-pro-orchestrator` (or `gemini-4-carbon-high` / `gemini-4-carbon-medium`). If started on another family, switch immediately via `swarm{action:"model", model:"gemini-pro-orchestrator"}`.
-2. **Explicitly Pin Every Worker to Argon or Hydrogen** (never omit `model` on `swarm{action:"add"}`):
-
-| Worker Role | Default `model` Pin | Escalation / Quota Fallback | When to Use |
+| Role | Default `model` Pin | Fallback | Scope |
 | :--- | :--- | :--- | :--- |
-| `monitor` | `gemini-4-argon-low` | `gemini-4-hydrogen-low` | Mandatory stall watcher when `swarm_monitor` is available; ultra-low cost per timer wakeup. |
-| `integrator` | `gemini-4-argon-medium` | `gemini-4-argon-high` | Runs [swarm_merge.sh](../../../scripts/swarm_merge.sh) + [verify_gate.sh](../../../scripts/verify_gate.sh) and wires cross-slice seams (`<15` turns). |
-| Standard Author | `gemini-4-argon-high` | `gemini-4-hydrogen-medium` | Modular UI views, storage/CLI slices, `README.md`, and `test-author` standalone test suites. |
-| Deep-Logic Author | `gemini-4-hydrogen-high` | `gemini-4-hydrogen-xhigh` | Core workout progression math or 2D FK kinematics (`svg_assets.py`) where no library applies. |
-| `verifier` | `gemini-4-hydrogen-high` | `gemini-4-hydrogen-medium` | Read-only audit of `AC-1..AC-N`, KISS/YAGNI, modularity, reuse, and CSP/XSS/teardown safety. |
+| `coordinator` | `gemini-pro-orchestrator` / `gemini-4-carbon-high` | `gemini-4-carbon-medium` | Contracts, spawn, stall recovery, closeout (never edits app code). |
+| `monitor` | `gemini-4-argon-low` | `gemini-4-hydrogen-low` | Background stall watcher (`swarm_monitor` skill). |
+| `integrator` | `gemini-4-argon-medium` | `gemini-4-argon-high` | [swarm_merge.sh](../../../scripts/swarm_merge.sh) + cross-slice seam fixes + [verify_gate.sh](../../../scripts/verify_gate.sh). |
+| Standard Author | `gemini-4-argon-high` | `gemini-4-hydrogen-medium` | UI views/styles, state/CLI/audit modules, test suites, docs. |
+| Deep-Logic Author | `gemini-4-hydrogen-high` | `gemini-4-hydrogen-xhigh` | Core progression/engine math (`pwa/core/`) & 2D FK/IK (`kinematics/`). |
+| `verifier` | `gemini-4-hydrogen-high` | `gemini-4-hydrogen-medium` | Single [verify_gate.sh](../../../scripts/verify_gate.sh) run + read-only `git diff` audit. |
 
-## 3. Chained Pipeline & Last-Finisher Barrier
+## 3. Chained Pipeline & Closeout (`Authors → @integrator → @verifier → @coordinator`)
 
-Run `Authors ──► @integrator ──► @verifier ──► @coordinator` with zero coordinator ping-pong:
-
-1. **Turn-1 Spawn**:
-   - Write any shared multi-slice interface spec to `<artifactDir>/scratch/contract.md` (or inline if concise), then spawn Phase-1 authors (`workspace:"share"`), `integrator` (`workspace:"inherit"`), `verifier` (`workspace:"inherit"`), and `monitor` (`gemini-4-argon-low`).
-   - Both `integrator` and `verifier` immediately park via `swarm_wait{since:0}` on initial startup until named.
-2. **Last-Finisher Barrier**:
-   - List all Phase-1 sibling author names in every Phase-1 author brief.
-   - After committing on `swarm/<name>`, each author calls `swarm{action:"status"}`:
-     - If **any sibling Phase-1 author is still `working`**, post `[READY] swarm/<name> @ <sha> ...` **with NO `@mention`**.
-     - If **all sibling Phase-1 authors are `waiting`**, append **`@integrator`** to wake `integrator` directly.
-3. **Merge & Adversarial Verification**:
-   - `integrator` merges via [swarm_merge.sh](../../../scripts/swarm_merge.sh), resolves only cross-slice seam wiring, runs [verify_gate.sh](../../../scripts/verify_gate.sh), commits if needed, and posts `[MERGED] <sha> (refs #...) @verifier`.
-   - `verifier` runs [verify_gate.sh](../../../scripts/verify_gate.sh) **once** and audits `git diff <base_sha>..HEAD` for:
-     - Full coverage of every `AC-1..AC-N` criterion and edge case
-     - Adherence to KISS/YAGNI (flagging unrequested features or speculative abstractions)
-     - Proper reuse vs. wheel reinvention and lean modular file sizes (flagging `>500`-LOC multi-concern monoliths)
-     - CSP/offline privacy, DOM `textContent` XSS safety, and route/timer/audio teardown cleanliness
-   - Defects or missing regression tests go directly to `@integrator`; clean sign-off posts `[VERIFIED] <sha> @coordinator`.
-
-## 4. Shutdown Checklist
-
-When `[VERIFIED] @coordinator` arrives:
-1. Confirm commits are landed on the target workspace branch, then `swarm{action:"kill"}` finished workers (`authors`, `integrator`, `verifier`) to clean up `share` worktrees—leaving `monitor` alive per `swarm` rules.
-2. Post `[done] <one-line summary>` **with no `@` symbol** so `monitor` stops scheduling timers.
-3. Summarize concisely for the user with clickable `file://` links.
+1. **Compact Turn-1 Spawn**:
+   - Title the swarm and spawn all Phase-1 authors (`workspace:"share"`), `integrator` (`workspace:"inherit"`), `verifier` (`workspace:"inherit"`), and `monitor` in a single turn using the lean templates in [brief_templates.md](./references/brief_templates.md) (do not repeat `AGENTS.md` standing rules in briefs), then end the turn with the exact `open_board` line.
+2. **Native Worktree Branches & Race-Free Barrier**:
+   - Authors commit directly on their `share` worktree's auto-created branch (`git branch --show-current`; `.githooks/pre-commit` lints staged files only via `--staged` so unmerged sibling slices never block commits).
+   - Authors synchronize via serialized board `seq` numbers (`AGENTS.md` §5.3) so exactly one last finisher wakes `@integrator` even on simultaneous completions.
+3. **Merge & Verification**:
+   - `integrator` merges the `<branch>` refs reported in `[READY]` posts via [swarm_merge.sh](../../../scripts/swarm_merge.sh) (which verifies disjoint file sets, merges, purges stale `__pycache__` dirs, and runs full [verify_gate.sh](../../../scripts/verify_gate.sh)), fixes only cross-slice seams, and posts `[MERGED] <sha> (refs #...) @verifier`.
+   - `verifier` runs [verify_gate.sh](../../../scripts/verify_gate.sh) **once**, audits `git diff <base_sha>..HEAD` against `AC-1..AC-N` and `AGENTS.md` invariants, routes defects directly to `@integrator`, or posts `[VERIFIED] <sha> @coordinator`.
+4. **Closeout**:
+   - Verify clean `git status -sb` on `master`, `swarm{action:"kill"}` finished workers (`authors`, `integrator`, `verifier`—auto-removing both `share` worktrees and their `swarm-<name>-*` branches; leave `monitor` alive), post `[done] <one-line summary>` **with no `@`**, and summarize concisely for the user.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Fast (<1s) Git pre-commit hook: Ruff lint/format + Node JS syntax check.
+# Fast (<0.3s) worktree-safe Git pre-commit hook: lints & syntax-checks staged files only.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-exec bash "$REPO_ROOT/scripts/verify_gate.sh" --quick --allow-dirty
+exec bash "$REPO_ROOT/scripts/verify_gate.sh" --quick --staged

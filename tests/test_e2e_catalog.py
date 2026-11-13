@@ -16,6 +16,8 @@ from training_aid.audit import (
     PWA_DIR,
     REPO_ROOT,
     AuditConfig,
+    AuditReport,
+    AuditSectionResult,
     run_catalog_audit,
     verify_motion_js_safe_grip,
 )
@@ -70,15 +72,21 @@ def test_run_catalog_audit_full_report(built_pwa_dir: Path) -> None:
 
 
 def test_audit_cli_and_motion_safe_grip_failure_detection(
-    built_pwa_dir: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify training-aid-check CLI exit codes and safe-grip failure detection."""
-    monkeypatch.setenv("TA_DIST_DIR", str(built_pwa_dir))
+    ok_report = AuditReport(1, 1, (AuditSectionResult("ok", 1, ()),))
+    monkeypatch.setattr("training_aid.audit.run_catalog_audit", lambda: ok_report)
     with pytest.raises(SystemExit) as exc_ok:
         audit_main()
     assert exc_ok.value.code == 0
+
+    fail_report = AuditReport(1, 1, (AuditSectionResult("bad", 1, ("boom",)),))
+    monkeypatch.setattr("training_aid.audit.run_catalog_audit", lambda: fail_report)
+    with pytest.raises(SystemExit) as exc_fail:
+        audit_main()
+    assert exc_fail.value.code == 1
 
     bad_cfg = AuditConfig(
         exercises_path=tmp_path / "missing_exercises.json",

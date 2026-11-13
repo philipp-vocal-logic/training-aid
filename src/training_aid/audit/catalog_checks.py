@@ -13,19 +13,15 @@ from training_aid.audit.models import (
     AuditConfig,
     AuditSectionResult,
 )
-
-try:
-    from training_aid.compiler import (
-        CATALOG_SCHEMA_VERSION,
-        CatalogExercise,
-        build_exercise_metadata,
-        build_pwa,
-        compute_required_equipment,
-        load_catalog_exercises,
-        load_programs_config,
-    )
-except ModuleNotFoundError:  # pragma: no cover
-    CATALOG_SCHEMA_VERSION = 2
+from training_aid.compiler import (
+    CATALOG_SCHEMA_VERSION,
+    CatalogExercise,
+    build_exercise_metadata,
+    build_pwa,
+    compute_required_equipment,
+    load_catalog_exercises,
+    load_programs_config,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path

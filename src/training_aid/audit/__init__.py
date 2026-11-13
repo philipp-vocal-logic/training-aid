@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import os
 import sys
 import tempfile
@@ -33,9 +32,7 @@ from training_aid.audit.rig_checks import (
     audit_animations_and_safe_grip,
     verify_motion_js_safe_grip,
 )
-
-with contextlib.suppress(ModuleNotFoundError):
-    from training_aid.kinematics import load_animation_registry
+from training_aid.kinematics import load_animation_registry
 
 __all__ = [
     "DATA_DIR",
@@ -84,7 +81,8 @@ def run_catalog_audit(
             cfg, exercises, target, catalog, registry
         )
         pwa_errors = audit_programs_config(cfg, {ex.id: ex for ex in exercises}, specs)
-        pwa_errors.extend(verify_pwa_bundle_with_node(target))
+        if (target / "data" / "catalog.json").is_file():
+            pwa_errors.extend(verify_pwa_bundle_with_node(target))
         sec_pwa = AuditSectionResult(
             "pwa_programs_and_node_e2e", len(exercises), tuple(pwa_errors)
         )

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify strictly disjoint file ownership across swarm branches, merge onto HEAD, and run verify_gate.sh.
+# Verify strictly disjoint file ownership across swarm refs, merge onto HEAD, clean stale pycache, and run verify_gate.sh.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,10 +10,10 @@ ARGS=()
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/swarm_merge.sh [--dry-run] <base_ref> <branch1> [branch2 ...]
+Usage: bash scripts/swarm_merge.sh [--dry-run] <base_ref> <ref1> [ref2 ...]
 
-Verifies that all worker branches modified pairwise-disjoint file sets relative to <base_ref>,
-merges them (--no-edit) in order into the current branch, and runs scripts/verify_gate.sh.
+Verifies that all worker branches/SHAs modified pairwise-disjoint file sets relative to <base_ref>,
+merges them (--no-edit) in order into the current branch, purges stale __pycache__ dirs, and runs scripts/verify_gate.sh.
 EOF
 }
 
@@ -26,7 +26,7 @@ for arg in "$@"; do
 done
 
 if [[ "${#ARGS[@]}" -lt 2 ]]; then
-  echo "[swarm_merge] ERROR: Expected <base_ref> and at least one branch." >&2
+  echo "[swarm_merge] ERROR: Expected <base_ref> and at least one branch/commit ref." >&2
   usage >&2
   exit 2
 fi
@@ -41,7 +41,7 @@ fi
 
 for br in "${BRANCHES[@]}"; do
   if ! git rev-parse --verify "${br}^{commit}" >/dev/null 2>&1; then
-    echo "[swarm_merge] ERROR: Branch not found: $br" >&2
+    echo "[swarm_merge] ERROR: Ref not found: $br" >&2
     exit 1
   fi
 done
@@ -59,7 +59,7 @@ echo "[swarm_merge] Checking disjoint file ownership against $BASE_REF..."
 for br in "${BRANCHES[@]}"; do
   mapfile -t changed_files < <(git diff --name-only "${BASE_REF}...${br}")
   if [[ "${#changed_files[@]}" -eq 0 ]]; then
-    echo "[swarm_merge] WARNING: Branch $br has 0 changed files relative to $BASE_REF."
+    echo "[swarm_merge] WARNING: Ref $br has 0 changed files relative to $BASE_REF."
     continue
   fi
   echo "  - $br (${#changed_files[@]} files): ${changed_files[*]}"
@@ -79,7 +79,7 @@ if [[ "$COLLISIONS" -gt 0 ]]; then
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "[swarm_merge] DRY RUN PASSED: All ${#BRANCHES[@]} branch(es) are strictly disjoint."
+  echo "[swarm_merge] DRY RUN PASSED: All ${#BRANCHES[@]} ref(s) are strictly disjoint."
   exit 0
 fi
 
@@ -87,6 +87,8 @@ for br in "${BRANCHES[@]}"; do
   echo "[swarm_merge] Merging $br..."
   git merge --no-edit "$br"
 done
+
+find "$REPO_ROOT/src" "$REPO_ROOT/tests" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
 echo "[swarm_merge] Running full verification gate..."
 bash "$REPO_ROOT/scripts/verify_gate.sh"

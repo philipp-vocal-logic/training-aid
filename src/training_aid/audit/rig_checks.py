@@ -15,26 +15,14 @@ from training_aid.audit.models import (
     AuditSectionResult,
 )
 from training_aid.audit.node_runner import find_node_binary, run_node_command
-
-try:
-    from training_aid.kinematics import (
-        CANONICAL_EQUIPMENT_MODES,
-        AnimationRegistry,
-        lerp_pose,
-        load_animation_registry,
-        normalize_equipment,
-        solve_fk,
-    )
-except ModuleNotFoundError:  # pragma: no cover
-    CANONICAL_EQUIPMENT_MODES = (
-        "body_only",
-        "barbell",
-        "dumbbell",
-        "kettlebells",
-        "bands",
-        "cable",
-        "machine",
-    )
+from training_aid.kinematics import (
+    CANONICAL_EQUIPMENT_MODES,
+    AnimationRegistry,
+    lerp_pose,
+    load_animation_registry,
+    normalize_equipment,
+    solve_fk,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
