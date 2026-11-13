@@ -210,6 +210,7 @@
 .equip-chip {
   display: inline-flex;
   align-items: center;
+  gap: 0.34rem;
   padding: 0.26rem 0.65rem;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -230,6 +231,22 @@
   cursor: default;
   background: rgba(148, 163, 184, 0.1);
   color: var(--text);
+}
+.equip-icon {
+  flex-shrink: 0;
+  opacity: 0.58;
+  transition: opacity 0.12s ease;
+}
+.equip-chip:hover .equip-icon,
+.equip-chip.is-active .equip-icon,
+.equip-chip.is-baseline .equip-icon,
+.tile-option:hover .equip-icon,
+.tile-option:has(input:checked) .equip-icon {
+  opacity: 1;
+}
+
+@media (max-width: 440px) {
+  .setup-equip-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .pacing-strip { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }

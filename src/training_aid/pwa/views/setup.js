@@ -1,6 +1,6 @@
 /* Screen 1: Setup — Multiselect Equipment, Weekly Goal, Intensity, Speed & Rest (#setup) */
 import { EQUIPMENT_OPTIONS, REST_PRESETS } from "../core/constants.js";
-import { el, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
+import { el, makeEquipmentIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
 import { bindPreviewLoop } from "../ui/preview-loop.js";
 import { createViewScope } from "../ui/scope.js";
 
@@ -34,7 +34,13 @@ export function renderSetupView(ctx) {
   const curSpeed = timing.speed_mode || "normal";
   const curRest = Number(timing.rest_seconds) || 30;
 
-  function pickPreviewSvgMarkup(checkedIds) {
+  function pickPreviewSvgMarkup(checkedIds, preferredId) {
+    if (preferredId && checkedIds.has(preferredId)) {
+      const preferredOpt = EQUIPMENT_OPTIONS.find((opt) => opt.id === preferredId);
+      if (preferredOpt) {
+        return resolveSvgMarkup(catalog, preferredOpt.arch, preferredOpt.prop);
+      }
+    }
     for (const opt of EQUIPMENT_OPTIONS) {
       if (checkedIds.has(opt.id)) {
         return resolveSvgMarkup(catalog, opt.arch, opt.prop);
@@ -86,6 +92,7 @@ export function renderSetupView(ctx) {
       input: box,
       label: el("label", { className: "tile-option tile-option-compact" }, [
         box,
+        makeEquipmentIcon(opt.id, 16),
         el("span", { textContent: opt.label }),
       ]),
     };
@@ -123,7 +130,7 @@ export function renderSetupView(ctx) {
         el("div", { className: "row-cluster-tight" }, [clearEqBtn, selectAllBtn]),
       ]),
       el("div", { className: "muted text-xs", textContent: "Floor bodyweight exercises are always included." }),
-      el("div", { className: "tile-grid-3" }, eqTiles.map((t) => t.label)),
+      el("div", { className: "tile-grid-3 setup-equip-grid" }, eqTiles.map((t) => t.label)),
     ]),
     el("div", { className: "field-group" }, [
       el("span", { className: "field-label", textContent: "Starting Intensity" }),
@@ -156,13 +163,17 @@ export function renderSetupView(ctx) {
   let speed = PREVIEW_SPEED_BY_MODE[curSpeed] || PREVIEW_SPEED_BY_MODE.normal;
   const previewLoop = bindPreviewLoop(scope, svgWrap, () => ({ speed, tempoMode: "standard" }));
 
-  function syncEquipmentPreview() {
+  function syncEquipmentPreview(preferredId) {
     const checked = new Set(eqTiles.filter((t) => t.input.checked).map((t) => t.id));
-    setTrustedSvg(svgWrap, pickPreviewSvgMarkup(checked));
+    setTrustedSvg(svgWrap, pickPreviewSvgMarkup(checked, preferredId));
     previewLoop.rebind(svgWrap);
   }
 
-  for (const tile of eqTiles) scope.on(tile.input, "change", syncEquipmentPreview);
+  for (const tile of eqTiles) {
+    scope.on(tile.input, "change", () =>
+      syncEquipmentPreview(tile.input.checked ? tile.id : undefined)
+    );
+  }
   scope.on(selectAllBtn, "click", () => {
     for (const t of eqTiles) t.input.checked = true;
     syncEquipmentPreview();

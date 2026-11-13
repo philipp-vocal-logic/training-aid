@@ -98,6 +98,79 @@ export const makeFullscreenIcon = () =>
     }),
   ]);
 
+export function makeEquipmentIcon(equipId, size = 15) {
+  const key = String(equipId || "other").trim() || "other";
+  let children;
+  switch (key) {
+    case "body_only":
+      children = [
+        svgNode("circle", { cx: "12", cy: "5", r: "2.2" }),
+        svgNode("path", { d: "M7 10h10M12 7.5v6.5m0 0l-3 6m3-6l3 6" }),
+      ];
+      break;
+    case "dumbbell":
+      children = [
+        svgNode("path", { d: "M6 12h12M6 7v10M3.5 9v6M18 7v10M20.5 9v6" }),
+      ];
+      break;
+    case "kettlebells":
+      children = [
+        svgNode("path", { d: "M9 9V6.5a3 3 0 0 1 6 0V9" }),
+        svgNode("circle", { cx: "12", cy: "14.5", r: "5.5" }),
+      ];
+      break;
+    case "bands":
+      children = [
+        svgNode("rect", {
+          x: "3",
+          y: "8.5",
+          width: "18",
+          height: "7",
+          rx: "3.5",
+          transform: "rotate(-28 12 12)",
+        }),
+      ];
+      break;
+    case "barbell":
+      children = [
+        svgNode("path", { d: "M3 21L21 3M5 14l5 5M14 5l5 5M3.5 17.5l3 3M17.5 3.5l3 3" }),
+      ];
+      break;
+    case "pull_up_bar":
+      children = [
+        svgNode("path", { d: "M3 7h18M6 4v16M18 4v16" }),
+      ];
+      break;
+    case "bench":
+      children = [
+        svgNode("path", { d: "M3 12h18M6 12v6M18 12v6M4.5 18h3M16.5 18h3" }),
+      ];
+      break;
+    case "machine":
+    case "cable":
+      children = [
+        svgNode("circle", { cx: "8", cy: "6", r: "2.5" }),
+        svgNode("path", { d: "M8 8.5V19M10.5 6H17v13M13.5 11h6M13.5 15h6M13.5 19h6" }),
+      ];
+      break;
+    default:
+      children = [svgNode("circle", { cx: "12", cy: "12", r: "5" })];
+      break;
+  }
+  return svgNode(
+    "svg",
+    {
+      ...ICON_BASE,
+      class: "equip-icon",
+      width: String(size),
+      height: String(size),
+      "aria-hidden": "true",
+      "data-equip-icon": key,
+    },
+    children
+  );
+}
+
 export function formatLogDateTime(rawIso) {
   if (!rawIso) return "";
   const dt = rawIso instanceof Date ? rawIso : new Date(rawIso);

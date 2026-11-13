@@ -6,20 +6,23 @@ import {
   VALID_SPEED_MODES,
   isWeightedCatalogEquipment,
 } from "../core/constants.js";
-import { el } from "./dom.js";
+import { el, makeEquipmentIcon } from "./dom.js";
 
 export function renderEquipmentChipBar(scope, selectedList, onChange, extraNode) {
   const activeSet = new Set(Array.isArray(selectedList) ? selectedList : []);
 
   const chips = EQUIPMENT_OPTIONS.map((opt) => {
     const active = activeSet.has(opt.id);
-    const btn = el("button", {
-      type: "button",
-      className: "equip-chip" + (active ? " is-active" : ""),
-      dataset: { equipId: opt.id },
-      "aria-pressed": active ? "true" : "false",
-      textContent: opt.label,
-    });
+    const btn = el(
+      "button",
+      {
+        type: "button",
+        className: "equip-chip" + (active ? " is-active" : ""),
+        dataset: { equipId: opt.id },
+        "aria-pressed": active ? "true" : "false",
+      },
+      [makeEquipmentIcon(opt.id, 14), el("span", { textContent: opt.label })]
+    );
     scope.on(btn, "click", () => {
       const next = new Set(activeSet);
       if (next.has(opt.id)) next.delete(opt.id);
@@ -30,7 +33,10 @@ export function renderEquipmentChipBar(scope, selectedList, onChange, extraNode)
   });
 
   return el("div", { className: "equip-chip-bar", role: "group", "aria-label": "Available equipment" }, [
-    el("span", { className: "equip-chip is-baseline", textContent: "Bodyweight \u2713" }),
+    el("span", { className: "equip-chip is-baseline" }, [
+      makeEquipmentIcon("body_only", 14),
+      el("span", { textContent: "Bodyweight \u2713" }),
+    ]),
     ...chips,
     extraNode || null,
   ]);
