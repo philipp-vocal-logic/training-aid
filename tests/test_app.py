@@ -439,7 +439,7 @@ def test_decoupled_equipment_props_and_baked_thumbnails() -> None:
     """Verify equipment-specific SVG props and peak-pose static thumbnails."""
     bb_squat = _parse_svg(render_archetype_svg("squat", equipment="barbell"))
     assert bb_squat.attrib.get("data-equipment") == "barbell"
-    assert bb_squat.attrib.get("data-bar-mode") == "shoulder"
+    assert bb_squat.attrib.get("data-bar-mode") == "hands"
     assert bb_squat.find(".//*[@class='js-bar-shaft']") is not None
     assert bb_squat.find(".//*[@class='js-weight']") is not None
 

@@ -21,4 +21,5 @@ Open **http://127.0.0.1:8000**.
 
 ```bash
 uv run pytest -v
+uv run training-aid-check
 ```
