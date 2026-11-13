@@ -135,7 +135,11 @@ test("non-destructive routine adaptation, balanced random generation, and tempo 
     for (const item of session) {
       const ex = byId.get(item.exercise_id);
       assert.equal(catalogMod.isExerciseCompatible(ex, equipSet), true);
-      assert.ok(["strength", "cardio"].includes(ex.category.toLowerCase()));
+      assert.ok(
+        ["strength", "cardio", "plyometrics", "powerlifting"].includes(
+          ex.category.toLowerCase()
+        )
+      );
     }
   }
 
@@ -355,4 +359,89 @@ test("ARCHETYPE_FAMILY maps all 6 coronal archetypes to expected families", () =
     assert.equal(catalogMod.familyForArchetype(arch.toUpperCase()), family);
   }
   assert.equal(Object.keys(catalogMod.ARCHETYPE_FAMILY).length, 24);
+});
+
+test("soft-ranked multi-field catalog search across all 876 exercises (AC-1)", () => {
+  assert.equal(catalog.exercises.length, 876);
+  const store = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
+  store.setupPlan({ name: "SearchUser", equipment_list: ["dumbbell"], starting_intensity: "moderate", days_per_week: 3 });
+
+  const allResults = store.searchCatalog("", 1000, { compatibleOnly: false });
+  assert.equal(allResults.length, 876);
+  const compatFlags = allResults.map((ex) => catalogMod.isExerciseCompatible(ex, ["dumbbell"]));
+  const firstIncompatIdx = compatFlags.indexOf(false);
+  assert.ok(firstIncompatIdx > 0 && firstIncompatIdx < 876);
+  assert.ok(compatFlags.slice(firstIncompatIdx).every((flag) => !flag));
+  for (let i = 1; i < firstIncompatIdx; i++) assert.ok(allResults[i - 1].name <= allResults[i].name);
+  for (let i = firstIncompatIdx + 1; i < allResults.length; i++) assert.ok(allResults[i - 1].name <= allResults[i].name);
+  assert.equal(store.searchCatalog("", 1000, { compatibleOnly: true }).length, firstIncompatIdx);
+
+  assert.ok(store.searchCatalog("shoulders", 50, { compatibleOnly: false }).some((ex) => ex.primary_muscle.toLowerCase() === "shoulders"));
+  const stretches = store.searchCatalog("stretching", 50, { compatibleOnly: false });
+  assert.ok(stretches.length > 0 && stretches.every((ex) => ex.category.toLowerCase() === "stretching" || ex.name.toLowerCase().includes("stretching")));
+  assert.ok(store.searchCatalog("dumbbell chest", 50, { compatibleOnly: false }).some((ex) => ex.id === "Dumbbell_Bench_Press"));
+  assert.equal(store.searchCatalog("rope jumping", 50, { compatibleOnly: false })[0].id, "Rope_Jumping");
+  assert.ok(store.searchCatalog("bodyweight abs", 50, { compatibleOnly: false }).some((ex) => ex.equipment.toLowerCase() === "body only" && ex.primary_muscle.toLowerCase() === "abdominals"));
+  assert.ok(store.searchCatalog("quads", 25, { compatibleOnly: false }).some((ex) => ex.primary_muscle.toLowerCase() === "quadriceps"));
+  assert.ok(store.searchCatalog("back", 25, { compatibleOnly: false }).some((ex) => ["middle back", "lower back", "lats"].includes(ex.primary_muscle.toLowerCase())));
+});
+
+test("generator categories unlock plyometrics/powerlifting and stretch-to-stretch swap (AC-2)", () => {
+  assert.deepEqual([...catalogMod.SAFE_GENERATOR_CATEGORIES].sort(), ["cardio", "plyometrics", "powerlifting", "strength", "stretching"]);
+  const store = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
+  store.setupPlan({ name: "SwapUser", equipment_list: constantsMod.VALID_EQUIPMENT_IDS, starting_intensity: "moderate", days_per_week: 3 });
+
+  const stretchEx = catalog.exercises.find((ex) => ex.category.toLowerCase() === "stretching" && catalogMod.isExerciseCompatible(ex, []));
+  assert.ok(stretchEx);
+  const addedStretch = store.addExerciseItem("r1", stretchEx.id);
+  const swapped = store.swapExerciseItem("r1", addedStretch.id, { rng: () => 0.1 });
+  assert.ok(swapped && swapped.exercise_id !== stretchEx.id);
+  assert.equal(store.getExercise(swapped.exercise_id).category.toLowerCase(), "stretching");
+
+  for (let i = 0; i < 15; i++) {
+    const randItem = store.addRandomExerciseItem("r1", { rng: () => (i + 0.5) / 15 });
+    assert.ok(randItem && store.getExercise(randItem.exercise_id).category.toLowerCase() !== "stretching");
+    store.removeExerciseItem("r1", randItem.id);
+  }
+});
+
+test("manual out-of-profile and 'other' exercises stay preserved across plan, quick, and workout (AC-3)", () => {
+  const store = storeMod.createStore({ storage: makeMemoryStorage(), catalog });
+  store.setupPlan({ name: "ManualUser", equipment_list: ["barbell", "dumbbell"], starting_intensity: "moderate", days_per_week: 3 });
+
+  const kbEx = catalog.exercises.find((ex) => ex.required_equipment.includes("kettlebells") && !catalogMod.isExerciseCompatible(ex, ["barbell", "dumbbell"]));
+  assert.ok(kbEx);
+  assert.ok(store.addExerciseItem("r1", "Rope_Jumping") && store.addExerciseItem("r1", kbEx.id));
+
+  assert.equal(store.hasSessionEquipmentOverride(), false);
+  const cardNoOverride = store.getRecommendedToday().card;
+  assert.equal(cardNoOverride.was_substituted, false);
+  assert.ok(cardNoOverride.exercises.some((row) => row.exercise.id === "Rope_Jumping"));
+  assert.ok(cardNoOverride.exercises.some((row) => row.exercise.id === kbEx.id));
+  const plNoOverride = store.buildPlaylist("r1");
+  assert.ok(plNoOverride.some((pl) => pl.exercise_id === "Rope_Jumping") && plNoOverride.some((pl) => pl.exercise_id === kbEx.id));
+
+  store.setSessionEquipment([]);
+  assert.equal(store.hasSessionEquipmentOverride(), true);
+  const cardOverride = store.getRecommendedToday().card;
+  assert.equal(cardOverride.was_substituted, true);
+  assert.equal(cardOverride.exercises.find((row) => row.exercise.id === "Rope_Jumping")?.is_substituted, false);
+  assert.equal(cardOverride.exercises.find((row) => row.exercise.id === kbEx.id)?.is_substituted, false);
+  const plOverride = store.buildPlaylist("r1");
+  assert.ok(plOverride.some((pl) => pl.exercise_id === "Rope_Jumping" && !pl.is_substituted));
+  assert.ok(plOverride.some((pl) => pl.exercise_id === kbEx.id && !pl.is_substituted));
+
+  store.resetSessionEquipment();
+  const adhocBefore = store.generateAdHocSession({ count: 3, rng: () => 0.25 });
+  assert.equal(adhocBefore.exercises.some((it) => !catalogMod.isExerciseCompatible(store.getExercise(it.exercise_id), [])), true);
+  store.addExerciseItem("adhoc", "Rope_Jumping");
+  store.addExerciseItem("adhoc", kbEx.id);
+  store.setSessionEquipment([]);
+  const adhocAfter = store.adaptAdHocForCurrentEquipment();
+  assert.ok(adhocAfter.exercises.some((it) => it.exercise_id === "Rope_Jumping") && adhocAfter.exercises.some((it) => it.exercise_id === kbEx.id));
+  for (const it of adhocAfter.exercises) {
+    if (it.exercise_id !== "Rope_Jumping" && it.exercise_id !== kbEx.id) {
+      assert.equal(catalogMod.isExerciseCompatible(store.getExercise(it.exercise_id), []), true);
+    }
+  }
 });

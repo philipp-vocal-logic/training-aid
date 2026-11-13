@@ -7,9 +7,17 @@ import {
   stepToIntensityPercent,
 } from "./prescription.js";
 
-export function projectRoutineCard(rawRt, exerciseList, exerciseMap, profile, availEq, adaptSession) {
+export function projectRoutineCard(
+  rawRt,
+  exerciseList,
+  exerciseMap,
+  profile,
+  availEq,
+  adaptSession,
+  baselineEq,
+) {
   const rt = adaptSession && !rawRt.is_adhoc && exerciseList.length > 0
-    ? adaptRoutineForEquipment(rawRt, availEq, profile, exerciseList, exerciseMap)
+    ? adaptRoutineForEquipment(rawRt, availEq, profile, exerciseList, exerciseMap, baselineEq)
     : rawRt;
   const lvl = Math.trunc(Number(rt.intensity_level) || 0);
   const intensityPct = stepToIntensityPercent(lvl);
