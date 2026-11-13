@@ -1,7 +1,9 @@
 # Copyright (c) 2026 Philipp Kaaden
 """Build-time static compiler for the zero-backend Training Aid PWA."""
 
+import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -34,6 +36,8 @@ DEFAULT_ANIMATIONS_JSON = DATA_DIR / "animations.json"
 DEFAULT_EXERCISE_COACHING_JSON = DATA_DIR / "exercise_coaching.json"
 
 CATALOG_SCHEMA_VERSION = 1
+_SW_CACHE_VERSION_RE = re.compile(r'(CACHE_VERSION\s*=\s*")v1(?:-[0-9a-f]{12})?(")')
+_IGNORED_BUNDLE_SUFFIXES = frozenset({".pyc", ".pyo"})
 
 __all__ = [
     "CANONICAL_EQUIPMENT_MODES",
@@ -47,6 +51,7 @@ __all__ = [
     "build_pwa",
     "load_catalog_exercises",
     "load_programs_config",
+    "stamp_service_worker_cache_version",
 ]
 
 
@@ -229,6 +234,65 @@ def _copy_asset_tree(src_dir: Path, dst_dir: Path) -> None:
     )
 
 
+def stamp_service_worker_cache_version(output_dir: Path) -> str | None:
+    """Stamp a deterministic SHA-256 asset digest into `output_dir / 'sw.js'`.
+
+    Computes a SHA-256 digest across the normalized Service Worker template and
+    every compiled file in `output_dir` (sorted by POSIX relative path) and
+    rewrites `CACHE_VERSION` to `"v1-<12hex>"`.
+
+    Args:
+        output_dir: Compiled PWA bundle directory containing `sw.js`.
+
+    Returns:
+        Stamped `CACHE_VERSION` string (e.g. `"v1-a1b2c3d4e5f6"`), or `None` if
+        `sw.js` is not present in `output_dir`.
+
+    Raises:
+        ValueError: If `sw.js` exists but lacks a `CACHE_VERSION = "v1"` token.
+    """
+    out_dir = Path(output_dir)
+    sw_path = out_dir / "sw.js"
+    if not sw_path.is_file():
+        return None
+
+    raw_sw = sw_path.read_text(encoding="utf-8")
+    sw_template, count = _SW_CACHE_VERSION_RE.subn(r"\g<1>v1\g<2>", raw_sw, count=1)
+    if count != 1:
+        msg = f"Expected CACHE_VERSION = 'v1' declaration in {sw_path}"
+        raise ValueError(msg)
+
+    hasher = hashlib.sha256()
+    sw_bytes = sw_template.encode("utf-8")
+    hasher.update(f"sw.js:{len(sw_bytes)}\0".encode())
+    hasher.update(sw_bytes)
+
+    bundle_files = sorted(
+        (
+            (path.relative_to(out_dir).as_posix(), path)
+            for path in out_dir.rglob("*")
+            if path.is_file()
+            and path != sw_path
+            and "__pycache__" not in path.parts
+            and path.suffix not in _IGNORED_BUNDLE_SUFFIXES
+        ),
+        key=lambda item: item[0],
+    )
+    for rel_posix, file_path in bundle_files:
+        content = file_path.read_bytes()
+        hasher.update(f"{rel_posix}:{len(content)}\0".encode())
+        hasher.update(content)
+
+    cache_version = f"v1-{hasher.hexdigest()[:12]}"
+    stamped_sw = _SW_CACHE_VERSION_RE.sub(
+        rf"\g<1>{cache_version}\g<2>",
+        sw_template,
+        count=1,
+    )
+    sw_path.write_text(stamped_sw, encoding="utf-8", newline="\n")
+    return cache_version
+
+
 def build_pwa(
     output_dir: Path = DEFAULT_DIST_DIR,
     *,
@@ -268,10 +332,12 @@ def build_pwa(
         json.dumps(catalog, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
+    cache_version = stamp_service_worker_cache_version(out_dir)
 
     return {
         "output_dir": out_dir,
         "catalog_path": catalog_path,
+        "cache_version": cache_version,
         "exercise_count": len(catalog["exercises"]),
         "thumbnail_count": len(thumb_paths),
         "svg_count": len(catalog["svgs"]),

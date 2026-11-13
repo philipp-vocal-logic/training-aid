@@ -221,6 +221,7 @@ _SW_ASSETS_RE = re.compile(
     r"APP_SHELL_ASSETS\s*=\s*(\[[^\]]*\])",
     flags=re.DOTALL,
 )
+_SW_STAMPED_VERSION_RE = re.compile(r'CACHE_VERSION\s*=\s*"v1-[0-9a-f]{12}"')
 _CSP_META_RE = re.compile(
     r'<meta\s+[^>]*http-equiv=["\']Content-Security-Policy["\'][^>]*>',
     flags=re.IGNORECASE,
@@ -1395,6 +1396,8 @@ def _check_manifest_and_service_worker(dist_dir: Path, errors: list[str]) -> Non
         return
 
     sw_src = sw_path.read_text(encoding="utf-8")
+    if _SW_STAMPED_VERSION_RE.search(sw_src) is None:
+        errors.append("sw.js missing build-stamped CACHE_VERSION ('v1-<12hex>')")
     match = _SW_ASSETS_RE.search(sw_src)
     if match is None:
         errors.append("sw.js missing APP_SHELL_ASSETS array")
