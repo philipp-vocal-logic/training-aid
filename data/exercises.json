@@ -49,7 +49,7 @@
     "category": "stretching",
     "equipment": "foam roll",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -60,7 +60,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -71,7 +71,7 @@
     "category": "strength",
     "equipment": "kettlebells",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -115,7 +115,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -159,7 +159,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -269,7 +269,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -291,7 +291,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -335,7 +335,7 @@
     "category": "strength",
     "equipment": "bands",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -423,7 +423,7 @@
     "category": "strength",
     "equipment": "bands",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -434,7 +434,7 @@
     "category": "strength",
     "equipment": "bands",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -588,7 +588,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -654,7 +654,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -665,7 +665,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -676,7 +676,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -687,7 +687,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "quadriceps",
-    "archetype": "lunge",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -896,7 +896,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1017,7 +1017,7 @@
     "category": "strength",
     "equipment": "e-z curl bar",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1061,7 +1061,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1193,7 +1193,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1215,7 +1215,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1259,7 +1259,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1303,7 +1303,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1358,7 +1358,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1424,7 +1424,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1446,7 +1446,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1468,7 +1468,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1578,7 +1578,7 @@
     "category": "plyometrics",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -1820,7 +1820,7 @@
     "category": "olympic weightlifting",
     "equipment": "barbell",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -2084,7 +2084,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2183,7 +2183,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2370,7 +2370,7 @@
     "category": "strength",
     "equipment": "kettlebells",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2491,7 +2491,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2513,7 +2513,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2535,7 +2535,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -2557,7 +2557,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2601,7 +2601,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -2689,7 +2689,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2700,7 +2700,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2931,7 +2931,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -2975,7 +2975,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -3360,7 +3360,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -3371,7 +3371,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -3723,7 +3723,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -3756,7 +3756,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -3767,7 +3767,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -3877,7 +3877,7 @@
     "category": "stretching",
     "equipment": "other",
     "primary_muscle": "hamstrings",
-    "archetype": "hinge",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -3932,7 +3932,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -3943,7 +3943,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "rear_fly",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -4229,7 +4229,7 @@
     "category": "strength",
     "equipment": "kettlebells",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -4273,7 +4273,7 @@
     "category": "strength",
     "equipment": "kettlebells",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -4460,7 +4460,7 @@
     "category": "plyometrics",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": true
@@ -4471,7 +4471,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -4482,7 +4482,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -4493,7 +4493,7 @@
     "category": "strength",
     "equipment": "bands",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -4658,7 +4658,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -4735,7 +4735,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -4812,7 +4812,7 @@
     "category": "stretching",
     "equipment": "other",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -4977,7 +4977,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5131,7 +5131,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "middle back",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -5164,7 +5164,7 @@
     "category": "strength",
     "equipment": "bands",
     "primary_muscle": "abductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -5351,7 +5351,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5362,7 +5362,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5373,7 +5373,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5571,7 +5571,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -6506,7 +6506,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -6517,7 +6517,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -6561,7 +6561,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7199,7 +7199,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7276,7 +7276,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -7331,7 +7331,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7342,7 +7342,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7353,7 +7353,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7364,7 +7364,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -7375,7 +7375,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -7441,7 +7441,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "chest",
-    "archetype": "bench_press",
+    "archetype": "chest_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -7661,7 +7661,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "rear_fly",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7694,7 +7694,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7705,7 +7705,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7815,7 +7815,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "shoulders",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -7881,7 +7881,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -7947,7 +7947,7 @@
     "category": "olympic weightlifting",
     "equipment": "barbell",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -8376,7 +8376,7 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -8431,7 +8431,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "abductors",
-    "archetype": "squat",
+    "archetype": "side_bend",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false
@@ -8497,7 +8497,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "shoulders",
-    "archetype": "overhead_press",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -8684,7 +8684,7 @@
     "category": "plyometrics",
     "equipment": "body only",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -8805,7 +8805,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": false
@@ -8992,7 +8992,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "abductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9003,7 +9003,7 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "adductors",
-    "archetype": "squat",
+    "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9256,7 +9256,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9267,7 +9267,7 @@
     "category": "strength",
     "equipment": "bands",
     "primary_muscle": "traps",
-    "archetype": "row_pull",
+    "archetype": "upright_row",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9344,7 +9344,7 @@
     "category": "strength",
     "equipment": "exercise ball",
     "primary_muscle": "abdominals",
-    "archetype": "crunch_core",
+    "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": false
@@ -9542,7 +9542,7 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "abductors",
-    "archetype": "squat",
+    "archetype": "side_bend",
     "is_hold": true,
     "tempo_mode": "hold",
     "is_alternating": false

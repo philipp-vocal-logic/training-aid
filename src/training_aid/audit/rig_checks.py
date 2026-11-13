@@ -53,14 +53,20 @@ SEGMENT_PAIRS: tuple[tuple[str, str, str], ...] = (
     ("hip", "mid_spine", "lumbar"),
     ("mid_spine", "shoulder", "thoracic"),
     ("shoulder", "head", "neck"),
-    ("shoulder", "elbow_f", "uarm"),
+    ("shoulder_f", "elbow_f", "uarm"),
     ("elbow_f", "hand_f", "farm"),
     ("shoulder_b", "elbow_b", "uarm"),
     ("elbow_b", "hand_b", "farm"),
-    ("hip", "knee_f", "thigh"),
+    ("hip_f", "knee_f", "thigh"),
     ("knee_f", "foot_f", "shin"),
     ("hip_b", "knee_b", "thigh"),
     ("knee_b", "foot_b", "shin"),
+)
+FRONT_SOCKET_PAIRS: tuple[tuple[str, str, str], ...] = (
+    ("shoulder", "shoulder_f", "clavicle_r"),
+    ("shoulder", "shoulder_b", "clavicle_r"),
+    ("hip", "hip_f", "pelvis_r"),
+    ("hip", "hip_b", "pelvis_r"),
 )
 
 
@@ -124,10 +130,15 @@ def _check_pose_and_props(
     """Check bone-length preservation, joint/head viewport bounds, and prop bounds."""
     bones = spec["bones"]
     bar_mode = str(spec["bar_mode"])
+    pairs = (
+        (*SEGMENT_PAIRS, *FRONT_SOCKET_PAIRS)
+        if spec.get("view") == "front"
+        else SEGMENT_PAIRS
+    )
     errors = [
         f"{label}: bone '{bone_key}' length {_dist(points[p1], points[p2]):.4f} != "
         f"{bones[bone_key]:.4f}"
-        for p1, p2, bone_key in SEGMENT_PAIRS
+        for p1, p2, bone_key in pairs
         if abs(_dist(points[p1], points[p2]) - bones[bone_key]) > BONE_LEN_TOL
     ]
 
@@ -310,9 +321,12 @@ def _check_combo_svg_and_thumb(
     bones = spec["bones"]
     pose_a = spec["pose_a"]
     pose_b = spec["pose_b"]
+    view = str(spec.get("view", "side"))
     for swap in (False, True):
         for t in SAMPLE_TS:
-            points = solve_fk(bones, lerp_pose(pose_a, pose_b, t), swap_sides=swap)
+            points = solve_fk(
+                bones, lerp_pose(pose_a, pose_b, t), swap_sides=swap, view=view
+            )
             label = f"{arch}:{eq_mode} t={t}"
             errors.extend(
                 _check_pose_and_props(label, spec, points, eq_mode, prop_circles)
@@ -336,7 +350,7 @@ def audit_animations_and_safe_grip(
     catalog: dict[str, Any],
     registry: AnimationRegistry,
 ) -> AuditSectionResult:
-    """Verify all 126 SVG combos, FK trajectories, and motion.js safe-grip."""
+    """Verify all 168 SVG combos, FK trajectories, and motion.js safe-grip."""
     errors: list[str] = []
     specs = registry.specs
     prop_circles = _build_prop_circles(registry.prop_geometry)

@@ -8,7 +8,9 @@
     "thigh": 36.0,
     "shin": 36.0,
     "back_dx": -5.0,
-    "back_dy": -2.0
+    "back_dy": -2.0,
+    "clavicle_r": 14.5,
+    "pelvis_r": 9.5
   },
   "prop_geometry": {
     "barbell": {
@@ -827,6 +829,237 @@
         "cue_work": "Twist",
         "cue_return": "Switch",
         "tempo_mode": "alternating"
+      }
+    },
+    "lateral_raise": {
+      "label": "Lateral Raise",
+      "view": "front",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "dumbbell",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [120.0, 173.0],
+      "band_target": "hand",
+      "cable_anchor": [96.0, 168.0],
+      "cable_target": "hand",
+      "bones": {},
+      "pose_a": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [78.0, 96.0],
+        "arm_b": [102.0, 84.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "pose_b": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [-6.0, 12.0],
+        "arm_b": [186.0, 168.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "coaching": {
+        "rep_seconds": 2.4,
+        "is_hold": false,
+        "how_to": "Tall torso, sweep arms wide",
+        "cue_work": "↑ Raise",
+        "cue_return": "↓ Lower",
+        "tempo_mode": "standard"
+      }
+    },
+    "chest_fly": {
+      "label": "Chest Fly",
+      "view": "front",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "dumbbell",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [120.0, 92.0],
+      "band_target": "hand",
+      "cable_anchor": [44.0, 72.0],
+      "cable_target": "hand",
+      "bones": {},
+      "pose_a": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [14.0, 52.0],
+        "arm_b": [166.0, 128.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "pose_b": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [58.0, 136.0],
+        "arm_b": [122.0, 44.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "coaching": {
+        "rep_seconds": 2.6,
+        "is_hold": false,
+        "how_to": "Soft elbows, hug arc inward",
+        "cue_work": "→← Squeeze",
+        "cue_return": "←→ Open",
+        "tempo_mode": "standard"
+      }
+    },
+    "rear_fly": {
+      "label": "Rear Fly",
+      "view": "front",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "bands",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [120.0, 74.0],
+      "band_target": "span",
+      "cable_anchor": [92.0, 74.0],
+      "cable_target": "hand",
+      "bones": {},
+      "pose_a": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [32.0, 162.0],
+        "arm_b": [148.0, 18.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "pose_b": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [6.0, 18.0],
+        "arm_b": [174.0, 162.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "coaching": {
+        "rep_seconds": 2.5,
+        "is_hold": false,
+        "how_to": "Squeeze shoulder blades wide",
+        "cue_work": "←→ Pull",
+        "cue_return": "→← Control",
+        "tempo_mode": "standard"
+      }
+    },
+    "upright_row": {
+      "label": "Upright Row",
+      "view": "front",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "barbell",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [120.0, 173.0],
+      "band_target": "hand",
+      "cable_anchor": [120.0, 170.0],
+      "cable_target": "hand",
+      "bones": {},
+      "pose_a": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [84.0, 102.0],
+        "arm_b": [96.0, 78.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "pose_b": {
+        "hip": [120.0, 100.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [-18.0, 134.0],
+        "arm_b": [198.0, 46.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "coaching": {
+        "rep_seconds": 2.4,
+        "is_hold": false,
+        "how_to": "Drive elbows and shoulders high",
+        "cue_work": "↑ Pull",
+        "cue_return": "↓ Lower",
+        "tempo_mode": "standard"
+      }
+    },
+    "side_lunge": {
+      "label": "Side Lunge",
+      "view": "front",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "body_only",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [86.0, 171.0],
+      "band_target": "foot",
+      "cable_anchor": [74.0, 168.0],
+      "cable_target": "foot",
+      "bones": {
+        "thigh": 38.0,
+        "shin": 38.0
+      },
+      "pose_a": {
+        "hip": [120.0, 104.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [62.0, 128.0],
+        "arm_b": [118.0, 52.0],
+        "leg_f": { "target": [152.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [88.0, 170.0], "bend_sign": 1 }
+      },
+      "pose_b": {
+        "hip": [138.0, 122.0],
+        "spine": [-86.0, -86.0, -88.0],
+        "arm_f": [54.0, 122.0],
+        "arm_b": [126.0, 58.0],
+        "leg_f": { "target": [152.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [88.0, 170.0], "bend_sign": 1 }
+      },
+      "coaching": {
+        "rep_seconds": 2.8,
+        "is_hold": false,
+        "how_to": "Shift hips wide, chest tall",
+        "cue_work": "↓ Lunge",
+        "cue_return": "↑ Push",
+        "tempo_mode": "standard"
+      }
+    },
+    "side_bend": {
+      "label": "Side Bend",
+      "view": "front",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "dumbbell",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [146.0, 173.0],
+      "band_target": "hand",
+      "cable_anchor": [182.0, 48.0],
+      "cable_target": "hand",
+      "bones": {},
+      "pose_a": {
+        "hip": [120.0, 102.0],
+        "spine": [-90.0, -90.0, -90.0],
+        "arm_f": [84.0, 92.0],
+        "arm_b": [96.0, 88.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "pose_b": {
+        "hip": [118.0, 103.0],
+        "spine": [-68.0, -56.0, -52.0],
+        "arm_f": [86.0, 90.0],
+        "arm_b": [104.0, 76.0],
+        "leg_f": { "target": [134.0, 170.0], "bend_sign": -1 },
+        "leg_b": { "target": [106.0, 170.0], "bend_sign": 1 }
+      },
+      "coaching": {
+        "rep_seconds": 2.4,
+        "is_hold": false,
+        "how_to": "Bend straight sideways, brace core",
+        "cue_work": "↓ Bend",
+        "cue_return": "↑ Tall",
+        "tempo_mode": "standard"
       }
     }
   }
