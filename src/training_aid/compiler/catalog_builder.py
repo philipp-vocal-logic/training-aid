@@ -176,6 +176,7 @@ def _compile_exercise_record(
         "cue_return": str(meta["cue_return"]),
         "tempo_mode": str(meta["tempo_mode"]),
         "is_alternating": bool(meta["is_alternating"]),
+        "unilateral_mode": str(meta["unilateral_mode"]),
         "required_equipment": compute_required_equipment(exercise),
     }
 

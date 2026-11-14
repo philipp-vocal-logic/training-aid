@@ -176,7 +176,58 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
     assert by_id["Band_Pull_Apart"].archetype == "rear_fly"
     assert by_id["Barbell_Shrug"].archetype == "upright_row"
     assert by_id["Dumbbell_Side_Bend"].archetype == "side_bend"
+    assert by_id["Dumbbell_Side_Bend"].is_alternating is True
     assert by_id["Barbell_Squat"].is_hold is False
+    assert by_id["Single_Leg_Glute_Bridge"].archetype == "single_leg_bridge"
+    for sl_hinge_id in (
+        "Kettlebell_One-Legged_Deadlift",
+        "One-Legged_Cable_Kickback",
+        "Glute_Kickback",
+        "Dancers_Stretch",
+        "Standing_Hamstring_and_Calf_Stretch",
+        "Leg-Up_Hamstring_Stretch",
+    ):
+        assert by_id[sl_hinge_id].archetype == "single_leg_hinge", sl_hinge_id
+    for sl_squat_id in (
+        "Barbell_Step_Ups",
+        "Dumbbell_Step_Ups",
+        "Kettlebell_Pistol_Squat",
+        "One_Leg_Barbell_Squat",
+        "Single-Leg_High_Box_Squat",
+        "Single-Leg_Hop_Progression",
+    ):
+        assert by_id[sl_squat_id].archetype == "single_leg_squat", sl_squat_id
+
+    assert by_id["Mountain_Climbers"].is_alternating is False
+    assert by_id["Air_Bike"].is_alternating is False
+    for uni_id in (
+        "Dumbbell_Lunges",
+        "Dumbbell_Side_Bend",
+        "Concentration_Curls",
+        "Side_Bridge",
+        "Split_Squats",
+        "Double_Kettlebell_Windmill",
+    ):
+        assert by_id[uni_id].is_alternating is True, uni_id
+
+    expected_umodes = {
+        "Barbell_Squat": "none",
+        "Mountain_Climbers": "none",
+        "Double_Kettlebell_Windmill": "none",
+        "Concentration_Curls": "arm_single",
+        "One-Arm_Dumbbell_Row": "arm_single",
+        "Alternate_Hammer_Curl": "arm_pair",
+        "Kettlebell_Seesaw_Press": "arm_pair",
+        "Single_Leg_Glute_Bridge": "leg",
+        "Dumbbell_Lunges": "leg",
+        "Dumbbell_Side_Bend": "side",
+        "Side_Bridge": "side",
+    }
+    for ex_id, expected_mode in expected_umodes.items():
+        ex_meta = build_exercise_metadata(
+            by_id[ex_id], archetype_coaching=arch_coaching
+        )
+        assert ex_meta["unilateral_mode"] == expected_mode, ex_id
 
     pull_up_ids = {
         "Band_Assisted_Pull-Up",
@@ -220,7 +271,7 @@ def test_baked_exercise_coaching_and_archetypes() -> None:
 
 
 def test_programs_config_18_archetype_coverage() -> None:
-    """Verify preset programs cover all 25 archetypes and omit legacy keys."""
+    """Verify preset programs cover all 28 archetypes and omit legacy keys."""
     registry = load_animation_registry()
     specs = registry.specs
     programs_cfg = load_programs_config()

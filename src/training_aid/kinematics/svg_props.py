@@ -241,7 +241,8 @@ def _render_tethered_props(
         else:
             tb_pt, tf_pt = joints["hand_b"], joints["hand_f"]
         back = (
-            f'<circle cx="{ax:.2f}" cy="{ay:.2f}" r="3.5" fill="#0f172a" '
+            f"<circle{svg_class_attr('js-anchor', interactive=interactive)} "
+            f'cx="{ax:.2f}" cy="{ay:.2f}" r="3.5" fill="#0f172a" '
             'stroke="#34d399" stroke-width="1.6" />'
             f"<line{svg_class_attr('js-band-b', interactive=interactive)} "
             f'x1="{ax:.2f}" y1="{ay:.2f}" x2="{tb_pt[0]:.2f}" '
@@ -265,7 +266,8 @@ def _render_tethered_props(
     ]
     att_pt = joints["foot_f"] if c_target == "foot" else joints["hand_f"]
     back = (
-        f'<circle cx="{ax:.2f}" cy="{ay:.2f}" r="4.8" fill="#1e293b" '
+        f"<circle{svg_class_attr('js-anchor', interactive=interactive)} "
+        f'cx="{ax:.2f}" cy="{ay:.2f}" r="4.8" fill="#1e293b" '
         'stroke="#94a3b8" stroke-width="1.8" />'
         f"<line{svg_class_attr('js-cable', interactive=interactive)} "
         f'x1="{ax:.2f}" y1="{ay:.2f}" x2="{att_pt[0]:.2f}" '

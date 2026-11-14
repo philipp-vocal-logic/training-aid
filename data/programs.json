@@ -162,9 +162,9 @@
           "Day 3: Full Body Dumbbells",
           [
             [
-              "Dumbbell_Squat_To_A_Bench",
-              12,
-              12.0
+              "Dumbbell_Step_Ups",
+              10,
+              10.0
             ],
             [
               "Bent_Over_Two-Dumbbell_Row",
@@ -267,9 +267,9 @@
           "Day 3: Athletic Mix",
           [
             [
-              "Goblet_Squat",
-              12,
-              12.0
+              "Kettlebell_One-Legged_Deadlift",
+              10,
+              10.0
             ],
             [
               "Pushups",
@@ -307,8 +307,8 @@
               null
             ],
             [
-              "Plank",
-              45,
+              "Hip_Lift_with_Band",
+              12,
               null
             ]
           ]

@@ -18,7 +18,12 @@ from training_aid.compiler.catalog_builder import (
     load_catalog_exercises,
     load_programs_config,
 )
-from training_aid.compiler.coaching import CatalogExercise, build_exercise_metadata
+from training_aid.compiler.coaching import (
+    VALID_UNILATERAL_MODES,
+    CatalogExercise,
+    build_exercise_metadata,
+    resolve_unilateral_mode,
+)
 
 __all__ = [
     "CATALOG_SCHEMA_VERSION",
@@ -28,6 +33,7 @@ __all__ = [
     "DEFAULT_EXERCISES_JSON",
     "DEFAULT_PROGRAMS_JSON",
     "PWA_SRC_DIR",
+    "VALID_UNILATERAL_MODES",
     "CatalogExercise",
     "build_catalog_payload",
     "build_exercise_metadata",
@@ -35,5 +41,6 @@ __all__ = [
     "compute_required_equipment",
     "load_catalog_exercises",
     "load_programs_config",
+    "resolve_unilateral_mode",
     "stamp_service_worker",
 ]

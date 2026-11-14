@@ -15,6 +15,7 @@ from training_aid.audit.models import (
 )
 from training_aid.compiler import (
     CATALOG_SCHEMA_VERSION,
+    VALID_UNILATERAL_MODES,
     CatalogExercise,
     build_exercise_metadata,
     build_pwa,
@@ -62,6 +63,7 @@ EXPECTED_METADATA_KEYS: frozenset[str] = frozenset(
         "cue_return",
         "tempo_mode",
         "is_alternating",
+        "unilateral_mode",
     }
 )
 EXPECTED_COMPILED_EXERCISE_KEYS: frozenset[str] = EXPECTED_METADATA_KEYS | frozenset(
@@ -134,6 +136,8 @@ def _check_compiled_exercise_entry(
     ex_id = item.get("id", "<unknown>")
     if set(item.keys()) != EXPECTED_COMPILED_EXERCISE_KEYS:
         errs.append(f"{ex_id}: compiled exercise keys mismatch")
+    if item.get("unilateral_mode") not in VALID_UNILATERAL_MODES:
+        errs.append(f"{ex_id}: invalid unilateral_mode={item.get('unilateral_mode')!r}")
     req_eq = item.get("required_equipment")
     if not isinstance(req_eq, list) or not all(isinstance(x, str) for x in req_eq):
         errs.append(f"{ex_id}: required_equipment must be a list[str]")
@@ -248,6 +252,8 @@ def _check_single_exercise_coaching(
 
     if set(meta.keys()) != EXPECTED_METADATA_KEYS or arch not in specs:
         errs.append(f"{ex.id}: invalid metadata keys or archetype '{arch}'")
+    if meta.get("unilateral_mode") not in VALID_UNILATERAL_MODES:
+        errs.append(f"{ex.id}: invalid unilateral_mode={meta.get('unilateral_mode')!r}")
     if tempo not in VALID_TEMPO_MODES or is_hold != (tempo == "hold"):
         errs.append(f"{ex.id}: invalid tempo_mode='{tempo}' for is_hold={is_hold}")
     is_stretch = ex.category.lower() == "stretching"

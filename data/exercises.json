@@ -74,7 +74,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Air_Bike",
@@ -85,7 +85,7 @@
     "archetype": "bicycle_crunch",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "All_Fours_Quad_Stretch",
@@ -426,7 +426,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Band_Pull_Apart",
@@ -602,7 +602,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Barbell_Rear_Delt_Row",
@@ -679,7 +679,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Barbell_Side_Split_Squat",
@@ -690,7 +690,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Barbell_Squat",
@@ -720,10 +720,10 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Barbell_Walking_Lunge",
@@ -899,7 +899,7 @@
     "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Bent_Over_One-Arm_Long_Bar_Row",
@@ -954,7 +954,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Bicycling",
@@ -965,7 +965,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Bicycling_Stationary",
@@ -976,7 +976,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Board_Press",
@@ -1064,7 +1064,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Bottoms-Up_Clean_From_The_Hang_Position",
@@ -1262,7 +1262,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Cable_Incline_Pushdown",
@@ -1427,7 +1427,7 @@
     "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Cable_Shoulder_Press",
@@ -1581,7 +1581,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Cat_Stretch",
@@ -1966,7 +1966,7 @@
     "archetype": "bicycle_crunch",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Conans_Wheel",
@@ -1988,7 +1988,7 @@
     "archetype": "curl",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Cross-Body_Crunch",
@@ -1999,7 +1999,7 @@
     "archetype": "bicycle_crunch",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Cross_Body_Hammer_Curl",
@@ -2010,7 +2010,7 @@
     "archetype": "curl",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Cross_Over_-_With_Bands",
@@ -2032,7 +2032,7 @@
     "archetype": "lunge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Crucifix",
@@ -2095,10 +2095,10 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "lower back",
-    "archetype": "hinge",
+    "archetype": "single_leg_hinge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Dead_Bug",
@@ -2109,7 +2109,7 @@
     "archetype": "bicycle_crunch",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Deadlift_with_Bands",
@@ -2219,7 +2219,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Decline_Push-Up",
@@ -2373,7 +2373,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Double_Leg_Butt_Kick",
@@ -2527,7 +2527,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Dumbbell_Lying_One-Arm_Rear_Lateral_Raise",
@@ -2637,7 +2637,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Dumbbell_Scaption",
@@ -2703,7 +2703,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Dumbbell_Squat",
@@ -2733,10 +2733,10 @@
     "category": "strength",
     "equipment": "dumbbell",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Dumbbell_Tricep_Extension_-Pronated_Grip",
@@ -2813,7 +2813,7 @@
     "archetype": "bicycle_crunch",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Elbows_Back",
@@ -2835,7 +2835,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Elevated_Cable_Rows",
@@ -2857,7 +2857,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Exercise_Ball_Crunch",
@@ -3055,7 +3055,7 @@
     "archetype": "bicycle_crunch",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Foot-SMR",
@@ -3305,10 +3305,10 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "glutes",
-    "archetype": "squat",
+    "archetype": "single_leg_hinge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Goblet_Squat",
@@ -3979,7 +3979,7 @@
     "archetype": "overhead_press",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Isometric_Wipers",
@@ -4067,7 +4067,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Keg_Load",
@@ -4152,7 +4152,7 @@
     "category": "strength",
     "equipment": "kettlebells",
     "primary_muscle": "hamstrings",
-    "archetype": "hinge",
+    "archetype": "single_leg_hinge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -4196,10 +4196,10 @@
     "category": "strength",
     "equipment": "kettlebells",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Kettlebell_Seated_Press",
@@ -4221,7 +4221,7 @@
     "archetype": "overhead_press",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Kettlebell_Sumo_High_Pull",
@@ -4254,7 +4254,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Kettlebell_Turkish_Get-Up_Squat_style",
@@ -4276,7 +4276,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Kipping_Muscle_Up",
@@ -4441,7 +4441,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Landmine_Linear_Jammer",
@@ -4452,7 +4452,7 @@
     "archetype": "overhead_press",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Lateral_Bound",
@@ -4474,7 +4474,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Lateral_Cone_Hops",
@@ -4485,7 +4485,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Lateral_Raise_-_With_Bands",
@@ -4526,10 +4526,10 @@
     "category": "stretching",
     "equipment": "body only",
     "primary_muscle": "hamstrings",
-    "archetype": "hinge",
+    "archetype": "single_leg_hinge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Leg_Extensions",
@@ -4793,7 +4793,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Lunge_Sprint",
@@ -4804,7 +4804,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Lying_Bent_Leg_Groin",
@@ -4991,7 +4991,7 @@
     "archetype": "squat",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Lying_Rear_Delt_Raise",
@@ -5178,7 +5178,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Moving_Claw_Series",
@@ -5288,7 +5288,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Oblique_Crunches_-_On_The_Floor",
@@ -5299,7 +5299,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Olympic_Squat",
@@ -5332,7 +5332,7 @@
     "archetype": "squat",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "One-Arm_Dumbbell_Row",
@@ -5582,7 +5582,7 @@
     "category": "strength",
     "equipment": "cable",
     "primary_muscle": "glutes",
-    "archetype": "squat",
+    "archetype": "single_leg_hinge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5684,7 +5684,7 @@
     "archetype": "squat",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "One_Handed_Hang",
@@ -5695,7 +5695,7 @@
     "archetype": "pull_up",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "One_Knee_To_Chest",
@@ -5706,7 +5706,7 @@
     "archetype": "squat",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "One_Leg_Barbell_Squat",
@@ -5714,7 +5714,7 @@
     "category": "strength",
     "equipment": "barbell",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -5816,7 +5816,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Pallof_Press_With_Rotation",
@@ -5827,7 +5827,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench",
@@ -6168,7 +6168,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Pull_Through",
@@ -6267,7 +6267,7 @@
     "archetype": "plank",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Pushups",
@@ -6388,7 +6388,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Return_Push_from_Stance",
@@ -6718,7 +6718,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "explosive",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Rope_Straight-Arm_Pulldown",
@@ -6773,7 +6773,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Russian_Twist",
@@ -6828,7 +6828,7 @@
     "archetype": "squat",
     "is_hold": false,
     "tempo_mode": "explosive",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Seated_Band_Hamstring_Curl",
@@ -7246,7 +7246,7 @@
     "archetype": "row_pull",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Shoulder_Circles",
@@ -7301,7 +7301,7 @@
     "archetype": "row_pull",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Bridge",
@@ -7312,7 +7312,7 @@
     "archetype": "plank",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Hop-Sprint",
@@ -7334,7 +7334,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Lateral_Raise",
@@ -7367,7 +7367,7 @@
     "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Lying_Groin_Stretch",
@@ -7378,7 +7378,7 @@
     "archetype": "side_lunge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Neck_Stretch",
@@ -7389,7 +7389,7 @@
     "archetype": "overhead_press",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Standing_Long_Jump",
@@ -7411,7 +7411,7 @@
     "archetype": "pull_up",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_Wrist_Pull",
@@ -7422,7 +7422,7 @@
     "archetype": "overhead_press",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Side_to_Side_Box_Shuffle",
@@ -7485,7 +7485,7 @@
     "category": "strength",
     "equipment": "other",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -7496,7 +7496,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": true
@@ -7507,7 +7507,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": true
@@ -7529,7 +7529,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": true
@@ -7551,7 +7551,7 @@
     "category": "plyometrics",
     "equipment": "body only",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -7562,7 +7562,7 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "glutes",
-    "archetype": "glute_bridge",
+    "archetype": "single_leg_bridge",
     "is_hold": false,
     "tempo_mode": "standard",
     "is_alternating": true
@@ -7573,7 +7573,7 @@
     "category": "plyometrics",
     "equipment": "other",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "explosive",
     "is_alternating": true
@@ -7609,7 +7609,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Sled_Drag_-_Harness",
@@ -7837,10 +7837,10 @@
     "category": "strength",
     "equipment": "machine",
     "primary_muscle": "quadriceps",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Smith_Machine_Reverse_Calf_Raises",
@@ -8016,7 +8016,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Spider_Curl",
@@ -8071,7 +8071,7 @@
     "archetype": "squat",
     "is_hold": false,
     "tempo_mode": "explosive",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Split_Snatch",
@@ -8093,7 +8093,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Split_Squats",
@@ -8104,7 +8104,7 @@
     "archetype": "lunge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Squat_Jerk",
@@ -8170,7 +8170,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Standing_Alternating_Dumbbell_Press",
@@ -8291,7 +8291,7 @@
     "archetype": "crunch_core",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Standing_Calf_Raises",
@@ -8313,7 +8313,7 @@
     "archetype": "curl",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Standing_Dumbbell_Calf_Raise",
@@ -8420,10 +8420,10 @@
     "category": "stretching",
     "equipment": "other",
     "primary_muscle": "hamstrings",
-    "archetype": "hinge",
+    "archetype": "single_leg_hinge",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Standing_Hip_Circles",
@@ -8500,7 +8500,7 @@
     "archetype": "lateral_raise",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Standing_Low-Pulley_One-Arm_Triceps_Extension",
@@ -8695,10 +8695,10 @@
     "category": "strength",
     "equipment": "body only",
     "primary_muscle": "glutes",
-    "archetype": "squat",
+    "archetype": "single_leg_squat",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Step_Mill",
@@ -8709,7 +8709,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Stiff-Legged_Barbell_Deadlift",
@@ -8808,7 +8808,7 @@
     "archetype": "side_lunge",
     "is_hold": false,
     "tempo_mode": "explosive",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Sumo_Deadlift",
@@ -8940,7 +8940,7 @@
     "archetype": "lunge",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Svend_Press",
@@ -9050,7 +9050,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Trap_Bar_Deadlift",
@@ -9072,7 +9072,7 @@
     "archetype": "triceps_extension",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Tricep_Side_Stretch",
@@ -9083,7 +9083,7 @@
     "archetype": "triceps_extension",
     "is_hold": true,
     "tempo_mode": "hold",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Triceps_Overhead_Extension_with_Rope",
@@ -9325,7 +9325,7 @@
     "archetype": "mountain_climber",
     "is_hold": false,
     "tempo_mode": "alternating",
-    "is_alternating": true
+    "is_alternating": false
   },
   {
     "id": "Weighted_Ball_Hyperextension",
@@ -9347,7 +9347,7 @@
     "archetype": "side_bend",
     "is_hold": false,
     "tempo_mode": "standard",
-    "is_alternating": false
+    "is_alternating": true
   },
   {
     "id": "Weighted_Bench_Dip",

@@ -27,6 +27,7 @@ from training_aid.audit.catalog_checks import (
 from training_aid.cli import NoCacheStaticRequestHandler
 from training_aid.compiler import (
     CATALOG_SCHEMA_VERSION,
+    VALID_UNILATERAL_MODES,
     build_exercise_metadata,
     build_pwa,
     compute_required_equipment,
@@ -64,6 +65,7 @@ EXPECTED_COMPILED_KEYS: set[str] = {
     "cue_return",
     "tempo_mode",
     "is_alternating",
+    "unilateral_mode",
     "required_equipment",
 }
 
@@ -130,7 +132,9 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
     assert not (built_pwa / "static").exists()
     assert not (built_pwa / "qr.js").exists()
     registry = load_animation_registry()
+    assert len(registry.specs) == EXPECTED_ARCHETYPE_COUNT == 28
     expected_svg_combos = len(registry.specs) * 7
+    assert expected_svg_combos == 196
     thumbs = list((built_pwa / "svgs" / "thumbs").glob("*.svg"))
     assert len(thumbs) == expected_svg_combos
 
@@ -149,11 +153,17 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
 
     sample_ex = payload["exercises"][0]
     assert set(sample_ex.keys()) == EXPECTED_COMPILED_KEYS
+    assert sample_ex["unilateral_mode"] in VALID_UNILATERAL_MODES
     assert sample_ex["svg_key"] in payload["svgs"]
     assert isinstance(sample_ex["required_equipment"], list)
     assert str(sample_ex["thumb_url"]).removeprefix("./").startswith("svgs/thumbs/")
 
     by_id = {ex["id"]: ex for ex in payload["exercises"]}
+    assert by_id["Single_Leg_Glute_Bridge"]["unilateral_mode"] == "leg"
+    assert by_id["One-Arm_Dumbbell_Row"]["unilateral_mode"] == "arm_single"
+    assert by_id["Alternate_Hammer_Curl"]["unilateral_mode"] == "arm_pair"
+    assert by_id["Dumbbell_Side_Bend"]["unilateral_mode"] == "side"
+    assert by_id["Mountain_Climbers"]["unilateral_mode"] == "none"
     assert by_id["Pullups"]["required_equipment"] == ["pull_up_bar"]
     assert by_id["Band_Assisted_Pull-Up"]["required_equipment"] == [
         "pull_up_bar",
@@ -300,6 +310,8 @@ def test_fk_rig_kinematics_and_lean_thumbnails() -> None:
         )
         assert "data-pose-a=" in full_svg
         assert 'class="js-' in full_svg
+        if eq_mode in {"bands", "cable", "machine"}:
+            assert 'class="js-anchor"' in full_svg
         assert "data-pose-a=" not in thumb_svg
         assert 'class="js-' not in thumb_svg
         assert len(thumb_svg) < len(full_svg)
@@ -415,6 +427,7 @@ def test_front_view_svg_and_props() -> None:
         assert cls_name in front_svg
         assert cls_name not in front_thumb
     assert 'data-band-target="span"' in front_svg
+    assert 'class="js-anchor"' not in front_svg
     assert '<circle cx="120.00" cy="74.00" r="3.5"' not in front_svg
 
     bb_attrs, bb_back, _ = render_equipment_props(
@@ -453,6 +466,7 @@ def test_front_view_svg_and_props() -> None:
         base_reg.prop_geometry,
         interactive=True,
     )
+    assert 'class="js-anchor"' in sh_back
     assert f'x2="{joints_b["shoulder_b"][0]:.2f}"' in sh_back
     assert f'x2="{joints_b["shoulder_f"][0]:.2f}"' in sh_front
 
@@ -551,6 +565,7 @@ def test_compute_required_equipment_chest_fly_bench_rules(tmp_path: Path) -> Non
         "cue_return": "Return",
         "tempo_mode": "standard",
         "is_alternating": False,
+        "unilateral_mode": "none",
         "required_equipment": ["medicine_ball"],
     }
     errs = _check_compiled_exercise_entry(

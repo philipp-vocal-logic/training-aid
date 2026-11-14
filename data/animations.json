@@ -1107,6 +1107,128 @@
         "cue_return": "↓ Hang",
         "tempo_mode": "standard"
       }
+    },
+    "single_leg_bridge": {
+      "label": "Single-Leg Bridge",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "body_only",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [115.0, 173.0],
+      "band_target": "hand",
+      "cable_anchor": [115.0, 173.0],
+      "cable_target": "hand",
+      "bones": {
+        "thigh": 36.0,
+        "shin": 36.0,
+        "back_dx": -4.0,
+        "back_dy": -2.0
+      },
+      "pose_a": {
+        "hip": [116.0, 160.0],
+        "spine": [183.0, 184.0, 196.0],
+        "arm_f": { "target": [115.0, 151.0], "bend_sign": 1 },
+        "arm_b": { "target": [111.0, 149.0], "bend_sign": 1 },
+        "leg_f": { "target": [166.0, 170.0], "bend_sign": -1 },
+        "leg_b": [-28.0, -26.0]
+      },
+      "pose_b": {
+        "hip": [114.0, 136.0],
+        "spine": [144.0, 146.0, 192.0],
+        "arm_f": { "target": [113.0, 129.0], "bend_sign": 1 },
+        "arm_b": { "target": [109.0, 127.0], "bend_sign": 1 },
+        "leg_f": { "target": [166.0, 170.0], "bend_sign": -1 },
+        "leg_b": [-36.0, -34.0]
+      },
+      "coaching": {
+        "rep_seconds": 2.6,
+        "is_hold": false,
+        "how_to": "Drive planted heel, extend free leg",
+        "cue_work": "↑ Lift",
+        "cue_return": "↓ Lower",
+        "tempo_mode": "standard"
+      }
+    },
+    "single_leg_hinge": {
+      "label": "Single-Leg Hinge",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "dumbbell",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [122.0, 173.0],
+      "band_target": "shoulder",
+      "cable_anchor": [158.0, 170.0],
+      "cable_target": "hand",
+      "bones": {
+        "thigh": 36.0,
+        "shin": 36.0
+      },
+      "pose_a": {
+        "hip": [116.0, 100.0],
+        "spine": [-87.0, -87.0, -85.0],
+        "arm_f": [84.0, 80.0],
+        "arm_b": [86.0, 82.0],
+        "leg_f": { "target": [122.0, 170.0], "bend_sign": -1 },
+        "leg_b": [106.0, 112.0]
+      },
+      "pose_b": {
+        "hip": [108.0, 104.0],
+        "spine": [-14.0, -12.0, -10.0],
+        "arm_f": [88.0, 88.0],
+        "arm_b": [90.0, 90.0],
+        "leg_f": { "target": [122.0, 170.0], "bend_sign": -1 },
+        "leg_b": [172.0, 174.0]
+      },
+      "coaching": {
+        "rep_seconds": 3.0,
+        "is_hold": false,
+        "how_to": "Hinge at hips, extend back leg",
+        "cue_work": "↓ Hinge",
+        "cue_return": "↑ Stand",
+        "tempo_mode": "standard"
+      }
+    },
+    "single_leg_squat": {
+      "label": "Single-Leg Squat",
+      "fixture": null,
+      "forefoot": null,
+      "default_equipment": "body_only",
+      "bar_mode": "hands",
+      "hold_style": "settle",
+      "band_anchor": [124.0, 173.0],
+      "band_target": "hand",
+      "cable_anchor": [152.0, 170.0],
+      "cable_target": "hand",
+      "bones": {
+        "thigh": 37.0,
+        "shin": 37.0
+      },
+      "pose_a": {
+        "hip": [114.0, 98.0],
+        "spine": [-86.0, -86.0, -84.0],
+        "arm_f": [84.0, -80.0],
+        "arm_b": [82.0, -78.0],
+        "leg_f": { "target": [126.0, 168.0], "bend_sign": -1 },
+        "leg_b": [70.0, 66.0]
+      },
+      "pose_b": {
+        "hip": [98.0, 132.0],
+        "spine": [-62.0, -58.0, -68.0],
+        "arm_f": [82.0, -78.0],
+        "arm_b": [80.0, -76.0],
+        "leg_f": { "target": [126.0, 168.0], "bend_sign": -1 },
+        "leg_b": [-6.0, -4.0]
+      },
+      "coaching": {
+        "rep_seconds": 2.8,
+        "is_hold": false,
+        "how_to": "Balance on one leg, control depth",
+        "cue_work": "↓ Lower",
+        "cue_return": "↑ Drive",
+        "tempo_mode": "standard"
+      }
     }
   }
 }

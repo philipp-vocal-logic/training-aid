@@ -221,6 +221,14 @@ def _check_inline_svg_safe_grip(
     if eq_mode not in HANDHELD_WEIGHT_MODES:
         if root.find(".//*[@class='js-weight']") is not None:
             errors.append(f"{label}: {eq_mode} unexpectedly renders .js-weight")
+        has_anchor = root.find(".//*[@class='js-anchor']") is not None
+        expect_anchor = eq_mode in {"cable", "machine"} or (
+            eq_mode == "bands" and root.get("data-band-target") != "span"
+        )
+        if expect_anchor and not has_anchor:
+            errors.append(f"{label}: {eq_mode} missing .js-anchor")
+        elif eq_mode == "bands" and not expect_anchor and has_anchor:
+            errors.append(f"{label}: span band unexpectedly renders .js-anchor")
         return errors
 
     hf = (float(farm_f.attrib["x2"]), float(farm_f.attrib["y2"]))
@@ -350,7 +358,7 @@ def audit_animations_and_safe_grip(
     catalog: dict[str, Any],
     registry: AnimationRegistry,
 ) -> AuditSectionResult:
-    """Verify all 168 SVG combos, FK trajectories, and motion.js safe-grip."""
+    """Verify all 196 SVG combos, FK trajectories, and motion.js safe-grip."""
     errors: list[str] = []
     specs = registry.specs
     prop_circles = _build_prop_circles(registry.prop_geometry)
