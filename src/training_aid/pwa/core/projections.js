@@ -49,6 +49,8 @@ export function projectRoutineCard(
     exercises: rows,
     lead_archetype: rows.length > 0 ? rows[0].archetype : "squat",
     lead_svg_key: rows.length > 0 ? rows[0].svg_key : "squat:body_only",
+    lead_unilateral_mode: rows.length > 0 ? rows[0].exercise.unilateral_mode || "none" : "none",
+    lead_is_alternating: rows.length > 0 ? Boolean(rows[0].exercise.is_alternating) : false,
   };
 }
 
@@ -86,6 +88,7 @@ export function projectPlaylist(card, svgsMap, speedMode, isAdHoc) {
     cue_return: ex.cue_return,
     tempo_mode: ex.tempo_mode,
     is_alternating: ex.is_alternating,
+    unilateral_mode: ex.unilateral_mode || "none",
     is_substituted: Boolean(is_substituted),
     replaced_name: replaced_name || null,
     was_routine_substituted: Boolean(card.was_substituted),

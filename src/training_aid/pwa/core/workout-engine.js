@@ -19,6 +19,14 @@ function formatReadout(done, ex) {
   return `${done}/${ex.reps}${ex.is_hold ? "s" : ""}`;
 }
 
+function isSideTracked(ex) {
+  return Boolean(
+    ex &&
+      ex.tempo_mode !== "alternating" &&
+      (ex.is_alternating || (ex.unilateral_mode && ex.unilateral_mode !== "none")),
+  );
+}
+
 export function createWorkoutSession(options = {}) {
   const turnaroundFn = typeof options.turnaroundForMode === "function"
     ? options.turnaroundForMode
@@ -54,21 +62,33 @@ export function createWorkoutSession(options = {}) {
 
   function computePose(ex) {
     if (state === "FINISHED" || !ex) return { kind: "none" };
-    if (state === "IDLE") return { kind: "breath", phaseSec: idleElapsed };
-    if (state === "COUNTDOWN" || state === "REST") return { kind: "breath", phaseSec: phaseElapsed };
-    if (ex.is_hold) return { kind: "hold", phaseSec: phaseElapsed };
+    const unilateralMode = ex.unilateral_mode || "none";
+    if (state === "IDLE") return { kind: "breath", phaseSec: idleElapsed, unilateralMode };
+    if (state === "COUNTDOWN" || state === "REST") {
+      return { kind: "breath", phaseSec: phaseElapsed, unilateralMode };
+    }
+    if (ex.is_hold) {
+      const swapSides = isSideTracked(ex) ? phaseElapsed >= ex.reps / 2 : false;
+      return { kind: "hold", phaseSec: phaseElapsed, swapSides, unilateralMode };
+    }
 
     const repFloat = phaseElapsed / ex.rep_seconds;
     const repIndex = Math.floor(repFloat);
     const frac = repFloat - repIndex;
     const mode = ex.tempo_mode || "standard";
+    let swapSides = false;
+    if (mode !== "alternating") {
+      if (ex.is_alternating) swapSides = repIndex % 2 === 1;
+      else if (unilateralMode !== "none") swapSides = repIndex >= Math.ceil(ex.reps / 2);
+    }
     return {
       kind: "rep",
       frac,
       mode,
-      swapSides: Boolean(ex.is_alternating && repIndex % 2 === 1),
+      swapSides,
       repIndex,
       isWorkPhase: frac < turnaroundFn(mode),
+      unilateralMode,
     };
   }
 
@@ -93,8 +113,11 @@ export function createWorkoutSession(options = {}) {
       const rem = Math.max(0, Math.ceil(activeRestTarget - phaseElapsed));
       return rem <= 3 && rem > 0 ? String(rem) : `Rest \u00b7 ${ex.name}`;
     }
-    if (ex.is_hold) return Math.floor(phaseElapsed / 2) % 2 === 0 ? ex.cue_work : ex.cue_return;
-    return pose.isWorkPhase ? ex.cue_work : ex.cue_return;
+    const baseCue = ex.is_hold
+      ? (Math.floor(phaseElapsed / 2) % 2 === 0 ? ex.cue_work : ex.cue_return)
+      : (pose.isWorkPhase ? ex.cue_work : ex.cue_return);
+    if (isSideTracked(ex)) return `${pose.swapSides ? "Right" : "Left"} \u00b7 ${baseCue}`;
+    return baseCue;
   }
 
   function computeReadoutText(ex) {
@@ -284,7 +307,12 @@ export function createWorkoutSession(options = {}) {
       const repFloat = phaseElapsed / ex.rep_seconds;
       const completed = Math.min(ex.reps, Math.floor(repFloat));
       const repIndex = Math.floor(repFloat);
-      if (!ex.is_hold) {
+      if (ex.is_hold) {
+        if (isSideTracked(ex) && phaseElapsed >= ex.reps / 2 && midRepFiredForRep < 0) {
+          midRepFiredForRep = 0;
+          events.push({ type: "midRep", repIndex: 0 });
+        }
+      } else {
         const frac = repFloat - repIndex;
         const mode = ex.tempo_mode || "standard";
         const isWorkPhase = frac < turnaroundFn(mode);

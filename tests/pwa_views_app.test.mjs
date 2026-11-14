@@ -5,6 +5,7 @@ import {
   resolveBuiltDist,
   importDistModule,
   installBrowserEnv,
+  makeMemoryStorage,
 } from "./helpers/dom_harness.mjs";
 
 let distHandle;
@@ -812,4 +813,255 @@ test("makeEquipmentIcon SVG symbols, .equip-chip & #setup tile icons, and #setup
 
   appMod.teardownActiveView();
   assert.equal(activeIntervals.size, 0);
+});
+
+test("#plan preview rebinds on matching svgKey when unilateral/alternating flags change, and #workout wires unilateral cues and reduced-motion pose opts", async () => {
+  const syntheticCatalog = structuredClone(catalog);
+  const baseCurlSvgKey = syntheticCatalog.svgs["curl:dumbbell"] ? "curl:dumbbell" : Object.keys(syntheticCatalog.svgs)[0];
+  syntheticCatalog.exercises.push(
+    {
+      id: "Curl_Bilateral_Test",
+      name: "Curl Bilateral Test",
+      category: "strength",
+      equipment: "dumbbell",
+      primary_muscle: "biceps",
+      archetype: "curl",
+      eq_mode: "dumbbell",
+      svg_key: baseCurlSvgKey,
+      thumb_url: "./svgs/thumbs/curl__dumbbell.svg",
+      rep_seconds: 2.0,
+      is_hold: false,
+      unit: "reps",
+      how_to: "Curl up",
+      cue_work: "Curl",
+      cue_return: "Lower",
+      tempo_mode: "standard",
+      is_alternating: false,
+      unilateral_mode: "none",
+      required_equipment: ["dumbbell"],
+    },
+    {
+      id: "Curl_Single_Arm_Test",
+      name: "Curl Single Arm Test",
+      category: "strength",
+      equipment: "dumbbell",
+      primary_muscle: "biceps",
+      archetype: "curl",
+      eq_mode: "dumbbell",
+      svg_key: baseCurlSvgKey,
+      thumb_url: "./svgs/thumbs/curl__dumbbell.svg",
+      rep_seconds: 2.0,
+      is_hold: false,
+      unit: "reps",
+      how_to: "Curl one arm",
+      cue_work: "Curl",
+      cue_return: "Lower",
+      tempo_mode: "standard",
+      is_alternating: false,
+      unilateral_mode: "arm_single",
+      required_equipment: ["dumbbell"],
+    },
+    {
+      id: "Curl_Alternating_Test",
+      name: "Curl Alternating Test",
+      category: "strength",
+      equipment: "dumbbell",
+      primary_muscle: "biceps",
+      archetype: "curl",
+      eq_mode: "dumbbell",
+      svg_key: baseCurlSvgKey,
+      thumb_url: "./svgs/thumbs/curl__dumbbell.svg",
+      rep_seconds: 2.0,
+      is_hold: false,
+      unit: "reps",
+      how_to: "Alternate arms",
+      cue_work: "Curl",
+      cue_return: "Lower",
+      tempo_mode: "standard",
+      is_alternating: true,
+      unilateral_mode: "arm_pair",
+      required_equipment: ["dumbbell"],
+    },
+  );
+
+  const env = installBrowserEnv({
+    catalog: syntheticCatalog,
+    initialHash: "#plan",
+    manualBoot: true,
+  });
+  const { docRoot, appRoot, stepFrames } = env;
+  globalThis.matchMedia = (q) => ({
+    matches: q.includes("min-width: 861px"),
+    addEventListener() {},
+    removeEventListener() {},
+  });
+
+  const storeMod = await importDistModule(distDir, "state", "store.js");
+  const scopeMod = await importDistModule(distDir, "ui", "scope.js");
+  const audioMod = await importDistModule(distDir, "audio", "controller.js");
+  const planViewMod = await importDistModule(distDir, "views", "plan.js");
+  const workoutViewMod = await importDistModule(distDir, "views", "workout.js");
+
+  const storage = makeMemoryStorage({
+    training_aid_state_v2: JSON.stringify({
+      schema_version: 2,
+      profile: { name: "Test", equipment_list: ["dumbbell"], starting_intensity: "moderate" },
+      plan: {
+        name: "Test Plan",
+        days_per_week: 3,
+        routines: [
+          {
+            id: "r1",
+            name: "Arm Focus",
+            intensity_level: 0,
+            exercises: [
+              { id: "ex1", exercise_id: "Curl_Bilateral_Test", sets: 1, base_reps: 4, base_weight_kg: 10 },
+              { id: "ex2", exercise_id: "Curl_Single_Arm_Test", sets: 1, base_reps: 4, base_weight_kg: 10 },
+              { id: "ex3", exercise_id: "Curl_Alternating_Test", sets: 1, base_reps: 4, base_weight_kg: 10 },
+            ],
+          },
+        ],
+      },
+      adhoc_session: null,
+      logs: [],
+    }),
+  });
+  const store = storeMod.createStore({ storage, catalog: syntheticCatalog });
+  const planScope = scopeMod.createViewScope();
+  planViewMod.renderPlanView({ store, catalog: syntheticCatalog, scope: planScope });
+
+  const svgWrap = docRoot.getElementById("overview-svg-wrap");
+  const rows = appRoot.querySelectorAll(".ex-row");
+  assert.equal(rows.length, 3);
+  assert.equal(rows[0].dataset.svgKey, baseCurlSvgKey);
+  assert.equal(rows[1].dataset.svgKey, baseCurlSvgKey);
+  assert.equal(rows[2].dataset.svgKey, baseCurlSvgKey);
+
+  // Clicking row 0 (same svgKey AND same unilateral/alternating flags) does NOT rebind
+  const torsoNode = svgWrap.querySelector("svg").querySelector(".js-torso");
+  torsoNode.attrs = {};
+  rows[0].click();
+  assert.deepEqual(torsoNode.attrs, {});
+
+  // Hovering row 1 (same svgKey, unilateral_mode changed "none" -> "arm_single") MUST rebind previewLoop
+  rows[1].dispatchEvent({ type: "mouseenter" });
+  assert.ok(torsoNode.attrs.d !== undefined, "Matching svgKey with changed unilateral_mode must rebind on hover");
+
+  // Clicking row 2 (same svgKey, flags changed to "arm_pair" + is_alternating: true) MUST rebind previewLoop
+  torsoNode.attrs = {};
+  rows[2].click();
+  assert.ok(torsoNode.attrs.d !== undefined, "Matching svgKey with changed flags must rebind on click");
+  planScope.dispose();
+
+  // Verify #workout Left/Right cues for unilateral rep + hold and reduced-motion hold midpoint re-apply
+  let reducedMotion = false;
+  globalThis.matchMedia = (q) => ({
+    matches: q.includes("prefers-reduced-motion") ? reducedMotion : false,
+    addEventListener() {},
+    removeEventListener() {},
+  });
+
+  const holdSvgKey = syntheticCatalog.svgs["side_bend:body_only"]
+    ? "side_bend:body_only"
+    : baseCurlSvgKey;
+  const workoutPlaylist = [
+    {
+      item_id: "w1",
+      exercise_id: "Curl_Single_Arm_Test",
+      name: "Curl Single Arm Test",
+      sets: 1,
+      reps: 2,
+      weight_kg: 10,
+      weight_label: "10 kg",
+      formatted: "1 x 2",
+      archetype: "curl",
+      eq_mode: "dumbbell",
+      svg_key: baseCurlSvgKey,
+      svg_markup: syntheticCatalog.svgs[baseCurlSvgKey],
+      base_rep_seconds: 2.0,
+      rep_seconds: 2.0,
+      is_hold: false,
+      unit: "reps",
+      how_to: "Curl one arm",
+      cue_work: "Curl",
+      cue_return: "Lower",
+      tempo_mode: "standard",
+      is_alternating: false,
+      unilateral_mode: "arm_single",
+    },
+    {
+      item_id: "w2",
+      exercise_id: "Side_Hold_Test",
+      name: "Side Hold Test",
+      sets: 1,
+      reps: 4,
+      weight_kg: null,
+      weight_label: null,
+      formatted: "1 x 4s",
+      archetype: "side_bend",
+      eq_mode: "body_only",
+      svg_key: holdSvgKey,
+      svg_markup: syntheticCatalog.svgs[holdSvgKey],
+      base_rep_seconds: 1.0,
+      rep_seconds: 1.0,
+      is_hold: true,
+      unit: "sec",
+      how_to: "Hold steady",
+      cue_work: "Hold",
+      cue_return: "Breathe",
+      tempo_mode: "hold",
+      is_alternating: false,
+      unilateral_mode: "side",
+    },
+  ];
+  const workoutStore = {
+    getRoutine: (id) => ({ id, name: "Unilateral Workout" }),
+    buildPlaylist: () => structuredClone(workoutPlaylist),
+    getSoundTheme: () => "minimal",
+    setSoundTheme: () => "minimal",
+    getWorkoutTiming: () => ({ speed_mode: "normal", rest_seconds: 15 }),
+    setWorkoutTiming: (patch) => ({ speed_mode: "normal", rest_seconds: 15, ...patch }),
+    completeWorkout: () => ({}),
+  };
+  let midRepSoundCalls = 0;
+  const soundCtrl = audioMod.createController({ theme: "minimal" });
+  const origMidRep = soundCtrl.midRep.bind(soundCtrl);
+  soundCtrl.midRep = () => {
+    midRepSoundCalls += 1;
+    origMidRep();
+  };
+
+  const workoutScope = scopeMod.createViewScope();
+  workoutViewMod.renderWorkoutView({
+    param: "r1",
+    store: workoutStore,
+    catalog: syntheticCatalog,
+    sound: soundCtrl,
+    scope: workoutScope,
+  });
+
+  docRoot.getElementById("primary-btn").click();
+  docRoot.getElementById("skip-btn").click(); // Ex 1 ACTIVE (rep 0 -> Left)
+  const phaseCueEl = docRoot.getElementById("phase-cue");
+  assert.equal(phaseCueEl.textContent, "Left \u00b7 Curl");
+
+  stepFrames(2.1); // rep 1 -> Right
+  assert.equal(phaseCueEl.textContent, "Right \u00b7 Curl");
+
+  stepFrames(120); // finishes Ex 1 -> REST
+  assert.equal(docRoot.getElementById("workout-viewport").dataset.state, "REST");
+  docRoot.getElementById("skip-btn").click(); // Ex 2 hold ACTIVE
+
+  // Reduced-motion hold midpoint crossing must re-apply pose with swapSides: true
+  reducedMotion = true;
+  const holdTorso = docRoot.getElementById("svg-holder").querySelector("svg").querySelector(".js-torso");
+  stepFrames(0.5); // elapsed 0.5s < 2.0s -> Left
+  assert.equal(phaseCueEl.textContent, "Left \u00b7 Hold");
+  holdTorso.attrs = {};
+  stepFrames(1.6); // elapsed 2.1s >= 2.0s -> Right + midRep + re-applied pose
+  assert.equal(phaseCueEl.textContent, "Right \u00b7 Breathe");
+  assert.ok(holdTorso.attrs.d !== undefined, "Reduced-motion hold must re-apply pose at unilateral midpoint");
+  assert.ok(midRepSoundCalls >= 1);
+
+  workoutScope.dispose();
 });

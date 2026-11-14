@@ -188,22 +188,46 @@ export function renderWorkoutView(ctx) {
 
   function applyPose(pose) {
     if (!rig || !pose || pose.kind === "none") return;
+    const unilateralMode = pose.unilateralMode || "none";
     if (pose.kind === "breath") {
+      const poseOpts = { swapSides: false, unilateralMode };
       if (prefersReducedMotion()) {
-        if (lastDiscretePoseKey !== "neutral") { lastDiscretePoseKey = "neutral"; rig.applyPose(0); }
-      } else { lastDiscretePoseKey = null; rig.applyRestBreath(pose.phaseSec || 0); }
+        const poseKey = `neutral:${unilateralMode}`;
+        if (lastDiscretePoseKey !== poseKey) {
+          lastDiscretePoseKey = poseKey;
+          rig.applyPose(0, poseOpts);
+        }
+      } else {
+        lastDiscretePoseKey = null;
+        rig.applyRestBreath(pose.phaseSec || 0, { unilateralMode });
+      }
     } else if (pose.kind === "hold") {
+      const swapSides = Boolean(pose.swapSides);
+      const poseOpts = { swapSides, unilateralMode };
       if (prefersReducedMotion()) {
-        if (lastDiscretePoseKey !== "hold") { lastDiscretePoseKey = "hold"; rig.applyPose(1, { swapSides: false }); }
-      } else { lastDiscretePoseKey = null; rig.applyHold(pose.phaseSec || 0); }
+        const poseKey = `hold:${swapSides ? "1" : "0"}:${unilateralMode}`;
+        if (lastDiscretePoseKey !== poseKey) {
+          lastDiscretePoseKey = poseKey;
+          rig.applyPose(1, poseOpts);
+        }
+      } else {
+        lastDiscretePoseKey = null;
+        rig.applyHold(pose.phaseSec || 0, poseOpts);
+      }
     } else if (pose.kind === "rep") {
-      const poseOpts = { swapSides: Boolean(pose.swapSides) };
+      const poseOpts = { swapSides: Boolean(pose.swapSides), unilateralMode };
       const mode = pose.mode || rig.tempoMode || "standard";
       if (prefersReducedMotion()) {
         const discreteT = pose.isWorkPhase ? 1 : 0;
-        const poseKey = `${pose.repIndex || 0}:${discreteT}:${poseOpts.swapSides ? "1" : "0"}`;
-        if (poseKey !== lastDiscretePoseKey) { lastDiscretePoseKey = poseKey; rig.applyPose(discreteT, poseOpts); }
-      } else { lastDiscretePoseKey = null; rig.applyPose(tempoCurve(pose.frac || 0, mode), poseOpts); }
+        const poseKey = `${pose.repIndex || 0}:${discreteT}:${poseOpts.swapSides ? "1" : "0"}:${unilateralMode}`;
+        if (poseKey !== lastDiscretePoseKey) {
+          lastDiscretePoseKey = poseKey;
+          rig.applyPose(discreteT, poseOpts);
+        }
+      } else {
+        lastDiscretePoseKey = null;
+        rig.applyPose(tempoCurve(pose.frac || 0, mode), poseOpts);
+      }
     }
   }
 
