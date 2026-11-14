@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from html.parser import HTMLParser
@@ -45,7 +46,12 @@ REQUIRED_CSP_DIRECTIVES: tuple[str, ...] = (
 _PNG_SIGNATURE: bytes = b"\x89PNG\r\n\x1a\n"
 _IGNORED_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo"})
 _SW_ASSETS_RE = re.compile(r"APP_SHELL_ASSETS\s*=\s*(\[[^\]]*\])", flags=re.DOTALL)
+_SW_REVISIONS_RE = re.compile(
+    r"APP_SHELL_REVISIONS\s*=\s*(\{[^}]*\})",
+    flags=re.DOTALL,
+)
 _SW_STAMPED_VERSION_RE = re.compile(r'CACHE_VERSION\s*=\s*"v1-[0-9a-f]{12}"')
+_HEX12_RE = re.compile(r"^[0-9a-f]{12}$")
 _URL_RE = re.compile(r"https?://[^\s\"'<>()\\]+", re.IGNORECASE)
 
 
@@ -172,6 +178,44 @@ def _check_manifest(
         )
 
 
+def _check_sw_revisions(
+    sw_src: str,
+    dist_dir: Path,
+    expected_assets: set[str],
+    errors: list[str],
+) -> None:
+    """Verify sw.js stamped APP_SHELL_REVISIONS key and SHA-256[:12] parity."""
+    rev_match = _SW_REVISIONS_RE.search(sw_src)
+    if rev_match is None:
+        errors.append("sw.js is missing APP_SHELL_REVISIONS object declaration")
+        return
+
+    try:
+        revisions = json.loads(rev_match.group(1))
+    except json.JSONDecodeError as exc:
+        errors.append(f"sw.js APP_SHELL_REVISIONS is not valid JSON: {exc}")
+        return
+
+    if not isinstance(revisions, dict) or set(revisions.keys()) != expected_assets:
+        errors.append("sw.js APP_SHELL_REVISIONS keys must match APP_SHELL_ASSETS")
+        return
+
+    for asset_url, rev_val in revisions.items():
+        if not isinstance(rev_val, str) or not _HEX12_RE.match(rev_val):
+            errors.append(
+                f"sw.js APP_SHELL_REVISIONS[{asset_url!r}] must be 12-char hex"
+            )
+            continue
+        rel_file = "index.html" if asset_url == "./" else asset_url.removeprefix("./")
+        target_fp = dist_dir / rel_file
+        if target_fp.is_file():
+            actual_hex = hashlib.sha256(target_fp.read_bytes()).hexdigest()[:12]
+            if rev_val != actual_hex:
+                errors.append(
+                    f"sw.js APP_SHELL_REVISIONS[{asset_url!r}] digest mismatch"
+                )
+
+
 def _check_service_worker(
     sw_path: Path,
     dist_dir: Path,
@@ -215,6 +259,8 @@ def _check_service_worker(
         rel_target = asset_url.removeprefix("./")
         if rel_target and not (dist_dir / rel_target).exists():
             errors.append(f"sw.js precache asset does not exist in dist/: {asset_url}")
+
+    _check_sw_revisions(sw_src, dist_dir, expected_assets, errors)
 
 
 def check_shell_and_privacy(dist_dir: Path) -> list[str]:

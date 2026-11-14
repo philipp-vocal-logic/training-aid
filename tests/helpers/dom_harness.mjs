@@ -225,8 +225,10 @@ export function installBrowserEnv({ catalog = null, initialHash = "#edit/%", man
   docRoot.replaceChildren(topbar, appRoot, modalRoot);
 
   const storage = makeMemoryStorage();
+  const sessionStore = makeMemoryStorage();
   const winListeners = new Map();
   let currentHash = initialHash;
+  let reloadCount = 0;
   const activeIntervals = new Map();
   const rafQueue = new Map();
   let timerSeq = 1;
@@ -242,6 +244,7 @@ export function installBrowserEnv({ catalog = null, initialHash = "#edit/%", man
     window: globalThis,
     AudioContext: MockAudioContext,
     localStorage: storage,
+    sessionStorage: sessionStore,
     __TRAINING_CATALOG__: catalog,
     __TA_MANUAL_BOOT__: Boolean(manualBoot),
     matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
@@ -266,6 +269,9 @@ export function installBrowserEnv({ catalog = null, initialHash = "#edit/%", man
           for (const fn of [...(winListeners.get("hashchange") || [])]) fn({ type: "hashchange" });
         }
       },
+      reload() {
+        reloadCount += 1;
+      },
     },
     addEventListener: (type, fn, opts) => {
       if (!winListeners.has(type)) winListeners.set(type, new Set());
@@ -274,7 +280,7 @@ export function installBrowserEnv({ catalog = null, initialHash = "#edit/%", man
     },
     removeEventListener: (type, fn) => { const s = winListeners.get(type); if (s) s.delete(fn); },
     document: {
-      readyState: "complete", hidden: false, title: "", body: docRoot, documentElement: docRoot, activeElement: docRoot,
+      readyState: "complete", visibilityState: "visible", hidden: false, title: "", body: docRoot, documentElement: docRoot, activeElement: docRoot,
       createElement: (tag) => new MockNode(tag), createElementNS: (_ns, tag) => new MockNode(tag),
       createTextNode: (txt) => { const t = new MockNode("#text"); t.textContent = String(txt); return t; },
       getElementById: (id) => docRoot.querySelector("#" + id),
@@ -301,9 +307,10 @@ export function installBrowserEnv({ catalog = null, initialHash = "#edit/%", man
   }
 
   return {
-    docRoot, topbar, appRoot, modalRoot, storage, activeIntervals, rafQueue, winListeners,
+    docRoot, topbar, appRoot, modalRoot, storage, sessionStore, activeIntervals, rafQueue, winListeners,
     getHash: () => currentHash,
     setHash: (h) => { globalThis.location.hash = h; },
+    getReloadCount: () => reloadCount,
     stepFrames,
   };
 }

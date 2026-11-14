@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import TYPE_CHECKING
@@ -22,6 +23,10 @@ if TYPE_CHECKING:
 
 _STAMP_RE = re.compile(r"^v1-[0-9a-f]{12}$")
 _ASSETS_RE = re.compile(r"APP_SHELL_ASSETS\s*=\s*(\[[^\]]*\])", flags=re.DOTALL)
+_REVISIONS_RE = re.compile(
+    r"APP_SHELL_REVISIONS\s*=\s*(\{[^}]*\})",
+    flags=re.DOTALL,
+)
 
 
 def test_build_pwa_stamps_deterministic_idempotent_sw(tmp_path: Path) -> None:
@@ -54,12 +59,26 @@ def test_build_pwa_stamps_deterministic_idempotent_sw(tmp_path: Path) -> None:
     assert "./icon-512.png" in assets
     assert "./icon-maskable-512.png" in assets
     assert "./data/catalog.json" in assets
+    assert "./ui/sw-update.js" in assets
     assert "./sw.js" not in assets
     assert not any(a.startswith("./svgs/thumbs/") for a in assets)
+
+    rev_match = _REVISIONS_RE.search(sw_dist_text)
+    assert rev_match is not None
+    revisions = json.loads(rev_match.group(1))
+    assert set(revisions.keys()) == assets
+    index_hex = hashlib.sha256((dist_a / "index.html").read_bytes()).hexdigest()[:12]
+    catalog_hex = hashlib.sha256(
+        (dist_a / "data" / "catalog.json").read_bytes()
+    ).hexdigest()[:12]
+    assert revisions["./"] == index_hex
+    assert revisions["./index.html"] == index_hex
+    assert revisions["./data/catalog.json"] == catalog_hex
 
     # Source template in repository must remain unstamped.
     sw_src_text = (PWA_SRC_DIR / "sw.js").read_text(encoding="utf-8")
     assert 'CACHE_VERSION = "v1";' in sw_src_text
+    assert "APP_SHELL_REVISIONS = {};" in sw_src_text
 
     # Re-stamping an already-stamped bundle must be strictly idempotent.
     restamped = stamp_service_worker(dist_a)
@@ -136,6 +155,15 @@ def test_bundle_security_enforces_png_signature_manifest_and_csp(
     stamp_service_worker(dist_dir)
     assert check_shell_and_privacy(dist_dir) == []
 
+    # Mutate an asset without re-stamping sw.js and verify revision mismatch detection.
+    app_js_path = dist_dir / "app.js"
+    original_app_js = app_js_path.read_bytes()
+    app_js_path.write_bytes(original_app_js + b"\n// unstamped edit\n")
+    errs = check_shell_and_privacy(dist_dir)
+    assert any("APP_SHELL_REVISIONS['./app.js'] digest mismatch" in err for err in errs)
+    app_js_path.write_bytes(original_app_js)
+    assert check_shell_and_privacy(dist_dir) == []
+
 
 def test_stamp_changes_when_any_bundle_asset_changes(tmp_path: Path) -> None:
     """Verify editing JS, CSS, catalog JSON, or SVG thumbs rotates CACHE_VERSION."""
@@ -175,3 +203,13 @@ def test_stamp_handles_missing_or_malformed_sw_js(tmp_path: Path) -> None:
     (bad_dir / "sw.js").write_text("// missing tokens\n", encoding="utf-8")
     with pytest.raises(ValueError, match=r"CACHE_VERSION|APP_SHELL_ASSETS"):
         stamp_service_worker(bad_dir)
+
+    missing_revs_dir = tmp_path / "missing_revs"
+    missing_revs_dir.mkdir()
+    (missing_revs_dir / "sw.js").write_text(
+        'const CACHE_VERSION = "v1";\n'
+        'const APP_SHELL_ASSETS = ["./", "./index.html"];\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="APP_SHELL_REVISIONS"):
+        stamp_service_worker(missing_revs_dir)

@@ -7,7 +7,7 @@ import json
 import os
 import threading
 import tomllib
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import urlopen
@@ -24,6 +24,7 @@ from training_aid.audit.catalog_checks import (
     VALID_REQUIRED_EQUIPMENT_IDS,
     _check_compiled_exercise_entry,
 )
+from training_aid.cli import NoCacheStaticRequestHandler
 from training_aid.compiler import (
     CATALOG_SCHEMA_VERSION,
     build_exercise_metadata,
@@ -188,9 +189,9 @@ def test_cli_build_only_entrypoint(tmp_path: Path) -> None:
 
 
 def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
-    """Serve the built PWA over ThreadingHTTPServer and verify 1:1 static routes."""
+    """Serve built PWA via NoCacheStaticRequestHandler and verify headers & ?v= bust."""
 
-    class QuietHandler(SimpleHTTPRequestHandler):
+    class QuietHandler(NoCacheStaticRequestHandler):
         def __init__(self, *args: object, **kwargs: object) -> None:
             super().__init__(*args, directory=str(built_pwa), **kwargs)
 
@@ -205,10 +206,13 @@ def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
     try:
         for route in (
             "/",
+            "/?v=a1b2c3d4e5f6",
             "/index.html",
             "/sw.js",
             "/manifest.webmanifest",
             "/app.js",
+            "/app.js?v=a1b2c3d4e5f6",
+            "/ui/sw-update.js",
             "/core/constants.js",
             "/core/workout-engine.js",
             "/state/store.js",
@@ -221,13 +225,16 @@ def test_live_threading_http_server_static_serving(built_pwa: Path) -> None:
         ):
             with urlopen(f"{base}{route}", timeout=5) as resp:  # noqa: S310
                 assert resp.status == 200
+                assert resp.headers.get("Cache-Control") == "no-cache"
                 assert len(resp.read()) > 0
 
         with urlopen(  # noqa: S310
-            f"{base}/svgs/thumbs/squat__kettlebells.svg", timeout=5
+            f"{base}/svgs/thumbs/squat__kettlebells.svg?v=v1-a1b2c3d4e5f6",
+            timeout=5,
         ) as resp:
             body = resp.read()
             assert resp.status == 200
+            assert resp.headers.get("Cache-Control") == "no-cache"
             assert b"<svg" in body
             assert b'data-equipment="kettlebells"' in body
             assert b"js-kb-handle-f" not in body

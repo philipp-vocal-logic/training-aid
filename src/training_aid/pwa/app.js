@@ -5,6 +5,7 @@ import { createStore } from "./state/store.js";
 import { el } from "./ui/dom.js";
 import { closeModal } from "./ui/modal.js";
 import { createViewScope } from "./ui/scope.js";
+import { createSwUpdater } from "./ui/sw-update.js";
 import { renderEditView } from "./views/edit.js";
 import { renderPlanView } from "./views/plan.js";
 import { renderProgressView } from "./views/progress.js";
@@ -53,7 +54,22 @@ let catalog = null;
 let store = null;
 let sound = null;
 let activeScope = null;
+let activeSwUpdater = null;
 let lastCompletedLog = null;
+let showingCompletedBanner = false;
+
+export function isSafeToReload() {
+  if (!store || !catalog || !store.hasActivePlan()) return false;
+  if (lastCompletedLog !== null || showingCompletedBanner) return false;
+  const rawHash = typeof window !== "undefined" && window.location ? window.location.hash : "";
+  const parsed = parseRoute(rawHash);
+  if (parsed.view !== "plan" && parsed.view !== "progress") return false;
+  if (typeof document !== "undefined" && document) {
+    const modalRoot = document.getElementById("modal-root");
+    if (modalRoot && !modalRoot.hidden) return false;
+  }
+  return !store.hasSessionEquipmentOverride() && !store.hasAdHocSession();
+}
 
 export function teardownActiveView() {
   if (sound) sound.stopAll();
@@ -93,6 +109,7 @@ function navigateTo(hash) {
 
 function mountView(viewName, param) {
   teardownActiveView();
+  showingCompletedBanner = viewName === "plan" && lastCompletedLog !== null;
   const scope = createViewScope();
   activeScope = scope;
   const viewFn = VIEWS[viewName];
@@ -116,6 +133,7 @@ function mountView(viewName, param) {
       },
     });
   }
+  if (activeSwUpdater) activeSwUpdater.evaluateBoundary();
 }
 
 export function handleRoute() {
@@ -156,13 +174,21 @@ export function handleRoute() {
 }
 
 export function boot() {
+  if (activeSwUpdater) {
+    activeSwUpdater.dispose();
+    activeSwUpdater = null;
+  }
+  lastCompletedLog = null;
+  showingCompletedBanner = false;
+
   if (
     typeof navigator !== "undefined" &&
     "serviceWorker" in navigator &&
     window.location &&
     (window.location.protocol === "https:" || window.location.protocol === "http:")
   ) {
-    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch(() => {});
+    activeSwUpdater = createSwUpdater({ isSafeToReload });
+    activeSwUpdater.start();
   }
 
   const catalogPromise = globalThis.__TRAINING_CATALOG__

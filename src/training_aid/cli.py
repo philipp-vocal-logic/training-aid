@@ -10,7 +10,16 @@ from pathlib import Path
 
 from training_aid.compiler import DEFAULT_DIST_DIR, build_pwa
 
-__all__ = ["build_arg_parser", "main"]
+__all__ = ["NoCacheStaticRequestHandler", "build_arg_parser", "main"]
+
+
+class NoCacheStaticRequestHandler(SimpleHTTPRequestHandler):
+    """Static file handler enforcing conditional HTTP revalidation (`no-cache`)."""
+
+    def end_headers(self) -> None:
+        """Emit `Cache-Control: no-cache` before finalizing response headers."""
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -59,7 +68,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.build_only:
         return 0
 
-    handler = functools.partial(SimpleHTTPRequestHandler, directory=str(out_dir))
+    handler = functools.partial(NoCacheStaticRequestHandler, directory=str(out_dir))
     with ThreadingHTTPServer((args.host, args.port), handler) as server:
         sys.stdout.write(
             f"Serving Training Aid static PWA at http://{args.host}:{args.port}/\n"

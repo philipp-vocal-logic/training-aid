@@ -26,6 +26,10 @@ DEFAULT_DIST_DIR = REPO_ROOT / "dist"
 
 _SW_CACHE_VERSION_RE = re.compile(r'(CACHE_VERSION\s*=\s*")v1(?:-[0-9a-f]{12})?(")')
 _SW_ASSETS_RE = re.compile(r"(APP_SHELL_ASSETS\s*=\s*)\[[^\]]*\]", flags=re.DOTALL)
+_SW_REVISIONS_RE = re.compile(
+    r"(APP_SHELL_REVISIONS\s*=\s*)\{[^}]*\}",
+    flags=re.DOTALL,
+)
 _IGNORED_BUNDLE_SUFFIXES = frozenset({".pyc", ".pyo"})
 
 __all__ = [
@@ -88,12 +92,12 @@ def _write_equipment_thumbnails(
 
 
 def stamp_service_worker(output_dir: Path) -> str | None:
-    """Stamp deterministic `APP_SHELL_ASSETS` and `CACHE_VERSION` into `sw.js`.
+    """Stamp deterministic shell assets, revisions, and `CACHE_VERSION` into `sw.js`.
 
-    Normalizes `sw.js` back to its canonical template (`CACHE_VERSION = "v1"` and
-    `APP_SHELL_ASSETS = ["./", "./index.html"]`) before hashing the normalized
-    Service Worker and every file in `output_dir`, making repeated calls
-    idempotent.
+    Normalizes `sw.js` back to its canonical template (`CACHE_VERSION = "v1"`,
+    `APP_SHELL_ASSETS = ["./", "./index.html"]`, and `APP_SHELL_REVISIONS = {}`)
+    before hashing the normalized Service Worker and every file in `output_dir`,
+    making repeated calls idempotent.
 
     Args:
         output_dir: Compiled PWA bundle directory containing `sw.js`.
@@ -103,7 +107,8 @@ def stamp_service_worker(output_dir: Path) -> str | None:
         `sw.js` is not present in `output_dir`.
 
     Raises:
-        ValueError: If `sw.js` lacks `CACHE_VERSION` or `APP_SHELL_ASSETS`.
+        ValueError: If `sw.js` lacks `CACHE_VERSION`, `APP_SHELL_ASSETS`, or
+            `APP_SHELL_REVISIONS`.
     """
     out_dir = Path(output_dir)
     sw_path = out_dir / "sw.js"
@@ -125,6 +130,15 @@ def stamp_service_worker(output_dir: Path) -> str | None:
         msg = f"Expected APP_SHELL_ASSETS = [...] declaration in {sw_path}"
         raise ValueError(msg)
 
+    sw_template, revs_count = _SW_REVISIONS_RE.subn(
+        r"\g<1>{}",
+        sw_template,
+        count=1,
+    )
+    if revs_count != 1:
+        msg = f"Expected APP_SHELL_REVISIONS = {{...}} declaration in {sw_path}"
+        raise ValueError(msg)
+
     hasher = hashlib.sha256()
     sw_bytes = sw_template.encode("utf-8")
     hasher.update(f"sw.js:{len(sw_bytes)}\0".encode())
@@ -141,21 +155,27 @@ def stamp_service_worker(output_dir: Path) -> str | None:
         ),
         key=lambda item: item[0],
     )
+    file_digests: dict[str, str] = {}
     for rel_posix, file_path in bundle_files:
         content = file_path.read_bytes()
+        file_digests[rel_posix] = hashlib.sha256(content).hexdigest()[:12]
         hasher.update(f"{rel_posix}:{len(content)}\0".encode())
         hasher.update(content)
 
-    cache_version = f"v1-{hasher.hexdigest()[:12]}"
-    shell_assets = [
-        "./",
-        *(
-            f"./{rel_posix}"
-            for rel_posix, _ in bundle_files
-            if not rel_posix.startswith("svgs/thumbs/")
-        ),
+    bundle_hex = hasher.hexdigest()[:12]
+    cache_version = f"v1-{bundle_hex}"
+    shell_rel_paths = [
+        rel_posix
+        for rel_posix, _ in bundle_files
+        if not rel_posix.startswith("svgs/thumbs/")
     ]
+    shell_assets = ["./", *(f"./{rel_posix}" for rel_posix in shell_rel_paths)]
+    shell_revisions = {
+        "./": file_digests.get("index.html", bundle_hex),
+        **{f"./{rel_posix}": file_digests[rel_posix] for rel_posix in shell_rel_paths},
+    }
     assets_json = json.dumps(shell_assets, indent=2)
+    revisions_json = json.dumps(shell_revisions, indent=2)
 
     stamped_sw = _SW_CACHE_VERSION_RE.sub(
         rf"\g<1>{cache_version}\g<2>",
@@ -164,6 +184,11 @@ def stamp_service_worker(output_dir: Path) -> str | None:
     )
     stamped_sw = _SW_ASSETS_RE.sub(
         lambda match: f"{match.group(1)}{assets_json}",
+        stamped_sw,
+        count=1,
+    )
+    stamped_sw = _SW_REVISIONS_RE.sub(
+        lambda match: f"{match.group(1)}{revisions_json}",
         stamped_sw,
         count=1,
     )
