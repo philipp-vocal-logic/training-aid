@@ -1,5 +1,12 @@
 /* Screen 4: Full-Screen Active Workout — Strict Completion, Live Tempo & Configurable Rest (#workout/<id>) */
-import { REST_PRESETS, SOUND_THEMES, VALID_SPEED_MODES } from "../core/constants.js";
+import {
+  REST_PRESETS,
+  SOUND_THEMES,
+  SPEED_LABELS,
+  VALID_SPEED_MODES,
+  formatPageTitle,
+  formatRestLabel,
+} from "../core/constants.js";
 import { createWorkoutSession } from "../core/workout-engine.js";
 import { bindSvg, prefersReducedMotion, tempoCurve, turnaroundForMode } from "../rig/motion.js";
 import { el, makeTuneIcon, makeVolumeOffIcon, makeVolumeOnIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
@@ -7,7 +14,6 @@ import { closeModal, openModal } from "../ui/modal.js";
 import { createViewScope } from "../ui/scope.js";
 import { createWakeLock } from "../ui/wake-lock.js";
 
-const HUD_SPEED_LABELS = { slow: "0.75\u00d7 Slow", normal: "1\u00d7 Tempo", fast: "1.25\u00d7 Fast" };
 const EVENT_AUDIO_MAP = {
   startSignal: "startSignal",
   midRep: "midRep",
@@ -30,7 +36,7 @@ export function renderWorkoutView(ctx) {
   const routine = store.getRoutine(targetId);
   if (!routine) return scope;
 
-  document.title = routine.name;
+  document.title = formatPageTitle(routine.name);
   syncTopbar("", true);
 
   const playlist = store.buildPlaylist(routine.id) || [];
@@ -44,7 +50,7 @@ export function renderWorkoutView(ctx) {
         el("div", { className: "finish-screen" }, [
           el("a", { href: exitHref, className: "hud-icon-btn", style: { position: "absolute", top: "1rem", left: "1.2rem" }, "aria-label": "Exit", textContent: "\u2715" }),
           el("h1", { className: "stage-title", textContent: routine.name }),
-          el("a", { href: editHref, className: "btn-primary", textContent: "+ Exercises" }),
+          el("a", { href: editHref, className: "btn-primary", textContent: "+ Add Exercises" }),
         ]),
       ])
     );
@@ -70,16 +76,16 @@ export function renderWorkoutView(ctx) {
   const howToEl = el("div", { id: "ex-how-to", className: "muted text-xs truncate", textContent: firstEx.how_to || "" });
   const weightEl = el("span", { id: "ex-weight", className: "pill pill-brand", style: { display: firstEx.weight_label ? "inline-flex" : "none" }, textContent: firstEx.weight_label || "" });
 
-  const speedSelect = el("select", { id: "speed-mode-select", className: "hud-select workout-tune-select", "aria-label": "Exercise speed" },
-    VALID_SPEED_MODES.map((m) => el("option", { value: m, selected: m === initSnap.speedMode, textContent: HUD_SPEED_LABELS[m] || m })));
+  const speedSelect = el("select", { id: "speed-mode-select", className: "hud-select workout-tune-select", "aria-label": "Speed" },
+    VALID_SPEED_MODES.map((m) => el("option", { value: m, selected: m === initSnap.speedMode, textContent: SPEED_LABELS[m] || m })));
   speedSelect.value = initSnap.speedMode;
   const restChoices = REST_PRESETS.includes(initSnap.configuredRestSeconds)
     ? REST_PRESETS
     : [...REST_PRESETS, initSnap.configuredRestSeconds].sort((a, b) => a - b);
-  const restSelect = el("select", { id: "rest-seconds-select", className: "hud-select workout-tune-select", "aria-label": "Rest interval" },
-    restChoices.map((sec) => el("option", { value: String(sec), selected: sec === initSnap.configuredRestSeconds, textContent: `Rest ${sec}s` })));
+  const restSelect = el("select", { id: "rest-seconds-select", className: "hud-select workout-tune-select", "aria-label": "Rest" },
+    restChoices.map((sec) => el("option", { value: String(sec), selected: sec === initSnap.configuredRestSeconds, textContent: formatRestLabel(sec) })));
   restSelect.value = String(initSnap.configuredRestSeconds);
-  const soundSelect = el("select", { id: "sound-theme-select", className: "hud-select workout-tune-select", "aria-label": "Sound theme" },
+  const soundSelect = el("select", { id: "sound-theme-select", className: "hud-select workout-tune-select", "aria-label": "Sound" },
     SOUND_THEMES.map((opt) => el("option", { value: opt.id, textContent: opt.label })));
   const tuneBtn = el("button", { type: "button", id: "workout-tune-btn", className: "hud-icon-btn", "aria-label": "Workout settings" }, [makeTuneIcon()]);
   const iconVolOn = makeVolumeOnIcon();
@@ -292,15 +298,15 @@ export function renderWorkoutView(ctx) {
         el("h2", { className: "modal-title", textContent: "Workout Settings" }),
         el("div", { className: "workout-tune-fields" }, [
           el("label", { className: "field-block" }, [
-            el("span", { className: "field-label", textContent: "Exercise Speed" }),
+            el("span", { className: "field-label", textContent: "Speed" }),
             speedSelect,
           ]),
           el("label", { className: "field-block" }, [
-            el("span", { className: "field-label", textContent: "Rest Interval" }),
+            el("span", { className: "field-label", textContent: "Rest" }),
             restSelect,
           ]),
           el("label", { className: "field-block" }, [
-            el("span", { className: "field-label", textContent: "Sound Theme" }),
+            el("span", { className: "field-label", textContent: "Sound" }),
             soundSelect,
           ]),
         ]),

@@ -98,6 +98,7 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   setupForm.dispatchEvent({ type: "submit" });
 
   assert.equal(getHash(), "#plan");
+  assert.equal(document.title, "Plan \u2014 Training Aid");
   const savedPlanState = JSON.parse(env.storage.getItem("training_aid_state_v2"));
   assert.equal(savedPlanState.profile.name, "Athlete");
   assert.ok(appRoot.textContent.includes("Recommended Today"));
@@ -135,7 +136,7 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   assert.equal(planFilter.tagName, "DETAILS");
   assert.equal(planFilter.open, false);
   assert.equal(planFilter.getAttribute("open"), null);
-  assert.equal(planFilter.querySelector(".field-label").textContent, "Gear");
+  assert.equal(planFilter.querySelector(".field-label").textContent, "Equipment");
   assert.ok(
     planFilter.querySelector(".disclosure-summary").textContent.includes("Dumbbells & Bands \u00b7 15s")
   );
@@ -194,6 +195,7 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
 
   // Verify #progress compact empty state before any workout is completed
   setHash("#progress");
+  assert.equal(document.title, "Stats \u2014 Training Aid");
   const emptyCard = appRoot.querySelector(".empty-state-card");
   assert.ok(Boolean(emptyCard), "#progress must render .empty-state-card when empty");
   assert.ok(emptyCard.textContent.includes("Complete a workout to unlock your progression chart."));
@@ -201,8 +203,9 @@ test("multiselect #setup -> #plan -> #quick -> #workout/adhoc full completion ->
   assert.equal(docRoot.getElementById("empty-progress-svg"), null);
   assert.equal(docRoot.getElementById("progress-export-btn"), null);
 
-  // Open On-the-Fly (#quick), generate workout, trim to 1 exercise with 2 sets x 2 reps
+  // Open Quick Workout (#quick), generate workout, trim to 1 exercise with 2 sets x 2 reps
   setHash("#quick");
+  assert.equal(document.title, "Quick Workout \u2014 Training Aid");
   assert.ok(Boolean(docRoot.getElementById("quick-generate-btn")));
   docRoot.getElementById("quick-generate-btn").click();
   let removeBtns = appRoot
@@ -372,7 +375,7 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
 
   assert.equal(
     picker.searchInput.getAttribute("placeholder"),
-    "Search name, muscle, gear, or category..."
+    "Search exercise, muscle, equipment, or category..."
   );
   assert.equal(searchCalls.length, 1);
   assert.equal(searchCalls[0].limit, 1000);
@@ -561,9 +564,10 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
   );
 
   const editSearch = appRoot.querySelector(".minimal-input");
+  assert.ok(document.title.endsWith(" \u2014 Training Aid"));
   assert.equal(
     editSearch.getAttribute("placeholder"),
-    "Search name, muscle, gear, or category..."
+    "Search exercise, muscle, equipment, or category..."
   );
   editSearch.value = "Rope Jumping";
   editSearch.dispatchEvent({ type: "input" });
@@ -612,12 +616,12 @@ test("renderCatalogPicker facets, equipment chips, reset, full-card click-to-add
   setHash("#quick");
   assert.equal(
     appRoot.querySelector(".filter-panel").querySelector(".field-label").textContent,
-    "Workout Gear (Generator)"
+    "Equipment"
   );
   const quickSearch = appRoot.querySelector(".minimal-input");
   assert.equal(
     quickSearch.getAttribute("placeholder"),
-    "Search name, muscle, gear, or category..."
+    "Search exercise, muscle, equipment, or category..."
   );
   quickSearch.value = "Rope Jumping";
   quickSearch.dispatchEvent({ type: "input" });

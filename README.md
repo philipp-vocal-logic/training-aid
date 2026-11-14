@@ -14,7 +14,7 @@ Minimal, zero-backend, offline-first guided workout PWA built with Python ≥3.1
 
 1. **Setup (`#setup`)** — Full-screen live SVG preview alongside multiselect equipment, intensity, weekly frequency, exercise speed (`slow` / `normal` / `fast`), and rest interval tiles.
 2. **Plan (`#plan` & `#edit/<id>`)** — Split full-screen stage with interactive animated exercise preview, non-destructive daily equipment filter, compact routine deck, and instant offline catalog search across all 876 exercises.
-3. **On-the-Fly (`#quick`)** — Instant balanced workout generator and custom ad-hoc session builder that counts toward weekly goals and history without advancing the saved split cursor.
+3. **Quick (`#quick`)** — Instant balanced workout generator and custom ad-hoc session builder that counts toward weekly goals and history without advancing the saved split cursor.
 4. **Workout (`#workout/<id>`)** — Edge-to-edge `100vw × 100dvh` animated SVG motion coach with minimal HUD (`1/4 · S1/3`, live step-by-step form cue, movement cues, giant counter, live tempo/rest controls, 4-layer Web Audio synth packs, fullscreen toggle `⛶`, and `Space`/`→` shortcuts), ending with 1-tap adaptation (`−10%`, `=`, `+10%`).
 5. **Stats (`#progress`)** — Full-screen inline SVG intensity progression chart, streak KPIs, and detailed date-time workout history rail.
 

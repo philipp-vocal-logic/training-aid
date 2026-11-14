@@ -1,3 +1,11 @@
+export const APP_NAME = "Training Aid";
+export const APP_PAGE_TITLE = "Training Aid \u2014 Offline Workout Planner & Guided Timer";
+
+export function formatPageTitle(section) {
+  const clean = typeof section === "string" ? section.trim() : "";
+  return clean ? `${clean} \u2014 ${APP_NAME}` : APP_PAGE_TITLE;
+}
+
 export const EQUIPMENT_OPTIONS = Object.freeze([
   Object.freeze({ id: "dumbbell", label: "Dumbbells", arch: "curl", prop: "dumbbell" }),
   Object.freeze({ id: "kettlebells", label: "Kettlebells", arch: "hinge", prop: "kettlebells" }),
@@ -14,7 +22,7 @@ export const EQUIP_LABEL_MAP = new Map(EQUIPMENT_OPTIONS.map((opt) => [opt.id, o
 
 export const VALID_INTENSITY = Object.freeze(["light", "moderate", "intense"]);
 export const DEFAULT_INTENSITY_LABELS = Object.freeze({
-  light: "Easy Start",
+  light: "Easy",
   moderate: "Moderate",
   intense: "Intense",
 });
@@ -30,6 +38,11 @@ export const VALID_SOUND_THEMES = Object.freeze(SOUND_THEMES.map((t) => t.id));
 
 export const VALID_SPEED_MODES = Object.freeze(["slow", "normal", "fast"]);
 export const SPEED_MULTIPLIERS = Object.freeze({ slow: 0.75, normal: 1.0, fast: 1.25 });
+export const SPEED_SHORT_LABELS = Object.freeze({
+  slow: "Slow",
+  normal: "Normal",
+  fast: "Fast",
+});
 export const SPEED_LABELS = Object.freeze({
   slow: "Slow (0.75\u00d7)",
   normal: "Normal (1\u00d7)",
@@ -37,6 +50,10 @@ export const SPEED_LABELS = Object.freeze({
 });
 export const REST_PRESETS = Object.freeze([15, 30, 45, 60, 90]);
 export const DEFAULT_REST_SECONDS = 30;
+
+export function formatRestLabel(sec) {
+  return `Rest: ${sec}s`;
+}
 
 export const WEIGHTED_EQUIPMENT = new Set([
   "barbell",

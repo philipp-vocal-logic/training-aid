@@ -1,5 +1,5 @@
 /* Screen 2: Daily Recommended Session, Non-Destructive Equipment Filter & Weekly Plan (#plan) */
-import { formatEquipmentSummary } from "../core/constants.js";
+import { formatEquipmentSummary, formatPageTitle } from "../core/constants.js";
 import { stepToIntensityPercent } from "../core/prescription.js";
 import { el, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
 import { bindPreviewLoop } from "../ui/preview-loop.js";
@@ -51,7 +51,7 @@ export function renderPlanView(ctx) {
   const initialFilterOpen = preserveFilterPanelOpen;
   preserveFilterPanelOpen = false;
 
-  document.title = "Plan";
+  document.title = formatPageTitle("Plan");
   syncTopbar("plan", false);
 
   const rec = store.getRecommendedToday();
@@ -75,14 +75,14 @@ export function renderPlanView(ctx) {
   });
   const adaptedBadge =
     nextCard && nextCard.was_substituted
-      ? el("span", { className: "pill", textContent: `${nextCard.substituted_count} adapted for gear` })
+      ? el("span", { className: "pill", textContent: `${nextCard.substituted_count} adapted for equipment` })
       : null;
 
   let completedBanner = null;
   if (completedLog) {
     const choice = completedLog.next_intensity_choice;
     const deltaLabel = completedLog.is_adhoc
-      ? "On-the-Fly Saved"
+      ? "Quick Workout Saved"
       : choice === "more"
         ? "+10%"
         : choice === "less"
@@ -133,7 +133,7 @@ export function renderPlanView(ctx) {
       id: "stage-start-btn",
       className: "btn-primary",
       href: hasExercises ? `#workout/${nextIdEnc}` : `#edit/${nextIdEnc}`,
-      textContent: hasExercises ? "\u25b6 Start" : "+ Add",
+      textContent: hasExercises ? "\u25b6 Start" : "+ Add Exercises",
     });
   }
 
@@ -182,7 +182,7 @@ export function renderPlanView(ctx) {
       type: "button",
       className: "btn-ghost btn-xs",
       title: "Restore saved plan equipment",
-      textContent: "Reset Gear",
+      textContent: "Reset Equipment",
     });
     scope.on(resetEqBtn, "click", () => {
       preserveFilterPanelOpen = true;
@@ -201,7 +201,7 @@ export function renderPlanView(ctx) {
   const equipPanel = setDetailsOpen(
     el("details", { className: "filter-panel disclosure-card" }, [
       el("summary", { className: "disclosure-summary" }, [
-        el("span", { className: "field-label", textContent: "Gear" }),
+        el("span", { className: "field-label", textContent: "Equipment" }),
         equipSummaryPill,
       ]),
       el("div", { className: "disclosure-body" }, [
@@ -301,14 +301,14 @@ export function renderPlanView(ctx) {
                   "href",
                   hasEx ? `#workout/${routineIdEnc}` : `#edit/${routineIdEnc}`
                 );
-                stageActionBtn.textContent = hasEx ? "\u25b6 Start" : "+ Add";
+                stageActionBtn.textContent = hasEx ? "\u25b6 Start" : "+ Add Exercises";
               }
               for (const a of articleElements) a.classList.toggle("is-next", a === article);
             });
             return li;
           })
         )
-      : el("a", { href: `#edit/${routineIdEnc}`, className: "muted", textContent: "+ Add exercises" });
+      : el("a", { href: `#edit/${routineIdEnc}`, className: "muted", textContent: "+ Add Exercises" });
 
     const summaryNode = isMobileToday
       ? el(

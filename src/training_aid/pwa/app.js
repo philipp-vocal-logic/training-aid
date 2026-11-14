@@ -218,7 +218,7 @@ export function boot() {
           el("main", { className: "boot-screen" }, [
             el("div", {
               className: "muted",
-              textContent: `Unable to load trainer catalog: ${err && err.message ? err.message : "offline"}`,
+              textContent: `Unable to load exercise catalog: ${err && err.message ? err.message : "offline"}`,
             }),
           ])
         );

@@ -4,12 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'" />
-  <meta name="description" content="Zero-backend offline guided workout trainer with live 2D kinematics and Web Audio synthesis." />
+  <meta name="description" content="Free offline workout planner and guided exercise timer with 876 animated exercises, custom equipment filters, and local-only storage." />
   <meta name="theme-color" content="#090d16" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Train" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Train</title>
+  <title>Training Aid — Offline Workout Planner &amp; Guided Timer</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
@@ -36,9 +37,12 @@
 
   <div id="app-root" class="app-root">
     <main class="boot-screen" aria-busy="true">
-      <span class="brand-dot"></span>
-      <span class="muted">Loading trainer…</span>
-      <noscript><span class="muted">JavaScript is required to run Training Aid.</span></noscript>
+      <div class="row-cluster">
+        <span class="brand-dot"></span>
+        <h1 class="boot-title">Training Aid</h1>
+      </div>
+      <p class="muted boot-copy">Offline workout planner and guided exercise timer — loading catalog…</p>
+      <noscript><p class="muted boot-copy">JavaScript is required to run Training Aid.</p></noscript>
     </main>
   </div>
 

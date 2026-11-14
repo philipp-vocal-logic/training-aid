@@ -245,7 +245,7 @@ export function createStore(options = {}) {
     adHocEquipment = eq.slice();
     adHocSession = {
       id: "adhoc",
-      name: `On-the-Fly \u00b7 ${formatEquipmentSummary(eq)}`,
+      name: `Quick Workout \u00b7 ${formatEquipmentSummary(eq)}`,
       intensity_level: 0,
       is_adhoc: true,
       exercises: generateBalancedSession(exerciseList, eq, state?.profile || { starting_intensity: "moderate" }, genOpts),
@@ -255,7 +255,7 @@ export function createStore(options = {}) {
 
   function ensureAdHocSession(genOpts) {
     if (!adHocSession) return generateAdHocSession(genOpts);
-    adHocSession.name = `On-the-Fly \u00b7 ${formatEquipmentSummary(getSessionEquipment())}`;
+    adHocSession.name = `Quick Workout \u00b7 ${formatEquipmentSummary(getSessionEquipment())}`;
     return structuredClone(adHocSession);
   }
 
@@ -274,7 +274,7 @@ export function createStore(options = {}) {
     adHocEquipment = eq.slice();
     adHocSession = {
       ...adHocSession,
-      name: `On-the-Fly \u00b7 ${formatEquipmentSummary(eq)}`,
+      name: `Quick Workout \u00b7 ${formatEquipmentSummary(eq)}`,
       exercises: adapted.exercises.map(({ id, exercise_id, sets, base_reps, base_weight_kg }) => ({
         id, exercise_id, sets, base_reps, base_weight_kg,
       })),
@@ -429,7 +429,7 @@ export function createStore(options = {}) {
     const logEntry = {
       id: `log_${Date.now().toString(36)}_${idCounter.toString(36)}`,
       routine_id: isAdHoc ? null : routine.id,
-      routine_name: sanitizeString(routine.name, 60, isAdHoc ? "On-the-Fly Workout" : "Workout"),
+      routine_name: sanitizeString(routine.name, 60, isAdHoc ? "Quick Workout" : "Workout"),
       completed_at: completedDt.toISOString(),
       duration_minutes: clampInt(cfg.duration_minutes ?? 25, 1, 300, 25),
       intensity_at_session: sessionIntensity,

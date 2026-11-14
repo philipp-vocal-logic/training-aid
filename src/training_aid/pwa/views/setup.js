@@ -1,17 +1,24 @@
 /* Screen 1: Setup — Multiselect Equipment, Weekly Goal, Intensity, Speed, Rest & JSON Backup (#setup) */
-import { EQUIPMENT_OPTIONS, REST_PRESETS } from "../core/constants.js";
+import {
+  DEFAULT_INTENSITY_LABELS,
+  EQUIPMENT_OPTIONS,
+  REST_PRESETS,
+  SPEED_LABELS,
+  SPEED_SHORT_LABELS,
+  VALID_SPEED_MODES,
+  formatPageTitle,
+} from "../core/constants.js";
 import { el, makeEquipmentIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
 import { closeModal, openModal } from "../ui/modal.js";
 import { bindPreviewLoop } from "../ui/preview-loop.js";
 import { createViewScope } from "../ui/scope.js";
 
 const SETUP_PRESCRIPTIONS = {
-  light: "2 sets \u00b7 \u221220% load",
-  moderate: "3 sets \u00b7 Base load",
-  intense: "4 sets \u00b7 +20% load",
+  light: "2 sets \u00b7 \u221220% intensity",
+  moderate: "3 sets \u00b7 Base intensity",
+  intense: "4 sets \u00b7 +20% intensity",
 };
 const PREVIEW_SPEED_BY_MODE = { slow: 0.29, normal: 0.39, fast: 0.49 };
-const SPEED_SUMMARY_LABELS = { slow: "Slow", normal: "Normal", fast: "Fast" };
 
 function setDetailsOpen(detailsEl, isOpen) {
   const open = Boolean(isOpen);
@@ -74,7 +81,7 @@ export function renderSetupView(ctx) {
     });
   const syncTopbar = ctx.syncTopbar || (() => {});
 
-  document.title = "Setup";
+  document.title = formatPageTitle("Setup");
   syncTopbar("setup", false);
 
   const state = store.getState();
@@ -146,23 +153,21 @@ export function renderSetupView(ctx) {
   }
 
   const eqTiles = EQUIPMENT_OPTIONS.map((opt) => makeCheckboxTile(opt, curEquipSet.has(opt.id)));
-  const selectAllBtn = el("button", { type: "button", className: "btn-ghost btn-xs", textContent: "All Gym" });
-  const clearEqBtn = el("button", { type: "button", className: "btn-ghost btn-xs", textContent: "Bodyweight Only" });
+  const selectAllBtn = el("button", { type: "button", className: "btn-ghost btn-xs", textContent: "Full Gym" });
+  const clearEqBtn = el("button", { type: "button", className: "btn-ghost btn-xs", textContent: "Bodyweight" });
 
   const intTiles = [
-    makeRadioTile("starting_intensity", "light", "Easy", curInt === "light"),
-    makeRadioTile("starting_intensity", "moderate", "Moderate", curInt === "moderate"),
-    makeRadioTile("starting_intensity", "intense", "Intense", curInt === "intense"),
+    makeRadioTile("starting_intensity", "light", DEFAULT_INTENSITY_LABELS.light, curInt === "light"),
+    makeRadioTile("starting_intensity", "moderate", DEFAULT_INTENSITY_LABELS.moderate, curInt === "moderate"),
+    makeRadioTile("starting_intensity", "intense", DEFAULT_INTENSITY_LABELS.intense, curInt === "intense"),
   ];
   const dayValues = [2, 3, 4, 5];
   const activeDay = dayValues.includes(curDays) ? curDays : 3;
   const dayTiles = dayValues.map((d) => makeRadioTile("days_per_week", d, `${d}\u00d7`, activeDay === d));
 
-  const speedTiles = [
-    makeRadioTile("speed_mode", "slow", "Slow (0.75\u00d7)", curSpeed === "slow"),
-    makeRadioTile("speed_mode", "normal", "Normal (1\u00d7)", curSpeed === "normal"),
-    makeRadioTile("speed_mode", "fast", "Fast (1.25\u00d7)", curSpeed === "fast"),
-  ];
+  const speedTiles = VALID_SPEED_MODES.map((mode) =>
+    makeRadioTile("speed_mode", mode, SPEED_LABELS[mode], curSpeed === mode)
+  );
   const activeRest = REST_PRESETS.includes(curRest) ? curRest : 30;
   const restTiles = REST_PRESETS.map((sec) => makeRadioTile("rest_seconds", sec, `${sec}s`, activeRest === sec));
 
@@ -170,22 +175,22 @@ export function renderSetupView(ctx) {
   let summaryRestSec = activeRest;
   const pacingSummaryPill = el("span", {
     className: "pill",
-    textContent: `${SPEED_SUMMARY_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`,
+    textContent: `${SPEED_SHORT_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`,
   });
 
   const setupPacingDisclosure = setDetailsOpen(
     el("details", { className: "disclosure-card setup-pacing-disclosure" }, [
       el("summary", { className: "disclosure-summary" }, [
-        el("span", { className: "field-label", textContent: "Tempo & Rest" }),
+        el("span", { className: "field-label", textContent: "Speed & Rest" }),
         pacingSummaryPill,
       ]),
       el("div", { className: "disclosure-body" }, [
         el("div", { className: "field-group" }, [
-          el("span", { className: "field-label", textContent: "Exercise Speed (Tempo)" }),
+          el("span", { className: "field-label", textContent: "Speed" }),
           el("div", { className: "tile-grid-3" }, speedTiles.map((t) => t.label)),
         ]),
         el("div", { className: "field-group" }, [
-          el("span", { className: "field-label", textContent: "Pause / Rest Interval" }),
+          el("span", { className: "field-label", textContent: "Rest" }),
           el("div", { className: "tile-grid-5" }, restTiles.map((t) => t.label)),
         ]),
       ]),
@@ -196,18 +201,18 @@ export function renderSetupView(ctx) {
   const setupForm = el("form", { className: "setup-form" }, [
     el("div", { className: "field-group" }, [
       el("div", { className: "field-label-row" }, [
-        el("span", { className: "field-label", textContent: "Available Equipment (Multiselect)" }),
+        el("span", { className: "field-label", textContent: "Equipment" }),
         el("div", { className: "row-cluster-tight" }, [clearEqBtn, selectAllBtn]),
       ]),
       el("div", { className: "muted text-xs", textContent: "Floor bodyweight exercises are always included." }),
       el("div", { className: "tile-grid-3 setup-equip-grid" }, eqTiles.map((t) => t.label)),
     ]),
     el("div", { className: "field-group" }, [
-      el("span", { className: "field-label", textContent: "Starting Intensity" }),
+      el("span", { className: "field-label", textContent: "Intensity" }),
       el("div", { className: "tile-grid-3" }, intTiles.map((t) => t.label)),
     ]),
     el("div", { className: "field-group" }, [
-      el("span", { className: "field-label", textContent: "Weekly Workout Schedule" }),
+      el("span", { className: "field-label", textContent: "Workouts per Week" }),
       el("div", { className: "tile-grid-4" }, dayTiles.map((t) => t.label)),
     ]),
     setupPacingDisclosure,
@@ -227,7 +232,7 @@ export function renderSetupView(ctx) {
     type: "button",
     id: "backup-import-btn",
     className: "btn-ghost btn-compact",
-    textContent: "Import JSON",
+    textContent: "Import Backup",
   });
   const exportBtn = el("button", {
     type: "button",
@@ -235,14 +240,14 @@ export function renderSetupView(ctx) {
     className: "btn-ghost btn-compact",
     hidden: !hasPlan,
     disabled: !hasPlan,
-    textContent: "Export JSON",
+    textContent: "Export Backup",
   });
   const storageErrorPill = el("span", {
     id: "storage-error-pill",
     className: "pill pill-warn",
     role: "alert",
     hidden: !hasStorageErr,
-    textContent: "Storage unavailable \u2014 export JSON to save backups",
+    textContent: "Storage unavailable \u2014 export a backup to save your plan",
   });
   const statusMsg = el("span", {
     id: "backup-status-msg",
@@ -260,7 +265,7 @@ export function renderSetupView(ctx) {
   const backupDisclosure = setDetailsOpen(
     el("details", { className: "disclosure-card backup-disclosure" }, [
       el("summary", { className: "disclosure-summary" }, [
-        el("span", { className: "field-label", textContent: "Backup & Restore JSON" }),
+        el("span", { className: "field-label", textContent: "Backup & Restore" }),
       ]),
       backupBar,
     ]),
@@ -321,14 +326,14 @@ export function renderSetupView(ctx) {
       if (!tile.input.checked) return;
       summarySpeedMode = tile.input.value;
       speed = PREVIEW_SPEED_BY_MODE[summarySpeedMode] || PREVIEW_SPEED_BY_MODE.normal;
-      pacingSummaryPill.textContent = `${SPEED_SUMMARY_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`;
+      pacingSummaryPill.textContent = `${SPEED_SHORT_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`;
     });
   }
   for (const tile of restTiles) {
     scope.on(tile.input, "change", () => {
       if (!tile.input.checked) return;
       summaryRestSec = Number(tile.input.value) || 30;
-      pacingSummaryPill.textContent = `${SPEED_SUMMARY_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`;
+      pacingSummaryPill.textContent = `${SPEED_SHORT_LABELS[summarySpeedMode] || "Normal"} \u00b7 ${summaryRestSec}s`;
     });
   }
 

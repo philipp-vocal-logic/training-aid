@@ -170,6 +170,9 @@ def test_build_pwa_static_bundle_and_catalog_schema(built_pwa: Path) -> None:
     assert "default-src 'self'" in index_html
     assert "script-src 'self'" in index_html
     assert '<script type="module" src="./app.js"></script>' in index_html
+    assert "<title>Training Aid" in index_html
+    assert '<meta name="apple-mobile-web-app-title" content="Train" />' in index_html
+    assert '<h1 class="boot-title">Training Aid</h1>' in index_html
     assert "toast-root" not in index_html
 
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text("utf-8"))

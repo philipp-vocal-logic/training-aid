@@ -1,4 +1,5 @@
 /* Screen 3: Routine Editor — Prescription (Sets, Reps, Weight) & Random Exercise Swap (#edit/<routineId>) */
+import { formatPageTitle } from "../core/constants.js";
 import { el } from "../ui/dom.js";
 import { createViewScope } from "../ui/scope.js";
 import { renderCatalogPicker, renderEditableExerciseRow } from "../ui/widgets.js";
@@ -22,7 +23,7 @@ export function renderEditView(ctx) {
   const routine = store.getRoutine(targetId);
   if (!routine) return scope;
 
-  document.title = routine.name;
+  document.title = formatPageTitle(routine.name);
   syncTopbar("plan", false);
 
   const initCards = store.buildRoutineCards([routine]);
@@ -34,7 +35,7 @@ export function renderEditView(ctx) {
   const leftPane = el("section", { className: "editor-pane" });
   const picker = renderCatalogPicker(scope, store, {
     resultsId: "search-results",
-    placeholder: "Search name, muscle, gear, or category...",
+    placeholder: "Search exercise, muscle, equipment, or category...",
     ariaLabel: "Search exercises",
     emptyText: "No matching exercises.",
     limit: 24,
@@ -52,7 +53,7 @@ export function renderEditView(ctx) {
     [
       el("summary", {
         className: "btn-ghost btn-block picker-toggle-summary",
-        textContent: "+ Browse & Search Catalog",
+        textContent: "+ Add Exercises",
       }),
       picker,
     ]
@@ -95,7 +96,7 @@ export function renderEditView(ctx) {
         ? el("a", {
             href: `#workout/${routineIdEnc}`,
             className: "btn-primary btn-compact push-right",
-            textContent: "\u25b6",
+            textContent: "\u25b6 Start",
           })
         : null,
     ]);

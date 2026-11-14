@@ -63,6 +63,16 @@ test("catalog equipment hygiene: pre-baked required_equipment, 'other' isolation
     ]),
     ["dumbbell", "machine"]
   );
+  assert.equal(constantsMod.APP_NAME, "Training Aid");
+  assert.equal(constantsMod.formatPageTitle(""), constantsMod.APP_PAGE_TITLE);
+  assert.equal(constantsMod.formatPageTitle("Setup"), "Setup \u2014 Training Aid");
+  assert.equal(constantsMod.DEFAULT_INTENSITY_LABELS.light, "Easy");
+  assert.deepEqual(constantsMod.SPEED_SHORT_LABELS, {
+    slow: "Slow",
+    normal: "Normal",
+    fast: "Fast",
+  });
+  assert.equal(constantsMod.formatRestLabel(45), "Rest: 45s");
   assert.equal(constantsMod.isWeightedCatalogEquipment("cable"), true);
   assert.equal(generatorMod.selectProgramKeyForEquipment(["barbell", "cable"]), "full_gym");
   assert.equal(generatorMod.selectProgramKeyForEquipment(["barbell", "machine"]), "full_gym");

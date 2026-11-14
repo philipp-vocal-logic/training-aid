@@ -391,7 +391,7 @@ test("AC-3: app.js defers SW activation & multi-tab reload across #setup, #worko
   finishSaveBtn.click();
 
   assert.equal(getHash(), "#plan");
-  assert.ok(appRoot.textContent.includes("\u2713 On-the-Fly Saved"));
+  assert.ok(appRoot.textContent.includes("\u2713 Quick Workout Saved"));
   assert.equal(
     getReloadCount(),
     0,

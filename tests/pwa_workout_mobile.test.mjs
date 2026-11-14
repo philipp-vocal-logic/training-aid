@@ -458,14 +458,14 @@ test("ui/dom.js <details open> + makeTuneIcon, catalog-picker disclosures, and #
     "Showing 24 of 876 exercises"
   );
 
-  // #quick renders ONLY ONE .equip-chip-bar (omitting .catalog-equip-bar) and preserves "Workout Gear (Generator)"
+  // #quick renders ONLY ONE .equip-chip-bar (omitting .catalog-equip-bar) and unified "Equipment" label
   assert.equal(appRoot.querySelectorAll(".equip-chip-bar").length, 1);
   assert.equal(appRoot.querySelector(".catalog-equip-bar"), null);
   const gearDetails = appRoot.querySelector(".filter-panel");
-  assert.ok(Boolean(gearDetails), "#quick must wrap gear panel in <details class='filter-panel disclosure-card'>");
+  assert.ok(Boolean(gearDetails), "#quick must wrap equipment panel in <details class='filter-panel disclosure-card'>");
   assert.equal(gearDetails.tagName, "DETAILS");
   assert.equal(gearDetails.open, false);
-  assert.equal(gearDetails.querySelector(".field-label").textContent, "Workout Gear (Generator)");
+  assert.equal(gearDetails.querySelector(".field-label").textContent, "Equipment");
   assert.ok(gearDetails.querySelector(".pill").textContent.includes("Bodyweight"));
 
   // Opening gearDetails and toggling an equipment chip preserves gearDetails.open === true

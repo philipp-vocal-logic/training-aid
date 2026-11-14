@@ -1,4 +1,5 @@
 /* Screen 5: Stats, Weekly Adherence, Inline SVG Chart & Completed Exercise History (#progress) */
+import { formatPageTitle } from "../core/constants.js";
 import { formatWeight, stepToIntensityPercent } from "../core/prescription.js";
 import { el, formatLogDateTime } from "../ui/dom.js";
 import { buildProgressChartSvg } from "../ui/progress-chart.js";
@@ -23,7 +24,7 @@ export function renderProgressView(ctx) {
   const { store } = ctx;
   const syncTopbar = ctx.syncTopbar || (() => {});
 
-  document.title = "Stats";
+  document.title = formatPageTitle("Stats");
   syncTopbar("progress", false);
 
   const stats = store.getStats();
@@ -46,7 +47,7 @@ export function renderProgressView(ctx) {
     ]),
     el("div", { className: "kpi-cell" }, [
       el("span", { className: "kpi-num", textContent: `${stats.avg_plan_intensity || 100}%` }),
-      el("span", { className: "kpi-label", textContent: "Plan Load" }),
+      el("span", { className: "kpi-label", textContent: "Intensity" }),
     ]),
   ]);
 
@@ -65,7 +66,7 @@ export function renderProgressView(ctx) {
         el("a", {
           href: "#plan",
           className: "btn-primary",
-          textContent: "\u25b6 Start Workout",
+          textContent: "\u25b6 Start",
         }),
       ])
     );

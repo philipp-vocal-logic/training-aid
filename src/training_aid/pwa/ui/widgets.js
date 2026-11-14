@@ -4,6 +4,7 @@ import {
   REST_PRESETS,
   SPEED_LABELS,
   VALID_SPEED_MODES,
+  formatRestLabel,
   isWeightedCatalogEquipment,
 } from "../core/constants.js";
 import { el, makeEquipmentIcon } from "./dom.js";
@@ -47,7 +48,7 @@ export function renderEquipmentChipBar(scope, selectedList, onChange, extraNode)
 export function renderPacingControls(scope, timing, onTimingChange) {
   const speedSelect = el(
     "select",
-    { className: "hud-select pacing-select", "aria-label": "Exercise speed" },
+    { className: "hud-select pacing-select", "aria-label": "Speed" },
     VALID_SPEED_MODES.map((m) =>
       el("option", { value: m, selected: timing.speed_mode === m, textContent: `Speed: ${SPEED_LABELS[m] || m}` })
     )
@@ -58,9 +59,9 @@ export function renderPacingControls(scope, timing, onTimingChange) {
     : [...REST_PRESETS, curRest].sort((a, b) => a - b);
   const restSelect = el(
     "select",
-    { className: "hud-select pacing-select", "aria-label": "Rest interval" },
+    { className: "hud-select pacing-select", "aria-label": "Rest" },
     restValues.map((sec) =>
-      el("option", { value: String(sec), selected: curRest === sec, textContent: `Rest: ${sec}s` })
+      el("option", { value: String(sec), selected: curRest === sec, textContent: formatRestLabel(sec) })
     )
   );
 

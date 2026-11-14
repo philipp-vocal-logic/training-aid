@@ -73,7 +73,7 @@ export function renderCatalogPicker(scopeOrOpts, maybeStore, maybeOpts = {}) {
   const store = isObjCall ? opts.store : maybeStore;
 
   const placeholder =
-    opts.placeholder || "Search name, muscle, gear, or category...";
+    opts.placeholder || "Search exercise, muscle, equipment, or category...";
   const ariaLabel = opts.ariaLabel || placeholder.replace(/\.+$/, "");
   const resultsId = opts.resultsId || "search-results";
   const emptyText = opts.emptyText || "No matching exercises.";

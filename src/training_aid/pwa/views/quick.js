@@ -1,5 +1,5 @@
-/* Screen 6: On-the-Fly & Random Workout Builder (#quick) */
-import { formatEquipmentSummary } from "../core/constants.js";
+/* Screen 6: Quick Workout & Random Builder (#quick) */
+import { formatEquipmentSummary, formatPageTitle } from "../core/constants.js";
 import { el } from "../ui/dom.js";
 import { createViewScope } from "../ui/scope.js";
 import {
@@ -26,7 +26,7 @@ export function renderQuickView(ctx) {
   const { store } = ctx;
   const syncTopbar = ctx.syncTopbar || (() => {});
 
-  document.title = "On-the-Fly";
+  document.title = formatPageTitle("Quick Workout");
   syncTopbar("quick", false);
 
   store.ensureAdHocSession();
@@ -39,7 +39,7 @@ export function renderQuickView(ctx) {
   const leftPane = el("section", { className: "editor-pane" });
   const picker = renderCatalogPicker(scope, store, {
     resultsId: "quick-search-results",
-    placeholder: "Search name, muscle, gear, or category...",
+    placeholder: "Search exercise, muscle, equipment, or category...",
     ariaLabel: "Search exercises",
     emptyText: "No matching exercises.",
     limit: 24,
@@ -58,7 +58,7 @@ export function renderQuickView(ctx) {
     [
       el("summary", {
         className: "btn-ghost btn-block picker-toggle-summary",
-        textContent: "+ Browse & Search Catalog",
+        textContent: "+ Add Exercises",
       }),
       picker,
     ]
@@ -85,7 +85,7 @@ export function renderQuickView(ctx) {
       type: "button",
       id: "quick-add-random-btn",
       className: "btn-ghost btn-compact",
-      textContent: "+ Random Exercise",
+      textContent: "+ Random",
     });
     const startBtn =
       rows.length > 0
@@ -134,7 +134,7 @@ export function renderQuickView(ctx) {
         el("summary", { className: "disclosure-summary" }, [
           el("span", {
             className: "field-label",
-            textContent: "Workout Gear (Generator)",
+            textContent: "Equipment",
           }),
           el("span", {
             className: "pill",
