@@ -38,6 +38,7 @@ export const RIG_SELECTORS = Object.freeze([
   ".js-j-hip-b",
   ".js-j-knee-b",
   ".js-j-elbow-b",
+  ".js-anchor",
 ]);
 
 const TURNAROUND_BY_MODE = Object.freeze({
@@ -97,6 +98,11 @@ function setCircleEl(el, x, y) {
   el.setAttribute("cy", y.toFixed(2));
 }
 
+function setVisibilityEl(el, visible) {
+  if (!el) return;
+  el.setAttribute("visibility", visible ? "visible" : "hidden");
+}
+
 export function bindSvg(svgEl) {
   if (!svgEl?.dataset?.poseA || !svgEl?.dataset?.poseB || !svgEl?.dataset?.bones) {
     return {
@@ -112,6 +118,7 @@ export function bindSvg(svgEl) {
   const poseA = JSON.parse(svgEl.dataset.poseA);
   const poseB = JSON.parse(svgEl.dataset.poseB);
 
+  const archetype = svgEl.dataset.archetype || "";
   const tempoMode = svgEl.dataset.tempoMode || "standard";
   const holdStyle = svgEl.dataset.holdStyle || "settle";
   const isFront = svgEl.dataset.view === "front";
@@ -126,8 +133,9 @@ export function bindSvg(svgEl) {
   // Cache all DOM element references once at bind time
   const els = Object.fromEntries(RIG_SELECTORS.map((sel) => [sel, svgEl.querySelector(sel)]));
 
-  function renderPoseState(pose, auraAmt, swapSides) {
+  function renderPoseState(pose, auraAmt, swapSides, unilateralMode = "none") {
     const reflectFront = isFront && swapSides;
+    const singleProp = unilateralMode === "arm_single" || unilateralMode === "side";
     const hipX = reflectFront ? 240.0 - pose.hip_x : pose.hip_x;
     const hipY = pose.hip_y;
     const lumbar = reflectFront ? -180.0 - pose.lumbar : pose.lumbar;
@@ -217,6 +225,9 @@ export function bindSvg(svgEl) {
       setLineEl(els[".js-forefoot-f"], footF, [forefootX, forefootY]);
       setLineEl(els[".js-forefoot-b"], footB, [forefootX - 5.0, forefootY - 1.0]);
     }
+    const hideTuckedForefoot = archetype === "calf_raise" && unilateralMode === "leg";
+    setVisibilityEl(els[".js-forefoot-f"], !hideTuckedForefoot || !swapSides);
+    setVisibilityEl(els[".js-forefoot-b"], !hideTuckedForefoot || swapSides);
 
     setLineEl(els[".js-uarm-f"], shoulderF, elbowF);
     setLineEl(els[".js-farm-f"], elbowF, handF);
@@ -227,10 +238,16 @@ export function bindSvg(svgEl) {
       setCircleEl(els[".js-weight"], handF[0], handF[1]);
       setCircleEl(els[".js-weight-cap"], handF[0], handF[1]);
       setCircleEl(els[".js-weight-b"], handB[0], handB[1]);
+      setVisibilityEl(els[".js-weight"], !singleProp || !swapSides);
+      setVisibilityEl(els[".js-weight-cap"], !singleProp || !swapSides);
+      setVisibilityEl(els[".js-weight-b"], !singleProp || swapSides);
     } else if (eqMode === "kettlebells") {
       setCircleEl(els[".js-kb-handle-f"], handF[0], handF[1] + 2.5);
       setCircleEl(els[".js-weight"], handF[0], handF[1] + 9.0);
       setCircleEl(els[".js-weight-b"], handB[0], handB[1] + 8.0);
+      setVisibilityEl(els[".js-kb-handle-f"], !singleProp || !swapSides);
+      setVisibilityEl(els[".js-weight"], !singleProp || !swapSides);
+      setVisibilityEl(els[".js-weight-b"], !singleProp || swapSides);
     } else if (eqMode === "barbell") {
       setCircleEl(els[".js-weight-b"], handB[0], handB[1]);
       if (isFront) {
@@ -255,6 +272,7 @@ export function bindSvg(svgEl) {
         setLineEl(els[".js-band-f"], handB, handF);
       } else {
         const anchor = [reflectFront ? 240.0 - anchorX : anchorX, anchorY];
+        setCircleEl(els[".js-anchor"], anchor[0], anchor[1]);
         let bTargetB = handB;
         let bTargetF = handF;
         if (bandTarget === "shoulder") {
@@ -266,10 +284,13 @@ export function bindSvg(svgEl) {
         }
         setLineEl(els[".js-band-b"], anchor, bTargetB);
         setLineEl(els[".js-band-f"], anchor, bTargetF);
+        setVisibilityEl(els[".js-band-f"], !singleProp || !swapSides);
+        setVisibilityEl(els[".js-band-b"], !singleProp || swapSides);
       }
     } else if ((eqMode === "cable" || eqMode === "machine") && anchorX !== null && anchorY !== null) {
       const cAnchorX = reflectFront ? 240.0 - anchorX : anchorX;
-      const cAtt = cableTarget === "foot" ? footF : handF;
+      setCircleEl(els[".js-anchor"], cAnchorX, anchorY);
+      const cAtt = cableTarget === "foot" ? (swapSides ? footB : footF) : (swapSides ? handB : handF);
       setLineEl(els[".js-cable"], [cAnchorX, anchorY], cAtt);
       setCircleEl(els[".js-cable-grip"], cAtt[0], cAtt[1]);
     }
@@ -289,6 +310,8 @@ export function bindSvg(svgEl) {
   }
 
   function applyPose(t, opts) {
+    const swapSides = Boolean(opts?.swapSides);
+    const unilateralMode = opts?.unilateralMode || "none";
     const pose = {
       hip_x: lerp(poseA.hip_x, poseB.hip_x, t),
       hip_y: lerp(poseA.hip_y, poseB.hip_y, t),
@@ -304,10 +327,30 @@ export function bindSvg(svgEl) {
       thigh_b: lerp(poseA.thigh_b, poseB.thigh_b, t),
       shin_b: lerp(poseA.shin_b, poseB.shin_b, t),
     };
-    renderPoseState(pose, t, Boolean(opts?.swapSides));
+    if ((unilateralMode === "arm_single" || unilateralMode === "arm_pair") && archetype !== "side_bend") {
+      if (archetype === "pull_up") {
+        pose.uarm_b = 88.0;
+        pose.farm_b = 92.0;
+      } else if (archetype === "pushup") {
+        pose.uarm_b = 195.0;
+        pose.farm_b = 175.0;
+      } else {
+        pose.uarm_b = poseA.uarm_b;
+        pose.farm_b = poseA.farm_b;
+      }
+    } else if (unilateralMode === "leg") {
+      if (archetype === "leg_extension_curl") {
+        pose.thigh_b = poseA.thigh_b;
+        pose.shin_b = poseA.shin_b;
+      } else if (archetype === "calf_raise") {
+        pose.thigh_b = poseA.thigh_b - 10.0;
+        pose.shin_b = poseA.shin_b + 38.0;
+      }
+    }
+    renderPoseState(pose, t, swapSides, unilateralMode);
   }
 
-  function applyRestBreath(phase) {
+  function applyRestBreath(phase, opts) {
     const wave = Math.sin((phase || 0) * 1.9);
     const breathAmt = 0.3 * (0.5 + 0.5 * wave);
     const pose = isFront
@@ -341,17 +384,17 @@ export function bindSvg(svgEl) {
           thigh_b: poseA.thigh_b,
           shin_b: poseA.shin_b,
         };
-    renderPoseState(pose, breathAmt, false);
+    renderPoseState(pose, breathAmt, false, opts?.unilateralMode || "none");
   }
 
-  function applyHold(phaseElapsed) {
+  function applyHold(phaseElapsed, opts) {
     const phase = phaseElapsed || 0;
     if (holdStyle === "pulse") {
-      applyPose(0.5 - 0.5 * Math.cos(phase * Math.PI));
+      applyPose(0.5 - 0.5 * Math.cos(phase * Math.PI), opts);
     } else {
       const settle = Math.min(1, phase / 0.45);
       const holdBreath = 0.92 + 0.08 * (0.5 - 0.5 * Math.cos(phase * Math.PI));
-      applyPose(settle * holdBreath);
+      applyPose(settle * holdBreath, opts);
     }
   }
 
