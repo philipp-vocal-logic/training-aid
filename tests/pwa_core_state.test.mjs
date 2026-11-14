@@ -12,6 +12,7 @@ let catalog;
 let constantsMod;
 let prescriptionMod;
 let catalogMod;
+let projectionsMod;
 let generatorMod;
 let workoutEngineMod;
 let codecMod;
@@ -24,6 +25,7 @@ before(async () => {
   constantsMod = await importDistModule(distDir, "core", "constants.js");
   prescriptionMod = await importDistModule(distDir, "core", "prescription.js");
   catalogMod = await importDistModule(distDir, "core", "catalog.js");
+  projectionsMod = await importDistModule(distDir, "core", "projections.js");
   generatorMod = await importDistModule(distDir, "core", "generator.js");
   workoutEngineMod = await importDistModule(distDir, "core", "workout-engine.js");
   codecMod = await importDistModule(distDir, "state", "codec.js");
@@ -440,7 +442,10 @@ test("ARCHETYPE_FAMILY maps all 6 coronal archetypes to expected families", () =
     assert.equal(catalogMod.familyForArchetype(arch.toUpperCase()), family);
   }
   assert.equal(catalogMod.ARCHETYPE_FAMILY.pull_up, "pull");
-  assert.equal(Object.keys(catalogMod.ARCHETYPE_FAMILY).length, 25);
+  assert.equal(catalogMod.ARCHETYPE_FAMILY.single_leg_bridge, "lower");
+  assert.equal(catalogMod.ARCHETYPE_FAMILY.single_leg_hinge, "pull");
+  assert.equal(catalogMod.ARCHETYPE_FAMILY.single_leg_squat, "lower");
+  assert.equal(Object.keys(catalogMod.ARCHETYPE_FAMILY).length, 28);
 });
 
 test("buildProgramRoutines injects Pullups and Chin-Up for pull_up_bar body_only plans", () => {
@@ -716,4 +721,187 @@ test("store.searchCatalog with filters enforces strict A-Z order and faceted fil
     tiered.map((ex) => ex.id),
     ["Press_Exact", "Press_Prefix", "A_Press_Tokens", "Z_Press_Tokens", "Meta_Chest_Builder"],
   );
+});
+
+test("normalizeCatalogExercise and projections propagate unilateral_mode and lead flags", () => {
+  const unilateral = catalogMod.normalizeCatalogExercise({
+    id: "Single_Arm_Row",
+    name: "Single Arm Row",
+    archetype: "row_pull",
+    unilateral_mode: "arm_single",
+    is_alternating: false,
+  });
+  const defaulted = catalogMod.normalizeCatalogExercise({
+    id: "Bodyweight_Squat_Custom",
+    name: "Bodyweight Squat Custom",
+    unilateral_mode: "",
+  });
+  assert.equal(unilateral.unilateral_mode, "arm_single");
+  assert.equal(defaulted.unilateral_mode, "none");
+
+  const exMap = new Map([
+    [unilateral.id, unilateral],
+    [defaulted.id, defaulted],
+  ]);
+  const card = projectionsMod.projectRoutineCard(
+    {
+      id: "r1",
+      name: "Unilateral Day",
+      intensity_level: 0,
+      exercises: [
+        { id: "i1", exercise_id: unilateral.id, sets: 3, base_reps: 10, base_weight_kg: 12 },
+        { id: "i2", exercise_id: defaulted.id, sets: 3, base_reps: 12, base_weight_kg: null },
+      ],
+    },
+    [unilateral, defaulted],
+    exMap,
+    { starting_intensity: "moderate" },
+    ["dumbbell"],
+    false,
+  );
+  assert.equal(card.lead_unilateral_mode, "arm_single");
+  assert.equal(card.lead_is_alternating, false);
+
+  const emptyCard = projectionsMod.projectRoutineCard(
+    { id: "r_empty", name: "Empty", intensity_level: 0, exercises: [] },
+    [unilateral],
+    exMap,
+    { starting_intensity: "moderate" },
+    [],
+    false,
+  );
+  assert.equal(emptyCard.lead_unilateral_mode, "none");
+  assert.equal(emptyCard.lead_is_alternating, false);
+
+  const playlist = projectionsMod.projectPlaylist(card, catalog.svgs, "normal", false);
+  assert.equal(playlist[0].unilateral_mode, "arm_single");
+  assert.equal(playlist[1].unilateral_mode, "none");
+});
+
+test("workout-engine unilateral/alternating side switching, mid-hold midRep, Left/Right cues, and native alternating", () => {
+  const session = workoutEngineMod.createWorkoutSession({
+    playlist: [
+      {
+        name: "Mountain Climbers",
+        sets: 1,
+        reps: 4,
+        rep_seconds: 2.0,
+        base_rep_seconds: 2.0,
+        is_hold: false,
+        tempo_mode: "alternating",
+        is_alternating: true,
+        unilateral_mode: "none",
+        cue_work: "Drive",
+        cue_return: "Switch",
+      },
+      {
+        name: "Alternating Curl",
+        sets: 1,
+        reps: 3,
+        rep_seconds: 2.0,
+        base_rep_seconds: 2.0,
+        is_hold: false,
+        tempo_mode: "standard",
+        is_alternating: true,
+        unilateral_mode: "arm_pair",
+        cue_work: "Curl",
+        cue_return: "Lower",
+      },
+      {
+        name: "Single Leg Squat",
+        sets: 1,
+        reps: 5,
+        rep_seconds: 2.0,
+        base_rep_seconds: 2.0,
+        is_hold: false,
+        tempo_mode: "standard",
+        is_alternating: false,
+        unilateral_mode: "leg",
+        cue_work: "Lower",
+        cue_return: "Drive",
+      },
+      {
+        name: "Side Plank",
+        sets: 1,
+        reps: 10,
+        rep_seconds: 1.0,
+        base_rep_seconds: 1.0,
+        is_hold: true,
+        tempo_mode: "hold",
+        is_alternating: false,
+        unilateral_mode: "side",
+        cue_work: "Hold",
+        cue_return: "Breathe",
+      },
+    ],
+    speedMode: "normal",
+    restSeconds: 15,
+  });
+
+  // Exercise 1: Native alternating (tempo_mode === "alternating") never flips swapSides or adds Left/Right prefix
+  session.togglePlayPause();
+  let snap = session.skipWait().snapshot;
+  assert.equal(snap.pose.unilateralMode, "none");
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Drive");
+  snap = session.advance(2.1).snapshot; // repIndex 1
+  assert.equal(snap.pose.repIndex, 1);
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Drive");
+
+  // Exercise 2: Alternating side-tracked (is_alternating: true, tempo_mode !== "alternating") flips per rep
+  session.advance(6.5); // finishes Ex 1 -> REST
+  snap = session.skipWait().snapshot; // Ex 2 ACTIVE, rep 0
+  assert.equal(snap.pose.unilateralMode, "arm_pair");
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Left \u00b7 Curl");
+  snap = session.advance(2.1).snapshot; // rep 1
+  assert.equal(snap.pose.swapSides, true);
+  assert.equal(snap.cueText, "Right \u00b7 Curl");
+  snap = session.advance(2.0).snapshot; // rep 2
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Left \u00b7 Curl");
+
+  // Exercise 3: Non-alternating unilateral set splits at Math.ceil(5 / 2) = 3; IDLE/REST keep cueText unchanged
+  const restBeforeEx3 = session.advance(2.5).snapshot;
+  assert.equal(restBeforeEx3.state, "REST");
+  assert.equal(restBeforeEx3.pose.kind, "breath");
+  assert.equal(restBeforeEx3.pose.unilateralMode, "leg");
+  assert.equal(restBeforeEx3.cueText, "Rest \u00b7 Single Leg Squat");
+
+  snap = session.skipWait().snapshot; // rep 0 -> Left
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Left \u00b7 Lower");
+  snap = session.advance(4.1).snapshot; // rep 2 (< 3) -> still Left
+  assert.equal(snap.pose.repIndex, 2);
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Left \u00b7 Lower");
+  snap = session.advance(2.0).snapshot; // rep 3 (>= 3) -> Right
+  assert.equal(snap.pose.repIndex, 3);
+  assert.equal(snap.pose.swapSides, true);
+  assert.equal(snap.cueText, "Right \u00b7 Lower");
+
+  // Exercise 4: Unilateral hold splits at ex.reps / 2 = 5.0s and fires midRep once
+  session.advance(5.0); // finishes Ex 3 -> REST
+  snap = session.skipWait().snapshot; // Ex 4 hold at 0s -> Left
+  assert.equal(snap.pose.kind, "hold");
+  assert.equal(snap.pose.unilateralMode, "side");
+  assert.equal(snap.pose.swapSides, false);
+  assert.equal(snap.cueText, "Left \u00b7 Hold");
+
+  const beforeMid = session.advance(4.5);
+  assert.equal(beforeMid.snapshot.pose.swapSides, false);
+  assert.equal(beforeMid.snapshot.cueText, "Left \u00b7 Hold");
+  assert.equal(beforeMid.events.some((e) => e.type === "midRep"), false);
+
+  const atMid = session.advance(0.6); // 5.1s >= 5.0s
+  assert.equal(atMid.snapshot.pose.swapSides, true);
+  assert.equal(atMid.snapshot.cueText, "Right \u00b7 Hold");
+  const midEvents = atMid.events.filter((e) => e.type === "midRep");
+  assert.equal(midEvents.length, 1);
+  assert.deepEqual(midEvents[0], { type: "midRep", repIndex: 0 });
+
+  const afterMid = session.advance(1.5); // 6.6s -> still Right, no duplicate midRep
+  assert.equal(afterMid.snapshot.pose.swapSides, true);
+  assert.equal(afterMid.events.some((e) => e.type === "midRep"), false);
 });

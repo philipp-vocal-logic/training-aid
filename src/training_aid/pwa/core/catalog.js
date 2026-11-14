@@ -7,6 +7,9 @@ export const ARCHETYPE_FAMILY = Object.freeze({
   calf_raise: "lower",
   glute_bridge: "lower",
   side_lunge: "lower",
+  single_leg_bridge: "lower",
+  single_leg_hinge: "pull",
+  single_leg_squat: "lower",
   pushup: "push",
   bench_press: "push",
   dip: "push",
@@ -68,6 +71,10 @@ export function normalizeCatalogExercise(rawEx) {
     cue_return: rawEx.cue_return || (hold ? "Breathe" : "\u2191 Return"),
     tempo_mode: rawEx.tempo_mode || (hold ? "hold" : "standard"),
     is_alternating: Boolean(rawEx.is_alternating),
+    unilateral_mode:
+      typeof rawEx.unilateral_mode === "string" && rawEx.unilateral_mode
+        ? rawEx.unilateral_mode
+        : "none",
     required_equipment: Array.isArray(rawEx.required_equipment) ? [...rawEx.required_equipment] : [],
   };
 }

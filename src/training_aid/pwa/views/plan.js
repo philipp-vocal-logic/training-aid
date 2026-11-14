@@ -98,6 +98,8 @@ export function renderPlanView(ctx) {
   let currentSvgKey = nextCard
     ? nextCard.lead_svg_key || `${nextCard.lead_archetype || "squat"}:body_only`
     : "squat:body_only";
+  let currentUnilateralMode = nextCard ? nextCard.lead_unilateral_mode || "none" : "none";
+  let currentIsAlternating = nextCard ? Boolean(nextCard.lead_is_alternating) : false;
 
   const svgWrap = el("div", { id: "overview-svg-wrap", className: "stage-svg-wrap" });
   setTrustedSvg(svgWrap, resolveSvgMarkup(catalog, currentSvgKey));
@@ -227,14 +229,28 @@ export function renderPlanView(ctx) {
   const previewLoop = bindPreviewLoop(scope, svgWrap, (rig) => ({
     speed: 0.38,
     tempoMode: rig && rig.tempoMode && rig.tempoMode !== "hold" ? rig.tempoMode : "standard",
+    unilateralMode: currentUnilateralMode,
+    isAlternating: currentIsAlternating,
   }));
 
-  function swapStageSvg(svgKey, fallbackArch) {
+  function swapStageSvg(svgKey, fallbackArch, unilateralMode, isAlternating) {
     const targetKey = svgKey || `${fallbackArch || "squat"}:body_only`;
-    if (targetKey === currentSvgKey) return;
+    const nextUnilateralMode = unilateralMode || "none";
+    const nextIsAlternating = Boolean(isAlternating);
+    const flagsChanged =
+      nextUnilateralMode !== currentUnilateralMode || nextIsAlternating !== currentIsAlternating;
+    if (targetKey === currentSvgKey) {
+      if (!flagsChanged) return;
+      currentUnilateralMode = nextUnilateralMode;
+      currentIsAlternating = nextIsAlternating;
+      previewLoop.rebind(svgWrap);
+      return;
+    }
     const markup = resolveSvgMarkup(catalog, targetKey);
     if (!markup) return;
     currentSvgKey = targetKey;
+    currentUnilateralMode = nextUnilateralMode;
+    currentIsAlternating = nextIsAlternating;
     setTrustedSvg(svgWrap, markup);
     previewLoop.rebind(svgWrap);
   }
@@ -283,10 +299,22 @@ export function renderPlanView(ctx) {
               ]
             );
             if (canHoverStage) {
-              scope.on(li, "mouseenter", () => swapStageSvg(row.svg_key, row.archetype));
+              scope.on(li, "mouseenter", () =>
+                swapStageSvg(
+                  row.svg_key,
+                  row.archetype,
+                  row.exercise.unilateral_mode,
+                  row.exercise.is_alternating
+                )
+              );
             }
             scope.on(li, "click", () => {
-              swapStageSvg(row.svg_key, row.archetype);
+              swapStageSvg(
+                row.svg_key,
+                row.archetype,
+                row.exercise.unilateral_mode,
+                row.exercise.is_alternating
+              );
               stageTitleEl.textContent = card.routine.name;
               stageLeadCueEl.textContent = `${row.exercise.name} \u00b7 ${row.scaled.formatted}`;
               stageLeadCueEl.hidden = false;
