@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  DEFAULT_RIG_SELECTORS,
   resolveBuiltDist,
   importDistModule,
   parseSvgOpenAttrs,
@@ -16,6 +17,8 @@ let distHandle;
 let catalog;
 let distDir;
 let motionMod;
+let previewLoopMod;
+let scopeMod;
 let presetsMod;
 let patternMod;
 let synthMod;
@@ -30,6 +33,8 @@ before(async () => {
   globalThis.AudioContext = MockAudioContext;
 
   motionMod = await importDistModule(distDir, "rig", "motion.js");
+  previewLoopMod = await importDistModule(distDir, "ui", "preview-loop.js");
+  scopeMod = await importDistModule(distDir, "ui", "scope.js");
   presetsMod = await importDistModule(distDir, "audio", "presets.js");
   patternMod = await importDistModule(distDir, "audio", "pattern.js");
   synthMod = await importDistModule(distDir, "audio", "synth.js");
@@ -51,9 +56,11 @@ test("rig/motion.js exports, FK parity & safe-grip bounds across all catalog.svg
     ".js-j-hip-b",
     ".js-j-knee-b",
     ".js-j-elbow-b",
+    ".js-anchor",
   ]) {
     assert.ok(motionMod.RIG_SELECTORS.includes(sel), `Missing selector ${sel}`);
   }
+  assert.deepEqual(motionMod.RIG_SELECTORS, DEFAULT_RIG_SELECTORS);
 
   const entries = Object.entries(catalog.svgs);
   const expectedCount = new Set(entries.map(([k]) => k.split(":")[0])).size * 7;
@@ -487,4 +494,334 @@ test("rig/motion.js coronal view='front' bilateral FK, isometric swapSides, prop
   assert.ok(Math.abs(headRestPeak[1] - (headRest0[1] - 0.4)) < 0.03);
   assert.ok(Number(breathEls[".js-farm-f"].attrs.x2) > handFRest0);
   assert.ok(Number(breathEls[".js-farm-b"].attrs.x2) < handBRest0);
+});
+
+test("rig/motion.js unilateralMode overrides (arm_single, arm_pair, leg, side), closed-chain bounds, and .js-anchor/.js-cable reflection", () => {
+  const baseBones = {
+    lumbar: 22.0,
+    thoracic: 22.0,
+    neck: 19.0,
+    uarm: 25.0,
+    farm: 24.0,
+    thigh: 36.0,
+    shin: 36.0,
+    back_dx: -5.0,
+    back_dy: -2.0,
+  };
+  const poseA = {
+    hip_x: 120.0,
+    hip_y: 96.0,
+    lumbar: -90.0,
+    thoracic: -90.0,
+    neck: -90.0,
+    uarm_f: 85.0,
+    farm_f: 80.0,
+    uarm_b: 95.0,
+    farm_b: 100.0,
+    thigh_f: 88.0,
+    shin_f: 90.0,
+    thigh_b: 92.0,
+    shin_b: 90.0,
+  };
+  const poseB = {
+    ...poseA,
+    uarm_f: 35.0,
+    farm_f: -45.0,
+    uarm_b: 145.0,
+    farm_b: 225.0,
+    thigh_f: 20.0,
+    shin_f: 15.0,
+    thigh_b: 160.0,
+    shin_b: 165.0,
+  };
+
+  function makeRig(extraDataset = {}, pA = poseA, pB = poseB) {
+    const els = makeRigElementMap(motionMod.RIG_SELECTORS);
+    const rig = motionMod.bindSvg({
+      dataset: {
+        archetype: "curl",
+        bones: JSON.stringify(baseBones),
+        poseA: JSON.stringify(pA),
+        poseB: JSON.stringify(pB),
+        tempoMode: "standard",
+        holdStyle: "settle",
+        equipment: "dumbbell",
+        ...extraDataset,
+      },
+      querySelector: (sel) => els[sel] || null,
+    });
+    return { els, rig };
+  }
+
+  // 1. arm_single vs arm_pair: idle arm freezes at poseA, singleProp toggles visibility on dumbbell/kettlebells/bands
+  const dbRig = makeRig({ equipment: "dumbbell" });
+  dbRig.rig.applyPose(0, { swapSides: false, unilateralMode: "none" });
+  const idleHandBAtA = [dbRig.els[".js-farm-b"].attrs.x2, dbRig.els[".js-farm-b"].attrs.y2];
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-cap"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "visible");
+
+  dbRig.rig.applyPose(1, { swapSides: false, unilateralMode: "arm_single" });
+  assert.deepEqual([dbRig.els[".js-farm-b"].attrs.x2, dbRig.els[".js-farm-b"].attrs.y2], idleHandBAtA);
+  assert.notEqual(dbRig.els[".js-farm-f"].attrs.y2, idleHandBAtA[1]);
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-cap"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "hidden");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.cx, dbRig.els[".js-farm-b"].attrs.x2);
+
+  dbRig.rig.applyPose(1, { swapSides: true, unilateralMode: "arm_single" });
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "hidden");
+  assert.equal(dbRig.els[".js-weight-cap"].attrs.visibility, "hidden");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight"].attrs.cx, dbRig.els[".js-farm-f"].attrs.x2);
+
+  // applyHold and applyRestBreath respect unilateralMode and swapSides
+  dbRig.rig.applyHold(0.6, { swapSides: true, unilateralMode: "arm_single" });
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "hidden");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "visible");
+  dbRig.rig.applyRestBreath(0.5, { unilateralMode: "arm_single" });
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "hidden");
+
+  // arm_pair freezes idle arm at poseA but keeps BOTH dumbbells visible
+  dbRig.rig.applyPose(1, { swapSides: false, unilateralMode: "arm_pair" });
+  assert.deepEqual([dbRig.els[".js-farm-b"].attrs.x2, dbRig.els[".js-farm-b"].attrs.y2], idleHandBAtA);
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-cap"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "visible");
+  dbRig.rig.applyPose(1, { swapSides: true, unilateralMode: "arm_pair" });
+  assert.equal(dbRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(dbRig.els[".js-weight-b"].attrs.visibility, "visible");
+
+  // Kettlebells singleProp visibility
+  const kbRig = makeRig({ equipment: "kettlebells" });
+  kbRig.rig.applyPose(0.5, { swapSides: false, unilateralMode: "arm_single" });
+  assert.equal(kbRig.els[".js-kb-handle-f"].attrs.visibility, "visible");
+  assert.equal(kbRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(kbRig.els[".js-weight-b"].attrs.visibility, "hidden");
+  kbRig.rig.applyPose(0.5, { swapSides: true, unilateralMode: "arm_single" });
+  assert.equal(kbRig.els[".js-kb-handle-f"].attrs.visibility, "hidden");
+  assert.equal(kbRig.els[".js-weight"].attrs.visibility, "hidden");
+  assert.equal(kbRig.els[".js-weight-b"].attrs.visibility, "visible");
+
+  // 2. Closed-chain overrides: pull_up [88, 92] and pushup [195, 175]
+  for (const [archKey, expectedUarmB, expectedFarmB] of [
+    ["pull_up", 88.0, 92.0],
+    ["pushup", 195.0, 175.0],
+  ]) {
+    const svgMarkup = catalog.svgs[`${archKey}:body_only`];
+    const dataset = {};
+    for (const [k, v] of Object.entries(parseSvgOpenAttrs(svgMarkup))) {
+      if (k.startsWith("data-")) dataset[toCamel(k.slice(5))] = v;
+    }
+    const els = makeRigElementMap(motionMod.RIG_SELECTORS);
+    const rig = motionMod.bindSvg({ dataset, querySelector: (sel) => els[sel] || null });
+    for (const swapSides of [false, true]) {
+      rig.applyPose(1, { swapSides, unilateralMode: "arm_single" });
+      const idleUarm = els[swapSides ? ".js-uarm-f" : ".js-uarm-b"].attrs;
+      const idleFarm = els[swapSides ? ".js-farm-f" : ".js-farm-b"].attrs;
+      const uarmAngle = (Math.atan2(Number(idleUarm.y2) - Number(idleUarm.y1), Number(idleUarm.x2) - Number(idleUarm.x1)) * 180) / Math.PI;
+      const farmAngle = (Math.atan2(Number(idleFarm.y2) - Number(idleFarm.y1), Number(idleFarm.x2) - Number(idleFarm.x1)) * 180) / Math.PI;
+      const normDeg = (d) => ((d % 360) + 360) % 360;
+      const expU = dataset.view === "front" && swapSides ? normDeg(180 - expectedUarmB) : normDeg(expectedUarmB);
+      const expF = dataset.view === "front" && swapSides ? normDeg(180 - expectedFarmB) : normDeg(expectedFarmB);
+      assert.ok(Math.abs(normDeg(uarmAngle) - expU) < 0.2);
+      assert.ok(Math.abs(normDeg(farmAngle) - expF) < 0.2);
+      assert.ok(Number(idleFarm.x2) >= 0 && Number(idleFarm.x2) <= 240);
+      assert.ok(Number(idleFarm.y2) >= 0 && Number(idleFarm.y2) <= 174);
+    }
+  }
+
+  // 3. leg unilateralMode: leg_extension_curl idle leg freeze & calf_raise tucked leg + forefoot visibility
+  const legExtRig = makeRig({ archetype: "leg_extension_curl", equipment: "machine" });
+  legExtRig.rig.applyPose(0, { swapSides: false, unilateralMode: "none" });
+  const idleFootBAtA = [legExtRig.els[".js-shin-b"].attrs.x2, legExtRig.els[".js-shin-b"].attrs.y2];
+  legExtRig.rig.applyPose(1, { swapSides: false, unilateralMode: "leg" });
+  assert.deepEqual([legExtRig.els[".js-shin-b"].attrs.x2, legExtRig.els[".js-shin-b"].attrs.y2], idleFootBAtA);
+  assert.notEqual(legExtRig.els[".js-shin-f"].attrs.y2, idleFootBAtA[1]);
+
+  const calfDataset = {};
+  for (const [k, v] of Object.entries(parseSvgOpenAttrs(catalog.svgs["calf_raise:dumbbell"]))) {
+    if (k.startsWith("data-")) calfDataset[toCamel(k.slice(5))] = v;
+  }
+  const calfEls = makeRigElementMap(motionMod.RIG_SELECTORS);
+  const calfRig = {
+    els: calfEls,
+    rig: motionMod.bindSvg({
+      dataset: calfDataset,
+      querySelector: (sel) => calfEls[sel] || null,
+    }),
+  };
+  calfRig.rig.applyPose(0.5, { swapSides: false, unilateralMode: "none" });
+  assert.equal(calfRig.els[".js-forefoot-f"].attrs.visibility, "visible");
+  assert.equal(calfRig.els[".js-forefoot-b"].attrs.visibility, "visible");
+  const bilateralFootBY = Number(calfRig.els[".js-shin-b"].attrs.y2);
+
+  calfRig.rig.applyPose(0.5, { swapSides: false, unilateralMode: "leg" });
+  assert.equal(calfRig.els[".js-forefoot-f"].attrs.visibility, "visible");
+  assert.equal(calfRig.els[".js-forefoot-b"].attrs.visibility, "hidden");
+  assert.ok(Number(calfRig.els[".js-shin-b"].attrs.y2) < bilateralFootBY - 4.0);
+
+  calfRig.rig.applyPose(0.5, { swapSides: true, unilateralMode: "leg" });
+  assert.equal(calfRig.els[".js-forefoot-f"].attrs.visibility, "hidden");
+  assert.equal(calfRig.els[".js-forefoot-b"].attrs.visibility, "visible");
+
+  // 4. side unilateralMode: mirrors pose via swapSides and toggles single-implement visibility (without freezing side_bend arm)
+  const sideRig = makeRig({ archetype: "side_bend", view: "front", equipment: "dumbbell" });
+  sideRig.rig.applyPose(1, { swapSides: false, unilateralMode: "side" });
+  assert.equal(sideRig.els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(sideRig.els[".js-weight-b"].attrs.visibility, "hidden");
+  const sideHead0 = Number(sideRig.els[".js-head"].attrs.cx);
+  sideRig.rig.applyPose(1, { swapSides: true, unilateralMode: "side" });
+  assert.equal(sideRig.els[".js-weight"].attrs.visibility, "hidden");
+  assert.equal(sideRig.els[".js-weight-b"].attrs.visibility, "visible");
+  assert.ok(Math.abs(Number(sideRig.els[".js-head"].attrs.cx) - (240 - sideHead0)) < 0.03);
+
+  // 5. .js-anchor reflection sync & .js-cable + .js-cable-grip attachment to active limb
+  const bandRig = makeRig({
+    view: "front",
+    equipment: "bands",
+    bandTarget: "hand",
+    anchorX: "184",
+    anchorY: "168",
+  });
+  bandRig.rig.applyPose(0.5, { swapSides: false, unilateralMode: "arm_single" });
+  assert.equal(bandRig.els[".js-anchor"].attrs.cx, "184.00");
+  assert.equal(bandRig.els[".js-anchor"].attrs.cy, "168.00");
+  assert.equal(bandRig.els[".js-band-f"].attrs.visibility, "visible");
+  assert.equal(bandRig.els[".js-band-b"].attrs.visibility, "hidden");
+
+  bandRig.rig.applyPose(0.5, { swapSides: true, unilateralMode: "arm_single" });
+  assert.equal(bandRig.els[".js-anchor"].attrs.cx, "56.00");
+  assert.equal(bandRig.els[".js-anchor"].attrs.cy, "168.00");
+  assert.equal(bandRig.els[".js-band-f"].attrs.visibility, "hidden");
+  assert.equal(bandRig.els[".js-band-b"].attrs.visibility, "visible");
+
+  const cableHandRig = makeRig({
+    view: "front",
+    equipment: "cable",
+    cableTarget: "hand",
+    anchorX: "182",
+    anchorY: "48",
+  });
+  cableHandRig.rig.applyPose(0.5, { swapSides: false, unilateralMode: "arm_single" });
+  assert.equal(cableHandRig.els[".js-anchor"].attrs.cx, "182.00");
+  assert.equal(cableHandRig.els[".js-anchor"].attrs.cy, "48.00");
+  assert.equal(cableHandRig.els[".js-cable"].attrs.x2, cableHandRig.els[".js-farm-f"].attrs.x2);
+  assert.equal(cableHandRig.els[".js-cable"].attrs.y2, cableHandRig.els[".js-farm-f"].attrs.y2);
+  assert.equal(cableHandRig.els[".js-cable-grip"].attrs.cx, cableHandRig.els[".js-farm-f"].attrs.x2);
+  assert.equal(cableHandRig.els[".js-cable-grip"].attrs.cy, cableHandRig.els[".js-farm-f"].attrs.y2);
+
+  cableHandRig.rig.applyPose(0.5, { swapSides: true, unilateralMode: "arm_single" });
+  assert.equal(cableHandRig.els[".js-anchor"].attrs.cx, "58.00");
+  assert.equal(cableHandRig.els[".js-cable"].attrs.x2, cableHandRig.els[".js-farm-b"].attrs.x2);
+  assert.equal(cableHandRig.els[".js-cable"].attrs.y2, cableHandRig.els[".js-farm-b"].attrs.y2);
+  assert.equal(cableHandRig.els[".js-cable-grip"].attrs.cx, cableHandRig.els[".js-farm-b"].attrs.x2);
+  assert.equal(cableHandRig.els[".js-cable-grip"].attrs.cy, cableHandRig.els[".js-farm-b"].attrs.y2);
+
+  const cableFootRig = makeRig({
+    view: "front",
+    equipment: "cable",
+    cableTarget: "foot",
+    anchorX: "190",
+    anchorY: "168",
+  });
+  cableFootRig.rig.applyPose(0.5, { swapSides: false, unilateralMode: "leg" });
+  assert.equal(cableFootRig.els[".js-cable"].attrs.x2, cableFootRig.els[".js-shin-f"].attrs.x2);
+  assert.equal(cableFootRig.els[".js-cable-grip"].attrs.cx, cableFootRig.els[".js-shin-f"].attrs.x2);
+  cableFootRig.rig.applyPose(0.5, { swapSides: true, unilateralMode: "leg" });
+  assert.equal(cableFootRig.els[".js-cable"].attrs.x2, cableFootRig.els[".js-shin-b"].attrs.x2);
+  assert.equal(cableFootRig.els[".js-cable-grip"].attrs.cx, cableFootRig.els[".js-shin-b"].attrs.x2);
+});
+
+test("ui/preview-loop.js bindPreviewLoop alternates swapSides per cycle and forwards unilateralMode", () => {
+  const rafQueue = new Map();
+  let nextRafId = 1;
+  let reducedMotion = false;
+  globalThis.requestAnimationFrame = (cb) => {
+    const id = nextRafId++;
+    rafQueue.set(id, cb);
+    return id;
+  };
+  globalThis.cancelAnimationFrame = (id) => {
+    rafQueue.delete(id);
+  };
+  globalThis.matchMedia = () => ({
+    get matches() {
+      return reducedMotion;
+    },
+    addEventListener() {},
+    removeEventListener() {},
+  });
+
+  function flushFrame(ts) {
+    const entries = [...rafQueue.entries()];
+    rafQueue.clear();
+    for (const [, cb] of entries) cb(ts);
+  }
+
+  const markup = catalog.svgs["curl:dumbbell"];
+  const dataset = {};
+  for (const [k, v] of Object.entries(parseSvgOpenAttrs(markup))) {
+    if (k.startsWith("data-")) dataset[toCamel(k.slice(5))] = v;
+  }
+  const els = makeRigElementMap(motionMod.RIG_SELECTORS);
+  const svgMock = {
+    dataset,
+    querySelector: (sel) => els[sel] || null,
+  };
+
+  let loopCfg = {
+    speed: 12.0,
+    tempoMode: "standard",
+    unilateralMode: "arm_single",
+    isAlternating: true,
+  };
+
+  const scope = scopeMod.createViewScope();
+  const loop = previewLoopMod.bindPreviewLoop(scope, svgMock, () => loopCfg);
+
+  // Initial tick at t=1000ms (dt=0, cycleCount=0 -> swapSides=false)
+  flushFrame(1000);
+  assert.equal(els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "hidden");
+
+  // Advance 100ms at speed=12 -> dt*speed = 1.2 -> cycleCount=1 -> swapSides=true
+  flushFrame(1100);
+  assert.equal(els[".js-weight"].attrs.visibility, "hidden");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "visible");
+
+  // Advance another 100ms at speed=12 -> rawNext = 0.2 + 1.2 = 1.4 -> cycleCount=2 -> swapSides=false
+  flushFrame(1200);
+  assert.equal(els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "hidden");
+
+  // Advance to cycleCount=3 (swapSides=true), then rebind() resets cycleCount=0 (swapSides=false)
+  flushFrame(1300);
+  assert.equal(els[".js-weight"].attrs.visibility, "hidden");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "visible");
+
+  loop.rebind();
+  assert.equal(els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "hidden");
+
+  // Native tempoMode === "alternating" never flips swapSides
+  loopCfg = {
+    speed: 12.0,
+    tempoMode: "alternating",
+    unilateralMode: "arm_single",
+    isAlternating: true,
+  };
+  flushFrame(1400);
+  flushFrame(1500);
+  assert.equal(els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "hidden");
+
+  // Reduced motion in ensure() forwards unilateralMode & swapSides
+  reducedMotion = true;
+  loop.ensure();
+  assert.equal(els[".js-weight"].attrs.visibility, "visible");
+  assert.equal(els[".js-weight-b"].attrs.visibility, "hidden");
+
+  scope.dispose();
 });

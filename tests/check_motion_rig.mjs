@@ -15,11 +15,13 @@ if (typeof bindSvg !== "function" || !Array.isArray(RIG_SELECTORS)) {
   throw new Error("motion.js must export bindSvg and RIG_SELECTORS");
 }
 
+const UNILATERAL_MODES = ["none", "arm_single", "arm_pair", "leg", "side"];
 const failures = [];
 for (const item of combos) {
   const els = makeRigElementMap(RIG_SELECTORS);
   const rig = bindSvg({
     dataset: {
+      archetype: item.arch,
       bones: JSON.stringify(item.bones),
       poseA: JSON.stringify(item.pose_a),
       poseB: JSON.stringify(item.pose_b),
@@ -33,14 +35,19 @@ for (const item of combos) {
   });
 
   const runs = [];
-  for (const swap of [false, true]) {
-    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-      runs.push([true, () => rig.applyPose(t, { swapSides: swap })]);
+  for (const unilateralMode of UNILATERAL_MODES) {
+    for (const swap of [false, true]) {
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+        runs.push([true, () => rig.applyPose(t, { swapSides: swap, unilateralMode })]);
+      }
+      runs.push(
+        [false, () => rig.applyHold(0.25, { swapSides: swap, unilateralMode })],
+        [false, () => rig.applyHold(1.0, { swapSides: swap, unilateralMode })],
+      );
     }
-  }
-  runs.push([false, () => rig.applyHold(0.25)], [false, () => rig.applyHold(1.0)]);
-  for (const ph of [0, 0.8, 2.4]) {
-    runs.push([false, () => rig.applyRestBreath(ph)]);
+    for (const ph of [0, 0.8, 2.4]) {
+      runs.push([false, () => rig.applyRestBreath(ph, { unilateralMode })]);
+    }
   }
 
   for (const [isPoseRun, stepFn] of runs) {
