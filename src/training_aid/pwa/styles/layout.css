@@ -321,6 +321,12 @@
     padding: 0.3rem 0.6rem;
     font-size: 0.82rem;
   }
+
+  .workout-hud-top .hud-icon-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 0.55rem;
+  }
 }
 
 @media (max-width: 400px) {

@@ -9,7 +9,17 @@ import {
 } from "../core/constants.js";
 import { createWorkoutSession } from "../core/workout-engine.js";
 import { bindSvg, prefersReducedMotion, tempoCurve, turnaroundForMode } from "../rig/motion.js";
-import { el, makeTuneIcon, makeVolumeOffIcon, makeVolumeOnIcon, resolveSvgMarkup, setTrustedSvg } from "../ui/dom.js";
+import {
+  el,
+  makeFullscreenExitIcon,
+  makeFullscreenIcon,
+  makeTuneIcon,
+  makeVolumeOffIcon,
+  makeVolumeOnIcon,
+  resolveSvgMarkup,
+  setTrustedSvg,
+} from "../ui/dom.js";
+import { createFullscreen } from "../ui/fullscreen.js";
 import { closeModal, openModal } from "../ui/modal.js";
 import { createViewScope } from "../ui/scope.js";
 import { createWakeLock } from "../ui/wake-lock.js";
@@ -91,6 +101,13 @@ export function renderWorkoutView(ctx) {
   const iconVolOn = makeVolumeOnIcon();
   const iconVolOff = makeVolumeOffIcon();
   const soundBtn = el("button", { type: "button", id: "sound-toggle", className: "hud-icon-btn", "aria-label": "Sound" }, [iconVolOn, iconVolOff]);
+  const iconFsEnter = makeFullscreenIcon();
+  const iconFsExit = makeFullscreenExitIcon();
+  const fsBtn = el(
+    "button",
+    { type: "button", id: "fs-toggle", className: "hud-icon-btn", hidden: true, "aria-label": "Enter fullscreen", "aria-pressed": "false" },
+    [iconFsEnter, iconFsExit]
+  );
 
   const getExSvgMarkup = (ex) => ex.svg_markup || resolveSvgMarkup(catalog, ex.svg_key || ex.archetype, ex.eq_mode);
   const svgHolder = el("div", { id: "svg-holder" });
@@ -106,7 +123,7 @@ export function renderWorkoutView(ctx) {
   const stageEl = el("div", { id: "coach-stage" }, [
     el("header", { className: "workout-hud-top" }, [
       el("div", { className: "hud-title-cluster" }, [exitBtn, stepProgressEl, el("div", { className: "min-w-0" }, [titleEl, howToEl]), weightEl]),
-      el("div", { className: "hud-actions" }, [tuneBtn, soundBtn]),
+      el("div", { className: "hud-actions" }, [tuneBtn, soundBtn, fsBtn]),
     ]),
     canvasTapArea,
     phaseCueEl,
@@ -140,6 +157,18 @@ export function renderWorkoutView(ctx) {
     iconVolOff.style.display = muted ? "block" : "none";
   }
   syncSoundUi();
+
+  const fullscreen = createFullscreen(scope, { onChange: syncFsUi });
+  function syncFsUi() {
+    const supported = fullscreen.isSupported();
+    const active = fullscreen.isActive();
+    fsBtn.hidden = !supported;
+    fsBtn.setAttribute("aria-pressed", active ? "true" : "false");
+    fsBtn.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+    iconFsEnter.style.display = active ? "none" : "block";
+    iconFsExit.style.display = active ? "block" : "none";
+  }
+  syncFsUi();
 
   let rig = bindSvg(svgHolder.querySelector("svg"));
   let boundExIdx = 0, lastDiscretePoseKey = null, lastFrameTs = null, rafId = null, durationMinutes = 25;
@@ -279,6 +308,7 @@ export function renderWorkoutView(ctx) {
   }
 
   scope.on(soundBtn, "click", () => { store.setSoundTheme(sound.toggleMute()); sound.ensureAudio(); syncSoundUi(); });
+  scope.on(fsBtn, "click", () => { fullscreen.toggle(); });
   scope.on(tuneBtn, "click", () => {
     const snap = session.getSnapshot();
     const wasRunning = snap.state !== "IDLE" && snap.state !== "FINISHED" && !snap.paused;

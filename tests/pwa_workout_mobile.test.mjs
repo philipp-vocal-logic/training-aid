@@ -152,6 +152,173 @@ test("ui/wake-lock.js: acquire, deduplicate, pending cancellation, OS release ev
   assert.equal(mock.sentinels.at(-1).releaseCalls, 1);
 });
 
+test("ui/fullscreen.js: feature detection, standalone suppression, display-mode:fullscreen active safety, WebKit fallback, rejection safety, and cleanup", async () => {
+  const scopeMod = await importDistModule(distDir, "ui", "scope.js");
+  const fsMod = await importDistModule(distDir, "ui", "fullscreen.js");
+
+  const makeMql = (initial = false) => {
+    const listeners = new Set();
+    return {
+      matches: initial,
+      addEventListener(ev, fn, opts) {
+        if (ev !== "change") return;
+        listeners.add(fn);
+        if (opts && opts.signal) opts.signal.addEventListener("abort", () => listeners.delete(fn), { once: true });
+      },
+      removeEventListener(_ev, fn) {
+        listeners.delete(fn);
+      },
+      setMatches(next) {
+        this.matches = Boolean(next);
+        for (const fn of [...listeners]) fn({ matches: this.matches });
+      },
+    };
+  };
+
+  // 1. Missing Fullscreen API (e.g., iPhone Safari) -> unsupported no-op
+  const noopScope = scopeMod.createViewScope();
+  const noopFs = fsMod.createFullscreen(noopScope, { doc: { documentElement: {} }, win: {}, nav: {} });
+  assert.equal(noopFs.isSupported(), false);
+  assert.equal(noopFs.isActive(), false);
+  assert.equal(noopFs.toggle(), false);
+  noopScope.dispose();
+
+  // 2. Installed standalone PWA -> hidden/unsupported even when Fullscreen API exists
+  const standaloneMql = makeMql(true);
+  const fullscreenMql = makeMql(false);
+  const winMock = {
+    matchMedia: (q) => (q.includes("standalone") ? standaloneMql : fullscreenMql),
+  };
+  const docListeners = new Map();
+  const requestCalls = [];
+  let exitCalls = 0;
+  let shouldReject = false;
+  const rootEl = {
+    requestFullscreen(opts) {
+      requestCalls.push(opts);
+      if (shouldReject) return Promise.reject(new Error("Gesture required"));
+      docMock.fullscreenElement = rootEl;
+      fullscreenMql.setMatches(true);
+      docMock.dispatch("fullscreenchange");
+      return Promise.resolve();
+    },
+  };
+  const docMock = {
+    fullscreenEnabled: true,
+    fullscreenElement: null,
+    documentElement: rootEl,
+    exitFullscreen() {
+      exitCalls += 1;
+      docMock.fullscreenElement = null;
+      fullscreenMql.setMatches(false);
+      docMock.dispatch("fullscreenchange");
+      return Promise.resolve();
+    },
+    addEventListener(ev, fn, opts) {
+      if (!docListeners.has(ev)) docListeners.set(ev, new Set());
+      const set = docListeners.get(ev);
+      set.add(fn);
+      if (opts && opts.signal) opts.signal.addEventListener("abort", () => set.delete(fn), { once: true });
+    },
+    removeEventListener(ev, fn) {
+      docListeners.get(ev)?.delete(fn);
+    },
+    dispatch(ev) {
+      for (const fn of [...(docListeners.get(ev) || [])]) fn({ type: ev });
+    },
+  };
+
+  const scope = scopeMod.createViewScope();
+  let changeEvents = 0;
+  const ctrl = fsMod.createFullscreen(scope, {
+    doc: docMock,
+    win: winMock,
+    nav: {},
+    onChange: () => {
+      changeEvents += 1;
+    },
+  });
+  assert.equal(ctrl.isSupported(), false, "Installed standalone PWA must suppress fullscreen toggle");
+  assert.equal(ctrl.enter(), false);
+
+  // Legacy iOS navigator.standalone === true also suppresses
+  const iosStandaloneScope = scopeMod.createViewScope();
+  const iosCtrl = fsMod.createFullscreen(iosStandaloneScope, {
+    doc: docMock,
+    win: { matchMedia: () => makeMql(false) },
+    nav: { standalone: true },
+  });
+  assert.equal(iosCtrl.isSupported(), false);
+  iosStandaloneScope.dispose();
+
+  // 3. Switching out of standalone into normal browser tab -> supported!
+  standaloneMql.setMatches(false);
+  assert.equal(ctrl.isSupported(), true);
+  assert.ok(changeEvents >= 1);
+
+  // Entering fullscreen flips (display-mode: fullscreen) to true, yet isSupported() MUST remain true while active
+  assert.equal(ctrl.toggle(), true);
+  await Promise.resolve();
+  assert.equal(requestCalls.length, 1);
+  assert.deepEqual(requestCalls[0], { navigationUI: "show" });
+  assert.equal(ctrl.isActive(), true);
+  assert.equal(fullscreenMql.matches, true);
+  assert.equal(ctrl.isSupported(), true, "#fs-toggle must stay visible while browser fullscreen is active");
+
+  // Toggle again exits fullscreen
+  assert.equal(ctrl.toggle(), true);
+  await Promise.resolve();
+  assert.equal(exitCalls, 1);
+  assert.equal(ctrl.isActive(), false);
+
+  // 4. Rejection is swallowed cleanly and allows subsequent enter()
+  shouldReject = true;
+  assert.equal(ctrl.enter(), true);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(ctrl.isActive(), false);
+
+  shouldReject = false;
+  assert.equal(ctrl.enter(), true);
+  await Promise.resolve();
+  assert.equal(ctrl.isActive(), true);
+
+  // 5. Scope disposal while active automatically exits fullscreen
+  scope.dispose();
+  await Promise.resolve();
+  assert.equal(exitCalls, 2);
+  assert.equal(ctrl.isActive(), false);
+
+  // 6. WebKit-prefixed fallback (e.g., iPadOS Safari)
+  const wkScope = scopeMod.createViewScope();
+  let wkExits = 0;
+  const wkRoot = {
+    webkitRequestFullscreen() {
+      wkDoc.webkitFullscreenElement = wkRoot;
+      return Promise.resolve();
+    },
+  };
+  const wkDoc = {
+    webkitFullscreenEnabled: true,
+    webkitFullscreenElement: null,
+    documentElement: wkRoot,
+    webkitExitFullscreen() {
+      wkExits += 1;
+      wkDoc.webkitFullscreenElement = null;
+      return Promise.resolve();
+    },
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  const wkCtrl = fsMod.createFullscreen(wkScope, { doc: wkDoc, win: {}, nav: {} });
+  assert.equal(wkCtrl.isSupported(), true);
+  wkCtrl.toggle();
+  await Promise.resolve();
+  assert.equal(wkCtrl.isActive(), true);
+  wkScope.dispose();
+  assert.equal(wkExits, 1);
+});
+
 test("audio/controller.js: navigator.audioSession.type syncs to 'playback' when active and 'auto' when muted/stopped", async () => {
   globalThis.window = globalThis;
   globalThis.AudioContext = MockAudioContext;
@@ -201,7 +368,7 @@ test("audio/controller.js: navigator.audioSession.type syncs to 'playback' when 
   safeCtrl.stopAll();
 });
 
-test("views/workout.js: Wake Lock lifecycle, #fs-toggle removal, and #workout-tune-btn modal pause/resume/settings", async () => {
+test("views/workout.js: Wake Lock lifecycle, progressive-disclosure #fs-toggle, and #workout-tune-btn modal pause/resume/settings", async () => {
   const env = installBrowserEnv({
     catalog,
     initialHash: "#setup",
@@ -238,14 +405,16 @@ test("views/workout.js: Wake Lock lifecycle, #fs-toggle removal, and #workout-tu
 
   setHash("#workout/adhoc");
 
-  // #fs-toggle is removed; top HUD .hud-actions renders only #workout-tune-btn and #sound-toggle
-  assert.equal(docRoot.getElementById("fs-toggle"), null, "#fs-toggle must not exist");
+  // Without Fullscreen API (e.g., iPhone Safari), #fs-toggle is hidden while .hud-actions mounts the 3 icon buttons
+  const fsBtnDefault = docRoot.getElementById("fs-toggle");
+  assert.ok(Boolean(fsBtnDefault), "#fs-toggle button must be mounted in .hud-actions");
+  assert.equal(fsBtnDefault.hidden, true, "#fs-toggle must be hidden when Fullscreen API is unavailable");
   const hudTop = appRoot.querySelector(".workout-hud-top");
   const hudActions = hudTop.querySelector(".hud-actions");
   assert.deepEqual(
     hudActions.children.map((c) => c.id),
-    ["workout-tune-btn", "sound-toggle"],
-    "Top HUD .hud-actions must only render #workout-tune-btn and #sound-toggle"
+    ["workout-tune-btn", "sound-toggle", "fs-toggle"],
+    "Top HUD .hud-actions must render #workout-tune-btn, #sound-toggle, and #fs-toggle"
   );
   assert.equal(hudTop.querySelector("#speed-mode-select"), null);
   assert.equal(hudTop.querySelector("#rest-seconds-select"), null);
@@ -370,6 +539,58 @@ test("views/workout.js: Wake Lock lifecycle, #fs-toggle removal, and #workout-tu
   assert.equal(viewport.dataset.state, "FINISHED");
   assert.equal(mock.sentinels.at(-1).released, true);
 
+  // Remount #workout/r1 with Fullscreen API enabled in browser tab -> #fs-toggle visible, interactive, and exits on route change
+  const fsRequests = [];
+  let fsExits = 0;
+  globalThis.document.fullscreenEnabled = true;
+  globalThis.document.fullscreenElement = null;
+  globalThis.document.documentElement.requestFullscreen = (opts) => {
+    fsRequests.push(opts);
+    globalThis.document.fullscreenElement = globalThis.document.documentElement;
+    docRoot.dispatchEvent({ type: "fullscreenchange" });
+    return Promise.resolve();
+  };
+  globalThis.document.exitFullscreen = () => {
+    fsExits += 1;
+    globalThis.document.fullscreenElement = null;
+    docRoot.dispatchEvent({ type: "fullscreenchange" });
+    return Promise.resolve();
+  };
+
+  setHash("#workout/r1");
+  const fsBtn = docRoot.getElementById("fs-toggle");
+  const enterIcon = docRoot.getElementById("icon-fs-enter");
+  const exitIcon = docRoot.getElementById("icon-fs-exit");
+  assert.equal(fsBtn.hidden, false, "#fs-toggle must be visible in fullscreen-capable browser tabs");
+  assert.equal(fsBtn.getAttribute("aria-pressed"), "false");
+  assert.equal(fsBtn.getAttribute("aria-label"), "Enter fullscreen");
+  assert.equal(enterIcon.style.display, "block");
+  assert.equal(exitIcon.style.display, "none");
+
+  fsBtn.click();
+  await Promise.resolve();
+  assert.equal(fsRequests.length, 1);
+  assert.deepEqual(fsRequests[0], { navigationUI: "show" });
+  assert.equal(fsBtn.getAttribute("aria-pressed"), "true");
+  assert.equal(fsBtn.getAttribute("aria-label"), "Exit fullscreen");
+  assert.equal(enterIcon.style.display, "none");
+  assert.equal(exitIcon.style.display, "block");
+
+  // Navigating away from #workout/r1 automatically exits browser fullscreen
+  setHash("#plan");
+  await Promise.resolve();
+  assert.equal(fsExits, 1);
+  assert.equal(globalThis.document.fullscreenElement, null);
+
+  // In standalone PWA mode, #fs-toggle stays hidden even when fullscreenEnabled is true
+  globalThis.matchMedia = (q) => ({
+    matches: q.includes("display-mode: standalone"),
+    addEventListener() {},
+    removeEventListener() {},
+  });
+  setHash("#workout/r1");
+  assert.equal(docRoot.getElementById("fs-toggle").hidden, true);
+
   appMod.teardownActiveView();
 });
 
@@ -399,6 +620,13 @@ test("ui/dom.js <details open> + makeTuneIcon, catalog-picker disclosures, and #
   assert.equal(tuneIcon.getAttribute("width"), "18");
   assert.equal(tuneIcon.getAttribute("height"), "18");
   assert.equal(tuneIcon.getAttribute("aria-hidden"), "true");
+
+  const fsEnterIcon = domMod.makeFullscreenIcon();
+  const fsExitIcon = domMod.makeFullscreenExitIcon();
+  assert.equal(fsEnterIcon.getAttribute("id"), "icon-fs-enter");
+  assert.equal(fsEnterIcon.getAttribute("aria-hidden"), "true");
+  assert.equal(fsExitIcon.getAttribute("id"), "icon-fs-exit");
+  assert.equal(fsExitIcon.getAttribute("aria-hidden"), "true");
 
   // 2. catalog-picker.js: default limit=48, picker-filters-disclosure badge, and showEquipmentFilter: false
   const pScope = scopeMod.createViewScope();
