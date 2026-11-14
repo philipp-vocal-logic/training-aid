@@ -1,6 +1,14 @@
 # Training Aid
 
+<a href="https://philipp-vocal-logic.github.io/training-aid/"><img src="./docs/qr.svg" align="right" width="128" height="128" alt="QR code to open Training Aid on your phone" /></a>
+
 Minimal, zero-backend, offline-first guided workout PWA built with Python ≥3.13 and zero-build native ES Modules.
+
+**[Launch Live PWA →](https://philipp-vocal-logic.github.io/training-aid/)**
+
+*On desktop? Scan the QR code to install on your phone (100% local storage — no cloud sync).*
+
+<br clear="right" />
 
 ## Screens
 
